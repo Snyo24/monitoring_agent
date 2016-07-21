@@ -1,6 +1,7 @@
 #ifndef _MYSQLC_H_
 #define _MYSQLC_H_
 
+#include "snyohash.h"
 #include <mysql.h>
 
 #define DB_HOST "localhost"
@@ -10,6 +11,8 @@
 
 void *mysql_routine(void *_agent);
 
-size_t getResultByQuery(void *buf, char *query, MYSQL *mysql);
+void get_mysql_metadata(MYSQL *mysql, hash_t *hash_table);
+void get_CRUD_statistics(MYSQL *mysql, hash_t *metric_table);
+MYSQL_RES * query_result(MYSQL *mysql, char *query);
 
 #endif

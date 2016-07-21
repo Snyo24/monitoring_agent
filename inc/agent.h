@@ -6,7 +6,7 @@
 
 #include <pthread.h>
 
-#define STORAGE_SIZE 3
+#define STORAGE_SIZE 2
 
 typedef struct _agent_profile {
 	char *name;
@@ -15,7 +15,7 @@ typedef struct _agent_profile {
 	timestamp last_update; // nanosec
 	int period; // sec
 
-	// Sync at the beginning of the thread run
+	// Synchronize variables
 	pthread_mutex_t sync;
 	pthread_cond_t synced;
 
@@ -23,14 +23,16 @@ typedef struct _agent_profile {
 	void *(*collect_routine)(void *);
 	pthread_t running_thread;
 
-	// Sync for read and write
+	// r/w cond var and lock
 	pthread_mutex_t access;
 	pthread_cond_t alarm;
 
 	// Storage
+	hash_t metadata;
+
 	size_t buf_start;
 	size_t buf_stored;
-	hash_t *buf[STORAGE_SIZE];
+	hash_t buf[STORAGE_SIZE];
 
 	unsigned updating : 1;
 } agent_t;

@@ -16,7 +16,6 @@ size_t agent_number;
 
 char *agent_name_list[] = {
 	"mysql"
-	, "mysql2"
 };
 
 void initialize() {
@@ -25,7 +24,6 @@ void initialize() {
 	// Add an agents to the agent table
 	hash_init(&agents, agent_number);
 	hash_insert(&agents, "mysql", create_agent("mysql", 1, mysql_routine));
-	hash_insert(&agents, "mysql2", create_agent("mysql2", 1, mysql_routine));
 
 	for(size_t i=0; i<agent_number; ++i) {
 		agent_t *agent = get_agent(agent_name_list[i]);
@@ -41,7 +39,7 @@ void initialize() {
 void finalize() {
 	for(size_t i=0; i<agent_number; ++i)
 		destroy_agent(get_agent(agent_name_list[i]));
-	hash_destroy(&agents);
+	hash_destroy(&agents, (void (*)(void *))destroy_agent);
 }
 
 void scheduler() {
@@ -115,16 +113,14 @@ void scheduler() {
 		// }
 		// make_payload();
 
-		timestamp next_loop = loop_start + NANO/2;
+		timestamp next_loop = loop_start + NANO/10;
 		timeout.tv_sec = next_loop/NANO;
 		timeout.tv_nsec = next_loop%NANO;
 		pthread_cond_timedwait(&_unused_cond, &_unused_mutex, &timeout); // never signaled
 
 		agent_t *agent = get_agent("mysql");
-		agent_t *agent2 = get_agent("mysql2");
-		char b[10000];
+		char b[1000000];
 		printf("%.*s\n", (int)agent_to_json(agent, b), b);
-		printf("%.*s\n", (int)agent_to_json(agent2, b), b);
 	}
 
 	// Finishing

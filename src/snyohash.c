@@ -68,9 +68,9 @@ void *hash_search(hash_t *hT, char *key) {
 	return hE->item;
 }
 
-void hash_destroy(hash_t *hT) {
+void hash_destroy(hash_t *hT, void (*item_destroy)(void *)) {
 	for(size_t i=0; i<hash_size(hT); ++i)
-		_hash_elem_free(hT->table[i]);
+		_hash_elem_free(hT->table[i], item_destroy);
 	free(hT->table);
 }
 
@@ -78,9 +78,11 @@ size_t hash_size(hash_t *hT) {
 	return hT->size;
 }
 
-void _hash_elem_free(struct hash_elem *hE) {
+void _hash_elem_free(struct hash_elem *hE, void (*item_destroy)(void *)) {
 	if(!hE) return;
-	_hash_elem_free(hE->next);
+	_hash_elem_free(hE->next, item_destroy);
+	if(item_destroy)
+		item_destroy(hE->item);
 	free(hE);
 }
 
