@@ -14,23 +14,29 @@ TARGETDIR	:= bin
 
 #Flags, Libraries and Includes
 CFLAGS		:= -Wall -O2 -g
-LIB			:= -L/usr/lib/x86_64-linux-gnu -ljson -lcurl -lmysqlclient -lpthread -lz -lm -lrt -ldl
-INC			:= -I$(INCDIR) -I/usr/include
+LIB			:= -L/usr/lib/x86_64-linux-gnu -lcurl -lmysqlclient -lpthread -lz -lm -lrt -ldl
+INC			:= -I$(INCDIR) -I/usr/include/mysql
 
 SOURCES		:= \
+			   main.c \
+			   aggregator.c \
+			   metric.c \
+			   mysqlc.c \
+			   util.c \
 			   agent.c \
-			   collector.c \
-			   mysql.c \
-			   util.c
+			   snyohash.c
 OBJECTS		:= \
+			   main.o \
+			   aggregator.o \
+			   metric.o \
+			   mysqlc.o \
+			   util.o \
 			   agent.o \
-			   collector.o \
-			   mysql.o \
-			   util.o
+			   snyohash.o
 _OBJECTS	:= $(addprefix $(OBJDIR)/,$(_OBJECTS))
 
 vpath %.c $(SRCDIR)
-vpath %.c $(SRCDIR)/subCollector
+vpath %.c $(SRCDIR)/agents
 vpath %.h $(INCDIR)
 
 all: directories $(TARGET)
@@ -48,9 +54,12 @@ $(TARGET): $(OBJECTS)
 clean:
 	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR)
 
-agent.o: agent.c collector.h collector.c
-collector.o: collector.c collector.h
-mysql.o: mysql.c mysql.h
+main.o: main.c
+agent.o: agent.c agent.h
+aggregator.o: aggregator.c aggregator.h
+mysqlc.o: mysqlc.c mysqlc.h
+metric.o: metric.c metric.h
 util.o: util.c util.h
+snyohash.o: snyohash.c snyohash.h
 
 .PHONY: all clean

@@ -1,8 +1,12 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-void systemMsg(char *header, char *body);
-void bytePresent(void *str, int size);
-char *append(char *_dst, void *src, int n);
+#include <stdint.h>
+
+#define NANO ((uint64_t)1000000000)
+
+typedef uint64_t timestamp;
+
+timestamp get_timestamp();
 
 #endif
