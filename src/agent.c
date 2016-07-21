@@ -99,7 +99,7 @@ size_t agent_to_json(agent_t *agent, char *_buf) {
 	return buf-_buf;
 }
 
-hash_t next_storage(agent_t *agent) {
+hash_t *next_storage(agent_t *agent) {
 	size_t idx = (agent->buf_start + agent->buf_stored)%STORAGE_SIZE;
 	if(agent->buf_stored < STORAGE_SIZE) {
 		agent->buf[idx] = (hash_t *)malloc(sizeof(hash_t));

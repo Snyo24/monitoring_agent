@@ -44,7 +44,7 @@ hash_t *fetch(agent_t *agent, timestamp ts);
 void destroy_agent(agent_t *agent);
 
 size_t agent_to_json(agent_t *agent, char *_buf);
-hash_t next_storage(agent_t *agent);
+hash_t *next_storage(agent_t *agent);
 
 void print_agent(agent_t *agent);
 
