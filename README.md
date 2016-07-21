@@ -1,8 +1,12 @@
-##Readme...
+# Readme...
 
-#Library need:
-- mysql
+## Environment:
+- Ubuntu 64bit (Linux)
+- c language
 
-#Compile and run
+## Libraries need:
+- mysql (install with apt-get)
+
+## Compile and run
 - make
 - ./test
