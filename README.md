@@ -1,6 +1,8 @@
-** Readme... **
+##Readme...
 
-library need: mysql
+#Library need:
+- mysql
 
-[make]
-[./test]
+#Compile and run
+- make
+- ./test
