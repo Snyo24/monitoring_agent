@@ -17,7 +17,9 @@
 
 #include <stddef.h>
 
-typedef struct _metric_info {
+typedef struct _metric_info metric_t;
+
+struct _metric_info {
 	enum {
 		STRING,
 		INTEGER,
@@ -31,10 +33,11 @@ typedef struct _metric_info {
 		double num_double;
 		unsigned boolean : 1;
 	} value;
-} metric_t;
+};
 
-metric_t *create_metric(int type, char *unit, void *value);
-void destroy_metric(metric_t *m);
+metric_t *new_metric(int type, char *unit, void *value);
+void *value(metric_t *m);
+void delete_metric(metric_t *m);
 
 size_t metric_to_json(metric_t *m, char *buf);
 

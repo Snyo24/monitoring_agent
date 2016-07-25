@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-metric_t *create_metric(int type, char *unit, void *value) {
+metric_t *new_metric(int type, char *unit, void *value) {
 	metric_t *m = (metric_t *)malloc(sizeof(metric_t));
 
 	m->type = type;
@@ -29,7 +29,25 @@ metric_t *create_metric(int type, char *unit, void *value) {
 	return m;
 }
 
-void destroy_metric(metric_t *m) {
+void *value(metric_t *m) {
+	switch(m->type) {
+		case STRING:
+		return m->value.str;
+		break;
+		case INTEGER:
+		return &m->value.num_int;
+		break;
+		case DOUBLE:
+		return &m->value.num_double;
+		break;
+		case BOOLEAN:
+		return m->value.boolean? "true": "false";
+		break;
+	}
+	return NULL;
+}
+
+void delete_metric(metric_t *m) {
 	if(m->type == STRING)
 		free(m->value.str);
 	free(m);

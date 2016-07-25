@@ -1,18 +1,23 @@
 #ifndef _MYSQLC_H_
 #define _MYSQLC_H_
 
+#include "agent.h"
 #include "snyohash.h"
+
 #include <mysql.h>
 
-#define DB_HOST "localhost"
-#define DB_USER "root"
-#define DB_PASS "alcls7856@"
-#define DB_NAME "snyo"
+typedef struct _mysql_detail {
+	MYSQL *mysql;
+} mysql_detail_t;
 
-void *mysql_routine(void *_agent);
+agent_t *new_mysql_agent(int period, const char *conf);
 
-void get_mysql_metadata(MYSQL *mysql, hash_t *hash_table);
-void get_CRUD_statistics(MYSQL *mysql, hash_t *metric_table);
-MYSQL_RES * query_result(MYSQL *mysql, char *query);
+void *mysql_main(void *_agent);
+void collect_mysql_metadata(agent_t *mysql_agent);
+void collect_mysql_metrics(agent_t *mysql_agent);
+void delete_mysql_agent(agent_t *mysql_agent);
+
+void mysql_agent_to_json(agent_t *mysql_agent, char *json, int pretty);
+MYSQL_RES *query_result(MYSQL *mysql, char *query);
 
 #endif

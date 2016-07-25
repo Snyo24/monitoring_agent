@@ -5,7 +5,7 @@
 #include "snyohash.h"
 #include "util.h"
 
-hash_t agents;
+hash_t *agents;
 
 void initialize();
 void scheduler();

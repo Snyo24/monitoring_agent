@@ -6,46 +6,65 @@
 
 #include <pthread.h>
 
-#define STORAGE_SIZE 2
+#define STORAGE_SIZE 5
 
-typedef struct _agent_profile {
-	char *name;
+typedef struct _agent_info agent_t;
 
-	timestamp start_time; // nanosec
-	timestamp last_update; // nanosec
-	int period; // sec
+struct _agent_info {
+	/* Status variables */
+	volatile unsigned alive : 1;
+	volatile unsigned updating : 1;
 
-	// Synchronize variables
-	pthread_mutex_t sync;
-	pthread_cond_t synced;
+	/* Agent info */
+	int       period;
 
-	// Thread
-	void *(*collect_routine)(void *);
-	pthread_t running_thread;
+	timestamp start_time;
+	timestamp last_update;
+	timestamp deadline;
 
-	// r/w cond var and lock
-	pthread_mutex_t access;
-	pthread_cond_t alarm;
+	/* Thread variables */
+	void            *(*thread_main)(void *);
+	pthread_t       running_thread;
 
-	// Storage
-	hash_t metadata;
+	pthread_mutex_t sync;   // Synchronization
+	pthread_cond_t  synced;
+
+	pthread_mutex_t access; // Read, Write
+	pthread_cond_t  poked;
+
+	/* Metric info */
+	int number;
+	char **metrics;
+
+	/* Buffer */
+	hash_t *metadata;
 
 	size_t buf_start;
 	size_t buf_stored;
-	hash_t buf[STORAGE_SIZE];
+	hash_t *buf[STORAGE_SIZE]; // metric hash
+	
+	/* Inheritance */
+	void *detail;
 
-	unsigned updating : 1;
-} agent_t;
+	/* Polymrphism */
+	void (*collect_metadata)(agent_t *);
+	void (*collect_metrics)(agent_t *);
+	void (*to_json)(agent_t *, char *, int);
+	void (*delete_agent)(agent_t *);
+};
 
-agent_t *create_agent(char *name, int period, void *(*behavior)(void *));
+agent_t *new_agent(int period);
 
+void start(agent_t *agent);
+void restart(agent_t *agent);
+void run(agent_t *agent);	
 int outdated(agent_t *agent);
-void update(agent_t *agent);
+void poke(agent_t *agent);
+int timeup(agent_t *agent);
+
+void delete_agent(agent_t *agent);
+
 hash_t *fetch(agent_t *agent, timestamp ts);
-
-void destroy_agent(agent_t *agent);
-
-size_t agent_to_json(agent_t *agent, char *_buf);
 hash_t *next_storage(agent_t *agent);
 
 void print_agent(agent_t *agent);

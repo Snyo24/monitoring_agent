@@ -6,45 +6,138 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
+#include <pthread.h>
 
-agent_t *create_agent(char *name, int period, void *(*behavior)(void *)) {
+agent_t *new_agent(int period) {
 	agent_t *agent = (agent_t *)malloc(sizeof(agent_t));
 
-	agent->name = name; // shallow copy
-
-	agent->start_time = get_timestamp();
+	if(!agent)
+		return NULL;
+	
 	agent->period = period;
-	agent->last_update = 0;
 
-	agent->collect_routine = behavior;
 	pthread_mutex_init(&agent->sync, NULL);
 	pthread_cond_init(&agent->synced, NULL);
 
 	pthread_mutex_init(&agent->access, NULL);
-	pthread_cond_init(&agent->alarm, NULL);
+	pthread_cond_init(&agent->poked, NULL);
 
-	hash_init(&agent->metadata, 5);
+	// TODO automate sizing, exception handling
+	// hash initiate
+	agent->metadata = new_hash();
 	for(size_t i=0; i<STORAGE_SIZE; ++i)
-		hash_init(&agent->buf[i], 200);
-	agent->buf_start = 0;
-	agent->buf_stored = 0;
+		agent->buf[i] = new_hash();
 
 	return agent;
 }
 
+void sig_alarm_handler(int SIGNUM) {
+	printf("%d\n", SIGNUM);
+}
+
+void start(agent_t *agent) {
+	agent->alive = 1;
+	agent->updating = 0;
+
+	agent->start_time = get_timestamp();
+	agent->last_update = 0;
+	agent->deadline = 0;
+
+	agent->buf_start = 0;
+	agent->buf_stored = 0;
+
+	// Start the thread
+	pthread_mutex_lock(&agent->sync);
+	printf("[agent] get sync, start thread\n");
+	pthread_create(&agent->running_thread, NULL, agent->thread_main, agent);
+
+	// Let the agent holds "access" lock
+	pthread_cond_wait(&agent->synced, &agent->sync);
+	printf("[agent] thread is now running\n");
+}
+
+void restart(agent_t *agent) {
+	printf("Restarting..\n");
+
+	pthread_kill(agent->running_thread, SIGALRM);
+
+	pthread_mutex_destroy(&agent->sync);
+	pthread_mutex_destroy(&agent->access);
+
+	pthread_mutex_init(&agent->sync, NULL);
+	pthread_mutex_init(&agent->access, NULL);
+
+	start(agent);
+	run(agent);
+}
+
+void run(agent_t *agent) {
+	while(agent->alive) {
+		printf("[agent] release access lock, waiting poked\n");
+		pthread_cond_wait(&agent->poked, &agent->access);
+		printf("[agent] got poked\n");
+
+		pthread_mutex_lock(&agent->sync);
+		agent->updating = 1;
+		agent->deadline = get_timestamp()+agent->period*NANO/10 *9;
+		printf("[agent] update the deadline to %lu\n", agent->deadline);
+		// notify collecting started to the aggregator
+		pthread_cond_signal(&agent->synced);
+		pthread_mutex_unlock(&agent->sync);
+
+		agent->collect_metrics(agent);
+
+		pthread_mutex_lock(&agent->sync);
+		printf("[agent] the agent finishes collecting\n");
+		if(!agent->last_update) {
+			 agent->last_update = get_timestamp();
+		} else {
+			agent->last_update += agent->period*NANO;
+		}
+		printf("[agent] update the last_update to %lu\n", agent->last_update);
+		agent->updating = 0;
+		// notify collecting done to the aggregator 
+		pthread_cond_signal(&agent->synced);
+		pthread_mutex_unlock(&agent->sync);
+		printf("[agent] synced\n");
+	}
+}
+
 int outdated(agent_t *agent) {
-	return (get_timestamp() - agent->last_update)/NANO >= (agent->period);
+	return !agent->last_update \
+	       || (get_timestamp() - agent->last_update)/NANO >= (agent->period);
 }
 
 // order the agent to update its metrics
 // must lock access to prevent to write while reading
-void update(agent_t *agent) {
+void poke(agent_t *agent) {
 	pthread_mutex_lock(&agent->access);
-	pthread_cond_signal(&agent->alarm);
+	printf("[agent] poke agent\n");
+	pthread_cond_signal(&agent->poked);
 	pthread_mutex_unlock(&agent->access);
 
 	// confirm the agent starts writting
 	pthread_cond_wait(&agent->synced, &agent->sync);
+}
+
+int timeup(agent_t *agent) {
+	return get_timestamp() > agent->deadline;
+}
+
+void delete_agent(agent_t *agent) {
+	pthread_mutex_destroy(&agent->sync);
+	pthread_cond_destroy(&agent->synced);
+
+	pthread_mutex_destroy(&agent->access);
+	pthread_cond_destroy(&agent->poked);
+
+	// TODO free hash_elems
+	delete_hash(agent->metadata);
+	for(size_t i=0; i<STORAGE_SIZE; ++i)
+		delete_hash(agent->buf[i]);
+
+	free(agent);
 }
 
 // Guarantee that no writting while fetching
@@ -68,51 +161,9 @@ hash_t *fetch(agent_t *agent, timestamp ts) {
 		return NULL;
 	}
 	size_t index = (agent->buf_start+agent->buf_stored-ofs-1)%STORAGE_SIZE;
-	hash_t *hT = &agent->buf[index];
+	hash_t *hT = agent->buf[index];
 	pthread_mutex_unlock(&agent->access);
 	return hT;
-}
-
-void destroy_agent(agent_t *agent) {
-	// Free storages
-	hash_destroy(&agent->metadata, (void (*)(void *))destroy_metric);
-	for(size_t i=0; i<STORAGE_SIZE; ++i)
-		hash_destroy(&agent->buf[i], (void (*)(void *))destroy_metric);
-
-	pthread_mutex_destroy(&agent->sync);
-	pthread_mutex_destroy(&agent->access);
-	pthread_cond_destroy(&agent->alarm);
-	pthread_cond_destroy(&agent->synced);
-	free(agent);
-}
-
-size_t agent_to_json(agent_t *agent, char *_buf) {
-	char *buf = _buf;
-	sprintf(buf, "\"%s\": {\n", agent->name);
-	buf += strlen(buf);
-	sprintf(buf, "\t\"hostname\": \"%s\",\n", ((metric_t *)hash_search(&agent->metadata, "hostname"))->value.str);
-	buf += strlen(buf);
-	sprintf(buf, "\t\"host\": \"%s\",\n", ((metric_t *)hash_search(&agent->metadata, "bind_address"))->value.str);
-	buf += strlen(buf);
-	sprintf(buf, "\t\"port\": \"%s\",\n", ((metric_t *)hash_search(&agent->metadata, "port"))->value.str);
-	buf += strlen(buf);
-	sprintf(buf, "\t\"version\": \"%s\",\n", ((metric_t *)hash_search(&agent->metadata, "version"))->value.str);
-	buf += strlen(buf);
-	timestamp ts = agent->last_update;
-	for(size_t i=0; i<agent->buf_stored; ++i) {
-		hash_t *hT = fetch(agent, ts);
-		if(hT) {
-			sprintf(buf, "\t\"timestamp\": %lu,\n\t\"metrics\": ", ts);
-			buf += strlen(buf);
-			buf += (int)hash_to_json(hT, buf, (size_t (*)(void *,  char *))metric_to_json);
-		}
-		if(i < agent->buf_stored-1)
-			sprintf(buf++, ",");
-		sprintf(buf++, "\n");
-		ts -= NANO * agent->period;
-	}
-	sprintf(buf++, "}");
-	return buf-_buf;
 }
 
 hash_t *next_storage(agent_t *agent) {
@@ -121,7 +172,7 @@ hash_t *next_storage(agent_t *agent) {
 		agent->buf_start = (agent->buf_start+1)%STORAGE_SIZE;
 	else
 		agent->buf_stored++;
-	return &agent->buf[idx];
+	return agent->buf[idx];
 }
 
 void print_agent(agent_t *agent) {

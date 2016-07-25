@@ -18,28 +18,26 @@ char *agent_name_list[] = {
 	"mysql"
 };
 
+// TODO exception handling
 void initialize() {
 	agent_number = sizeof(agent_name_list)/sizeof(char *);
 
 	// Add an agents to the agent table
-	hash_init(&agents, agent_number);
-	hash_insert(&agents, "mysql", create_agent("mysql", 1, mysql_routine));
+	agents = new_hash();
 
-	for(size_t i=0; i<agent_number; ++i) {
-		agent_t *agent = get_agent(agent_name_list[i]);
-		// Start the thread
-		pthread_mutex_lock(&agent->sync);
-		pthread_create(&(agent->running_thread), NULL, agent->collect_routine, agent);
+	// TODO change parameter to conf file
+	agent_t *agent = new_mysql_agent(1, "mysql.yaml");
+	printf("[agg] mysql agent created\n");
 
-		// Let the agent holds "access" lock
-		pthread_cond_wait(&agent->synced, &agent->sync);
-	}
+	start(agent);
+	printf("[agg] mysql agent started\n");
+
+	hash_insert(agents, "mysql", agent);
+	printf("[agg] mysql agent inserted\n");
 }
 
 void finalize() {
-	for(size_t i=0; i<agent_number; ++i)
-		destroy_agent(get_agent(agent_name_list[i]));
-	hash_destroy(&agents, (void (*)(void *))destroy_agent);
+	// TODO
 }
 
 void scheduler() {
@@ -55,16 +53,14 @@ void scheduler() {
 
 		for(size_t i=0; i<agent_number; ++i) {
 			agent_t *agent = get_agent(agent_name_list[i]);
-			if(outdated(agent)) {
-				update(agent);
-				// TODO do we need this variable?
-				agent->updating = 1;
-				// confirm the agents finish collecting
-				// pthread_cond_wait(&agent->synced, &agent->sync);
-				// if(!agent->last_update)
-				// 	 agent->last_update = get_timestamp();
-				// else
-				// 	agent->last_update += agent->period*NANO;
+			printf("[agg] updating:%d outdated:%d timeup:%d\n", agent->updating, outdated(agent), timeup(agent));
+			if(agent->updating) {
+				if(timeup(agent)) {
+					printf("[agg] timeup %s, do something\n", agent_name_list[i]);
+					restart(agent);
+				}
+			} else if(outdated(agent)) {
+				poke(agent);
 			}
 		}
 
@@ -72,55 +68,23 @@ void scheduler() {
 		for(size_t i=0; i<agent_number; ++i) {
 			agent_t *agent = get_agent(agent_name_list[i]);
 			if(agent->updating) {
-				// print_agent(agent);
 				// confirm the agents finish collecting
+				printf("[agg] wait for synced\n");
 				pthread_cond_wait(&agent->synced, &agent->sync);
-				if(!agent->last_update)
-					 agent->last_update = get_timestamp();
-				else
-					agent->last_update += agent->period*NANO;
-
-				// TODO timeout with pthread_cond_timewait
-				// timestamp collect_limit = loop_start;
-				// collect_limit += (agent->period*NANO)/10*8;
-				// timeout.tv_sec = collect_limit/NANO;
-				// timeout.tv_nsec = collect_limit%NANO;
-				// printf("%lu\n", loop_start);
-				// printf("%lu\n", get_timestamp());
-				// printf("time limit: %lu%lu\n", timeout.tv_sec, timeout.tv_nsec);
-				// if(pthread_cond_timedwait(&agent->synced, &agent->sync, &timeout) == ETIMEDOUT)
-				// 	printf("TIMEDOUT\n");
-				// else {
-				// 	if(!agent->last_update)
-				// 		 agent->last_update = get_timestamp();
-				// 	else
-				// 		agent->last_update += agent->period*NANO;
-				// }
-				// printf("%lu\n", loop_start);
-				// printf("%lu\n", get_timestamp());
-				// printf("%lu\n", collect_limit);
-				agent->updating = 0;
+				printf("[agg] synced\n");
 			}
 		}
 
-		// char b[1000];
-		// timestamp fetch_ofs = 0 * NANO;
-		// agent_t *agent = get_agent(agent_name_list[0]);
-		// hash_t *hT = fetch(agent, agent->last_update-fetch_ofs);
-		// if(hT) {
-		// 	int n = hash_to_json(hT, b, (void(*)(char *, void *))metric_to_json);
-		// 	printf("\"%lu\": %.*s\n\n", agent->last_update-fetch_ofs, n, b);
-		// }
-		// make_payload();
+		char json[1000];
+		agent_t *agent = get_agent(agent_name_list[0]);
+		printf("[agg] To json: waiting access lock\n");
+		agent->to_json(agent, json, 0);
+		printf("[agg] %s\n", json);
 
-		timestamp next_loop = loop_start + NANO/10;
+		timestamp next_loop = loop_start + NANO/5;
 		timeout.tv_sec = next_loop/NANO;
 		timeout.tv_nsec = next_loop%NANO;
 		pthread_cond_timedwait(&_unused_cond, &_unused_mutex, &timeout); // never signaled
-
-		agent_t *agent = get_agent("mysql");
-		char b[1000000];
-		printf("%.*s\n", (int)agent_to_json(agent, b), b);
 	}
 
 	// Finishing
@@ -128,5 +92,5 @@ void scheduler() {
 }
 
 agent_t *get_agent(char *name) {
-	return hash_search(&agents, name);
+	return hash_search(agents, name);
 }

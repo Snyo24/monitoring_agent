@@ -2,133 +2,148 @@
 * FILENAME: snyohash.c
 *
 * DESCRIPTION :
-*     Source file about custom hash. It is implemented
-*     to handle metric strings.
+*     Source file about custom hash.
 *     (CAUTION) There is no delete function.
 *
 * AUTHOR: Snyo
 *
 * HISTORY:
 *     160714 - first written
+*     160725 - modified to work well with the agent structure
+*            - add auto sizing
+*            - description changed
 *
 */
 
 #include "snyohash.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+/* Following functions are only used in this source file */
+unsigned long hash_value(char *str);
+
+void double_up(hash_t *hash);
+hash_elem_t *new_hash_elem(char *key, void *item);
+hash_elem_t *hash_elem_find(hash_t *hT, char *key);
+void delete_hash_elem(hash_elem_t *elem);
+
+hash_t *new_hash() {
+	hash_t *hash = (hash_t *)malloc(sizeof(hash_t));
+	if(!hash)
+		return NULL;
+	hash->table = (hash_elem_t **)malloc(INITIAL_SIZE*sizeof(hash_elem_t *));
+	if(!hash->table) {
+		free(hash);
+		return NULL;
+	}
+	hash->size = INITIAL_SIZE;
+	hash->chaining = 0;
+	memset(hash->table, 0, INITIAL_SIZE*sizeof(hash_elem_t *));
+	return hash;
+}
+
+void hash_insert(hash_t *hash, char *key, void *item) {
+	hash_elem_t *elem = hash_elem_find(hash, key);
+	if(!elem) { // If not exist, create it.
+		elem = new_hash_elem(key, item);
+
+		size_t idx = elem->hash_value%hash->size;
+		if(hash->table[idx]) hash->chaining++;
+		elem->next = hash->table[idx];
+		hash->table[idx] = elem;
+	} else {
+		elem->item = item; // shallow copy
+	}
+
+	if(hash->chaining > (hash->size >> 1))
+		double_up(hash);
+}
+
+void *hash_search(hash_t *hash, char *key) {
+	hash_elem_t *elem = hash_elem_find(hash, key);
+	if(!elem)
+		return NULL;
+	return elem->item;
+}
+
+void delete_hash(hash_t *hash) {
+	for(size_t i=0; i<hash->size; ++i) 
+		delete_hash_elem(hash->table[i]);
+	free(hash->table);
+	free(hash);
+}
+
 /*
- * hash_value
- * Use djb2 hashing
+ * Declared only in the source file
  */
+
 unsigned long hash_value(char *str) {
 	unsigned long hash = 5381;
 	int c;
 	while ((c = *str++))
-		hash = ((hash << 5) + hash) + c;
+		hash = ((hash << 5) + hash) + c; // djb2
 	return hash;
 }
 
-/*
- * hash_init
- * Allocate a hash table.
- * Recommand you to choose the size by following rules.
- * 1) be larger than double of expecting number of element.
- * 2) be a prime number which not divided by expecting number of element.
- */
-void hash_init(hash_t *hT, size_t size) {
-	hT->size = size*2+1;
-	hT->table = (struct hash_elem **)malloc(hT->size*sizeof(struct hash_elem *));
-	memset(hT->table, 0, hT->size*sizeof(struct hash_elem *));
-}
+void double_up(hash_t *hash) {
+	size_t old_size = hash->size;
+	size_t new_size = (hash->size<<1) + 1;
+	hash_elem_t **old_table = hash->table;
+	hash_elem_t **new_table = (hash_elem_t **)malloc(new_size*sizeof(hash_elem_t *));
+	if(!new_table) return;
+	memset(new_table, 0, new_size*sizeof(hash_elem_t *));
 
-void hash_insert(hash_t *hT, char *key, void *item) {
-	struct hash_elem *hE = _hash_elem_find(hT, key);
-	if(!hE) { /* If not exist, create it. */
-		unsigned long hV = hash_value(key);
-		size_t idx = hV%hash_size(hT);
-
-		hE = (struct hash_elem *)malloc(sizeof(struct hash_elem));
-
-		hE->key = key; // shallow copy
-		hE->key_hash = hV;
-		hE->next = hT->table[idx];
-
-		hT->table[idx] = hE;
+	for(size_t i=0; i<old_size; ++i) {
+		hash_elem_t *prev = NULL;
+		for(hash_elem_t *e=old_table[i]; e; prev=e, e=e->next) {
+			if(prev) {
+				size_t idx = prev->hash_value%new_size;
+				prev->next = new_table[idx];
+				new_table[idx] = prev;
+			}
+		}
+		if(prev) {
+			size_t idx = prev->hash_value%new_size;
+			prev->next = new_table[idx];
+			new_table[idx] = prev;
+		}
 	}
-	hE->item = item; // shallow copy
+	free(old_table);
+
+	hash->size = new_size;
+	hash->chaining = 0;
+	hash->table = new_table;
 }
 
-void *hash_search(hash_t *hT, char *key) {
-	struct hash_elem *hE = _hash_elem_find(hT, key);
-	if(!hE)
+hash_elem_t *new_hash_elem(char *key, void *item) {
+	hash_elem_t *elem = (hash_elem_t *)malloc(sizeof(hash_elem_t));
+	if(!elem)
 		return NULL;
-	return hE->item;
+	elem->key = key; // shallow copy
+	elem->item = item; // shallow copy
+	elem->hash_value = hash_value(key);
+	elem->next = NULL;
+	return elem;
 }
 
-void hash_destroy(hash_t *hT, void (*item_destroy)(void *)) {
-	for(size_t i=0; i<hash_size(hT); ++i)
-		_hash_elem_free(hT->table[i], item_destroy);
-	free(hT->table);
+void delete_hash_elem(hash_elem_t *elem) {
+	if(!elem) return;
+	delete_hash_elem(elem->next);
+	free(elem);
 }
 
-size_t hash_size(hash_t *hT) {
-	return hT->size;
-}
-
-void _hash_elem_free(struct hash_elem *hE, void (*item_destroy)(void *)) {
-	if(!hE) return;
-	_hash_elem_free(hE->next, item_destroy);
-	if(item_destroy)
-		item_destroy(hE->item);
-	free(hE);
-}
-
-struct hash_elem *_hash_elem_find(hash_t *hT, char *key) {
+hash_elem_t *hash_elem_find(hash_t *hash, char *key) {
 	if(!key)
 		return NULL;
 
 	unsigned long hV = hash_value(key);
-	size_t i = hV%hash_size(hT);
-	struct hash_elem *candidate = NULL;
+	size_t i = hV%hash->size;
+	hash_elem_t *candidate = NULL;
 
-	for(struct hash_elem *e=hT->table[i]; e; e=e->next)
-		if(e->key_hash == hV && !strcmp(e->key, key))
+	for(hash_elem_t *e=hash->table[i]; e; e=e->next)
+		if(e->hash_value == hV && !strcmp(e->key, key))
 			candidate = e;
 
 	return candidate;
-}
-
-size_t hash_to_json(hash_t *hT, char *_buf, size_t (*elem_to_json)(void *, char *)) {
-	char *buf = _buf;
-
-	size_t hS = hash_size(hT);
-	struct hash_elem *exist[hS];
-	unsigned int hash_elem_count = 0;
-	for(size_t i=0; i<hS; ++i) {
-		struct hash_elem *hE = hT->table[i];
-		while(hE) {
-			exist[hash_elem_count++] = hE;
-			hE = hE->next;
-		}
-	}
-	sprintf(buf++, "{");
-	sprintf(buf++, "\n");
-	for(size_t i=0; i<hash_elem_count; ++i) {
-		sprintf(buf, "\t\t");
-		buf += 2;
-		sprintf(buf, "\"%s\":", (char *)(exist[i]->key));
-		buf += strlen(buf);
-		sprintf(buf++, " ");
-		if(elem_to_json)
-			buf += elem_to_json(exist[i]->item, buf);
-		if(i < hash_elem_count-1)
-			sprintf(buf++, ",");
-		sprintf(buf++, "\n");
-	}
-	sprintf(buf++, "\t");
-	sprintf(buf++, "}");
-	return buf - _buf;
 }
