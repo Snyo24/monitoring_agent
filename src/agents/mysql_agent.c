@@ -9,6 +9,14 @@
 #include <string.h>
 
 #include <mysql.h>
+#include <zlog.h>
+
+char *mysql_metadata[] = {
+	"version",
+	"hostname",
+	"bind_address",
+	"port"
+};
 
 char *mysql_metrics[] = {
 	"Com_delete",
@@ -28,48 +36,49 @@ char *mysql_metrics[] = {
 	"Queries"
 };
 
-char *mysql_metadata[] = {
-	"version",
-	"hostname",
-	"bind_address",
-	"port"
-};
-
+// TODO exception
 agent_t *new_mysql_agent(int period, const char *conf) {
-	// TODO exception
+	// logging
+	zlog_category_t *_log_tag = zlog_get_category("agent_mysql");
+    if (!_log_tag) return NULL;
+
+    zlog_debug(_log_tag, "Create a new mysql agent with period %d", period);
+
 	agent_t *mysql_agent = new_agent(period);
 	if(!mysql_agent) {
-		printf("NOT ENOUGH SPACE FOR MYSQL AGENT\n");
+		zlog_error(_log_tag, "Failed to create a general agent");
 		return NULL;
 	}
 
 	// mysql detail setup
 	mysql_detail_t *detail = (mysql_detail_t *)malloc(sizeof(mysql_detail_t));
 	if(!detail) {
-		printf("NOT ENOUGH SPACE FOR MYSQL DETAIL\n");
+		zlog_error(_log_tag, "Failed to allocate mysql detail");
 		mysql_agent->delete_agent(mysql_agent);
 		return NULL;
 	}
 
 	detail->mysql = mysql_init(NULL);
 	if(!detail->mysql) {
-		printf("mysql_init failed (mysql.c)\n");
+		zlog_error(_log_tag, "Failed to mysql_init");
 		free(detail);
 		mysql_agent->delete_agent(mysql_agent);
-		exit(0);
+		return NULL;
 	}
 
 	// TODO user setup
 	char result[4][50];
 	yaml_parser(conf, (char *)result);
-	printf("[mysql] connect to %s, %s, %s, %s\n", result[0], result[1], result[2], result[3]);
 	if(!(mysql_real_connect(detail->mysql, result[0], result[1], result[2], result[3], 0, NULL, 0))) {
-		printf("mysql_real_connect failed (mysql.c)\n");
+		zlog_error(_log_tag, "Failed to mysql_real_connect");
 		mysql_close(detail->mysql);
 		free(detail);
 		delete_agent(mysql_agent);
-		exit(0);
+		return NULL;
 	}
+
+	// logging
+	mysql_agent->log_tag = (void *)_log_tag;
 
 	// inheritance
 	mysql_agent->detail = detail;
@@ -91,17 +100,15 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 }
 
 void *mysql_main(void *_agent) {
-	printf("[mysql] started\n");
 	agent_t *agent = (agent_t *)_agent;
+	zlog_debug(agent->log_tag, "MySQL thread is started");
 	pthread_mutex_lock(&agent->sync);
-	// The agent always holds lock "access" except waiting for alarm
+	zlog_info(agent->log_tag, "Aquire access");
 	pthread_mutex_lock(&agent->access);
-	printf("[mysql] collect metadata\n");
+	zlog_debug(agent->log_tag, "MySQL agent collects metadata");
 	// Collect metadata
-	if(agent->collect_metadata)
-		agent->collect_metadata(agent);
+	agent->collect_metadata(agent);
 	pthread_cond_signal(&agent->synced);
-	printf("[mysql] hold access\n");
 	pthread_mutex_unlock(&agent->sync);
 
 	run(agent);
@@ -111,17 +118,16 @@ void *mysql_main(void *_agent) {
 void collect_mysql_metadata(agent_t *mysql_agent) {
 	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
 		"show global variables where variable_name in (\
-													\'hostname\', \
-													\'bind_address\', \
-													\'port\', \
-													\'version\');");
+                                                    \'hostname\', \
+                                                    \'bind_address\', \
+                                                    \'port\', \
+                                                    \'version\');");
 
 	if(!res) {
-		printf("query_result() failed in mysqlc.c\n");
+		zlog_error(mysql_agent->log_tag, "Fail to get query result");
 		exit(0);
 	}
 
-	printf("[mysql] collecting metadata\n");
 	hash_insert(mysql_agent->meta_buf, "hostname", NULL);
 	hash_insert(mysql_agent->meta_buf, "bind_address", NULL);
 	hash_insert(mysql_agent->meta_buf, "port", NULL);
@@ -131,32 +137,30 @@ void collect_mysql_metadata(agent_t *mysql_agent) {
 	while((row = mysql_fetch_row(res)))
 		hash_insert(mysql_agent->meta_buf, row[0], new_metric(STRING, 0, row[1]));
 
-	printf("[mysql] collecting metadata done\n");
 	mysql_free_result(res);
 }
 
 void collect_mysql_metrics(agent_t *mysql_agent) {
-	printf("[mysql] collect metric\n");
 	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
 		"show global status where variable_name in (\
-													\'Com_delete\',\
-													\'Com_delete_multi\',\
-													\'Com_insert\',\
-													\'Com_insert_select\',\
-													\'Com_replace_select\',\
-													\'Com_select\',\
-													\'Com_update\',\
-													\'Com_update_multi\',\
-													\'Com_stmt_close\',\
-													\'Com_stmt_execute\',\
-													\'Com_stmt_fetch\',\
-													\'Com_stmt_prepare\',\
-													\'Com_execute_sql\',\
-													\'Com_prepare_sql\',\
-													\'Queries\');");
+                                                    \'Com_delete\',\
+                                                    \'Com_delete_multi\',\
+                                                    \'Com_insert\',\
+                                                    \'Com_insert_select\',\
+                                                    \'Com_replace_select\',\
+                                                    \'Com_select\',\
+                                                    \'Com_update\',\
+                                                    \'Com_update_multi\',\
+                                                    \'Com_stmt_close\',\
+                                                    \'Com_stmt_execute\',\
+                                                    \'Com_stmt_fetch\',\
+                                                    \'Com_stmt_prepare\',\
+                                                    \'Com_execute_sql\',\
+                                                    \'Com_prepare_sql\',\
+                                                    \'Queries\');");
 
 	if(!res) {
-		printf("query_result() failed in mysqlc.c\n");
+		zlog_error(mysql_agent->log_tag, "Fail to get query result");
 		exit(0);
 	}
 
@@ -181,10 +185,8 @@ void delete_mysql_agent(agent_t *mysql_agent) {
 
 // TODO
 MYSQL_RES *query_result(MYSQL *mysql, char *query) {
-	if(mysql_query(mysql, query)) {
-		printf("QUERY FAIL %s\n", query);
+	if(mysql_query(mysql, query))
 		return NULL;
-	}
 
 	return mysql_store_result(mysql);
 }

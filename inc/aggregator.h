@@ -5,6 +5,8 @@
 #include "snyohash.h"
 #include "util.h"
 
+#define TICK NANO/4
+
 hash_t *agents;
 
 void initialize();

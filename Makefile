@@ -14,7 +14,7 @@ TARGETDIR	:= bin
 
 #Flags, Libraries and Includes
 CFLAGS		:= -Wall -O2 -g
-LIB			:= -L/usr/lib/x86_64-linux-gnu -lcurl -lmysqlclient -lpthread -lz -lm -lrt -ldl -lyaml
+LIB			:= -L/usr/lib/x86_64-linux-gnu -lcurl -lmysqlclient -lpthread -lz -lm -lrt -ldl -lyaml -lzlog
 INC			:= -I$(INCDIR) -I/usr/include/mysql
 
 SOURCES		:= \

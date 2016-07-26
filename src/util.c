@@ -2,6 +2,7 @@
 
 #include <time.h>
 #include <yaml.h>
+#include <zlog.h>
 
 timestamp get_timestamp() {
 	struct timespec now;

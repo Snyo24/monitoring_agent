@@ -33,6 +33,8 @@ agent_t *new_agent(int period) {
 }
 
 void start(agent_t *agent) {
+	zlog_debug(agent->log_tag, "An agent is started");
+
 	agent->alive = 1;
 	agent->updating = 0;
 
@@ -45,16 +47,16 @@ void start(agent_t *agent) {
 
 	// Start the thread
 	pthread_mutex_lock(&agent->sync);
-	printf("[agent] get sync, start thread\n");
+	zlog_debug(agent->log_tag, "An agent is synced, starting thread");
 	pthread_create(&agent->running_thread, NULL, agent->thread_main, agent);
 
 	// Let the agent holds "access" lock
 	pthread_cond_wait(&agent->synced, &agent->sync);
-	printf("[agent] thread is now running\n");
+	zlog_debug(agent->log_tag, "Agent thread is now running");
 }
 
 void restart(agent_t *agent) {
-	printf("Restarting..\n");
+	zlog_fatal(agent->log_tag, "Restarting an agent");
 
 	pthread_kill(agent->running_thread, SIGALRM);
 
@@ -70,14 +72,14 @@ void restart(agent_t *agent) {
 
 void run(agent_t *agent) {
 	while(agent->alive) {
-		printf("[agent] release access lock, waiting poked\n");
+		zlog_info(agent->log_tag, "Release access lock to be poked");
 		pthread_cond_wait(&agent->poked, &agent->access);
-		printf("[agent] got poked\n");
+		zlog_debug(agent->log_tag, "Finally got poked");
 
 		pthread_mutex_lock(&agent->sync);
+		zlog_debug(agent->log_tag, "The agent is now updating");
 		agent->updating = 1;
 		agent->deadline = get_timestamp()+agent->period*NANO/10 *9;
-		printf("[agent] update the deadline to %lu\n", agent->deadline);
 		// notify collecting started to the aggregator
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
@@ -85,22 +87,21 @@ void run(agent_t *agent) {
 		agent->collect_metrics(agent);
 
 		pthread_mutex_lock(&agent->sync);
-		printf("[agent] the agent finishes collecting\n");
 		if(!agent->last_update) {
 			 agent->last_update = get_timestamp();
 		} else {
 			agent->last_update += agent->period*NANO;
 		}
-		printf("[agent] update the last_update to %lu\n", agent->last_update);
 		agent->updating = 0;
+		zlog_debug(agent->log_tag, "Updating done");
 		// notify collecting done to the aggregator 
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
-		printf("[agent] synced\n");
 	}
 }
 
 int outdated(agent_t *agent) {
+	zlog_debug(agent->log_tag, "Check outdated");
 	return !agent->last_update \
 	       || (get_timestamp() - agent->last_update)/NANO >= (agent->period);
 }
@@ -108,20 +109,24 @@ int outdated(agent_t *agent) {
 // order the agent to update its metrics
 // must lock access to prevent to write while reading
 void poke(agent_t *agent) {
+	zlog_info(agent->log_tag, "Aquire access");
 	pthread_mutex_lock(&agent->access);
-	printf("[agent] poke agent\n");
+	zlog_debug(agent->log_tag, "Poke the agent and waiting response");
 	pthread_cond_signal(&agent->poked);
 	pthread_mutex_unlock(&agent->access);
+	zlog_info(agent->log_tag, "Release access");
 
 	// confirm the agent starts writting
 	pthread_cond_wait(&agent->synced, &agent->sync);
 }
 
 int timeup(agent_t *agent) {
+	zlog_debug(agent->log_tag, "Check timeout");
 	return get_timestamp() > agent->deadline;
 }
 
 void delete_agent(agent_t *agent) {
+	zlog_debug(agent->log_tag, "Deleting an agent");
 	pthread_mutex_destroy(&agent->sync);
 	pthread_cond_destroy(&agent->synced);
 
@@ -138,27 +143,33 @@ void delete_agent(agent_t *agent) {
 
 // Guarantee that no writting while fetching
 hash_t *fetch(agent_t *agent, timestamp ts) {
+	zlog_info(agent->log_tag, "Aquire access");
 	pthread_mutex_lock(&agent->access);
+	zlog_debug(agent->log_tag, "Try fetching");
 	if(!agent->last_update || ts < agent->start_time || ts > agent->last_update) {
-		printf("DATA NOT COLLCTED ON TIMESTAMP %lu\n", ts);
+		zlog_error(agent->log_tag, "Data not collected on timestamp %lu\n", ts);
 		pthread_mutex_unlock(&agent->access);
+		zlog_info(agent->log_tag, "Release access");
 		return NULL;
 	}
 	int elapsed = (agent->last_update-ts)/NANO;
 	if(elapsed%agent->period != 0) {
-		printf("NO DATA ON TIMESTAMP %lu\n", ts);
+		zlog_error(agent->log_tag, "No data on timestamp %lu\n", ts);
 		pthread_mutex_unlock(&agent->access);
+		zlog_info(agent->log_tag, "Release access");
 		return NULL;
 	}
 	size_t ofs = elapsed/agent->period;
 	if(ofs >= agent->buf_stored) {
-		printf("TOO OLD DATA TO FETCH ON TIMESTAMP %lu\n", ts);
+		zlog_error(agent->log_tag, "Too old data to fetch on timestamp %lu\n", ts);
 		pthread_mutex_unlock(&agent->access);
+		zlog_info(agent->log_tag, "Release access");
 		return NULL;
 	}
 	size_t index = (agent->buf_start+agent->buf_stored-ofs-1)%STORAGE_SIZE;
 	hash_t *hT = agent->buf[index];
 	pthread_mutex_unlock(&agent->access);
+	zlog_info(agent->log_tag, "Release access");
 	return hT;
 }
 
@@ -173,6 +184,7 @@ hash_t *next_storage(agent_t *agent) {
 
 // TODO pretty? boolean?
 void agent_to_json(agent_t *agent, char *json, int pretty) {
+	zlog_debug(agent->log_tag, "Dump an agent to json string");
 	sprintf(json++, "{");
 	for(size_t i=0; i<agent->metadata_number; ++i) {
 		metric_t *m = (metric_t *)hash_search(agent->meta_buf, agent->metadata_list[i]);

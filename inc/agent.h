@@ -44,6 +44,9 @@ struct _agent_info {
 	size_t buf_start;
 	size_t buf_stored;
 	hash_t *buf[STORAGE_SIZE]; // metric hash
+
+	/* Logging */
+	void *log_tag;
 	
 	/* Inheritance */
 	void *detail;
