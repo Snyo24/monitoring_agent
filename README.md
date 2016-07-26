@@ -6,6 +6,8 @@
 
 ## Libraries need
 - mysql (install with apt-get)
+- yaml parser
+- zlog
 
 ## Compile
 - make
