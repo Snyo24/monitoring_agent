@@ -32,10 +32,6 @@ agent_t *new_agent(int period) {
 	return agent;
 }
 
-void sig_alarm_handler(int SIGNUM) {
-	printf("%d\n", SIGNUM);
-}
-
 void start(agent_t *agent) {
 	agent->alive = 1;
 	agent->updating = 0;
@@ -179,8 +175,14 @@ hash_t *next_storage(agent_t *agent) {
 void agent_to_json(agent_t *agent, char *json, int pretty) {
 	sprintf(json++, "{");
 	for(size_t i=0; i<agent->metadata_number; ++i) {
-		sprintf(json, "\"%s\":\"%s\",", agent->metadata_list[i], (char *)value(hash_search(agent->meta_buf, agent->metadata_list[i])));
-		json += strlen(json);
+		metric_t *m = (metric_t *)hash_search(agent->meta_buf, agent->metadata_list[i]);
+		if(m) {
+			sprintf(json, "\"%s\":", agent->metadata_list[i]);
+			json += strlen(json);
+			metric_to_json(m, json);
+			json += strlen(json);
+			sprintf(json++, ",");
+		}
 	}
 	timestamp ts = agent->last_update - (agent->buf_stored-1)*agent->period*NANO;
 	for(size_t k=0; k<agent->buf_stored; ++k) {

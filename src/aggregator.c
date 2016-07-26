@@ -15,7 +15,8 @@
 size_t agent_number;
 
 char *agent_name_list[] = {
-	"mysql"
+	"mysql",
+	"mysql2"
 };
 
 // TODO exception handling
@@ -33,6 +34,14 @@ void initialize() {
 	printf("[agg] mysql agent started\n");
 
 	hash_insert(agents, "mysql", agent);
+	printf("[agg] mysql agent inserted\n");
+	agent = new_mysql_agent(2, "conf/mysql.yaml");
+	printf("[agg] mysql agent created\n");
+
+	start(agent);
+	printf("[agg] mysql agent started\n");
+
+	hash_insert(agents, "mysql2", agent);
 	printf("[agg] mysql agent inserted\n");
 }
 
@@ -75,10 +84,10 @@ void scheduler() {
 		}
 
 		char json[1000];
-		agent_t *agent = get_agent(agent_name_list[0]);
-		printf("[agg] To json: waiting access lock\n");
-		agent_to_json(agent, json, 0);
-		printf("[agg] %s\n", json);
+		json[0] = '\0';
+		printf("[agg] To json\n");
+		gather_json(json);
+		printf("[agg] %s (%zu)\n", json, strlen(json));
 
 		timestamp next_loop = loop_start + NANO/5;
 		struct timespec timeout = {
@@ -90,6 +99,22 @@ void scheduler() {
 
 	// Finishing
 	finalize();
+}
+
+void gather_json(char *json) {
+	sprintf(json++, "{");
+	for(size_t i=0; i<agent_number; ++i) {
+		agent_t *agent = get_agent(agent_name_list[i]);
+		sprintf(json, "\"%s\":", agent_name_list[i]);
+		json += strlen(json);
+		if(agent) {
+			agent_to_json(agent, json+strlen(json), 0);
+			json += strlen(json);
+			if(i < agent_number-1)
+				sprintf(json++, ",");
+		}
+	}
+	sprintf(json++, "}");
 }
 
 agent_t *get_agent(char *name) {

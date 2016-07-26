@@ -13,5 +13,6 @@ void finalize();
 
 // util
 agent_t *get_agent(char *name);
+void gather_json(char *json);
 
 #endif
