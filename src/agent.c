@@ -25,7 +25,7 @@ agent_t *new_agent(int period) {
 
 	// TODO automate sizing, exception handling
 	// hash initiate
-	agent->metadata = new_hash();
+	agent->meta_buf = new_hash();
 	for(size_t i=0; i<STORAGE_SIZE; ++i)
 		agent->buf[i] = new_hash();
 
@@ -133,7 +133,7 @@ void delete_agent(agent_t *agent) {
 	pthread_cond_destroy(&agent->poked);
 
 	// TODO free hash_elems
-	delete_hash(agent->metadata);
+	delete_hash(agent->meta_buf);
 	for(size_t i=0; i<STORAGE_SIZE; ++i)
 		delete_hash(agent->buf[i]);
 
@@ -175,10 +175,33 @@ hash_t *next_storage(agent_t *agent) {
 	return agent->buf[idx];
 }
 
-void print_agent(agent_t *agent) {
-	printf("%s %lu\n", "START TIME:  ", agent->start_time);
-	printf("%s %lu\n", "LAST UPDATE: ", agent->last_update);
-	printf("%s %d\n", "PERIOD:      ", agent->period);
-	printf("%s %zu ", "STORED:      ", agent->buf_stored);
-	printf("%s\n", agent->buf_stored==STORAGE_SIZE? " (FULL)": "");
+// TODO pretty? boolean?
+void agent_to_json(agent_t *agent, char *json, int pretty) {
+	sprintf(json++, "{");
+	for(size_t i=0; i<agent->metadata_number; ++i) {
+		sprintf(json, "\"%s\":\"%s\",", agent->metadata_list[i], (char *)value(hash_search(agent->meta_buf, agent->metadata_list[i])));
+		json += strlen(json);
+	}
+	timestamp ts = agent->last_update - (agent->buf_stored-1)*agent->period*NANO;
+	for(size_t k=0; k<agent->buf_stored; ++k) {
+		hash_t *hash = fetch(agent, ts);
+		sprintf(json, "\"%ld\":{", ts);
+		json += strlen(json);
+		for(size_t i=0; i<agent->metric_number; ++i) {
+			metric_t *m = (metric_t *)hash_search(hash, agent->metrics[i]);
+			if(m) {
+				sprintf(json, "\"%s\":", agent->metrics[i]);
+				json += strlen(json);
+				metric_to_json(m, json);
+				json += strlen(json);
+				if(i < agent->metric_number-1)
+					sprintf(json++, ",");
+			}
+		}
+		sprintf(json++, "}");
+		if(k < agent->buf_stored-1)
+			sprintf(json++, ",");
+		ts += (agent->period*NANO);
+	}
+	sprintf(json++, "}");
 }

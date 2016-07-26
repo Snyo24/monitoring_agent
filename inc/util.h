@@ -8,5 +8,6 @@
 typedef uint64_t timestamp;
 
 timestamp get_timestamp();
+void yaml_parser(const char *file, char *result);
 
 #endif

@@ -1,4 +1,4 @@
-#include "mysqlc.h"
+#include "mysql_agent.h"
 
 #include "agent.h"
 #include "metric.h"
@@ -28,6 +28,13 @@ char *mysql_metrics[] = {
 	"Queries"
 };
 
+char *mysql_metadata[] = {
+	"version",
+	"hostname",
+	"bind_address",
+	"port"
+};
+
 agent_t *new_mysql_agent(int period, const char *conf) {
 	// TODO exception
 	agent_t *mysql_agent = new_agent(period);
@@ -53,15 +60,14 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	}
 
 	// TODO user setup
-	char host[] = "localhost";
-	char user[] = "root";
-	char password[] = "alcls7856@";
-	char name[] = "snyo";
-	if(!(mysql_real_connect(detail->mysql, host, user, password, name, 0, NULL, 0))) {
+	char result[4][50];
+	yaml_parser(conf, (char *)result);
+	printf("[mysql] connect to %s, %s, %s, %s\n", result[0], result[1], result[2], result[3]);
+	if(!(mysql_real_connect(detail->mysql, result[0], result[1], result[2], result[3], 0, NULL, 0))) {
 		printf("mysql_real_connect failed (mysql.c)\n");
 		mysql_close(detail->mysql);
 		free(detail);
-		mysql_agent->delete_agent(mysql_agent);
+		delete_agent(mysql_agent);
 		exit(0);
 	}
 
@@ -69,15 +75,16 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	mysql_agent->detail = detail;
 
 	// polymorphism
-	mysql_agent->number = sizeof(mysql_metrics)/sizeof(char *);
+	mysql_agent->metric_number = sizeof(mysql_metrics)/sizeof(char *);
 	mysql_agent->metrics = mysql_metrics;
+	mysql_agent->metadata_number = sizeof(mysql_metadata)/sizeof(char *);
+	mysql_agent->metadata_list = mysql_metadata;
 
 	mysql_agent->thread_main = mysql_main;
 
 	mysql_agent->collect_metadata = collect_mysql_metadata;
 	mysql_agent->collect_metrics = collect_mysql_metrics;
 
-	mysql_agent->to_json = mysql_agent_to_json;
 	mysql_agent->delete_agent = delete_mysql_agent;
 
 	return mysql_agent;
@@ -115,14 +122,14 @@ void collect_mysql_metadata(agent_t *mysql_agent) {
 	}
 
 	printf("[mysql] collecting metadata\n");
-	hash_insert(mysql_agent->metadata, "hostname", NULL);
-	hash_insert(mysql_agent->metadata, "bind_address", NULL);
-	hash_insert(mysql_agent->metadata, "port", NULL);
-	hash_insert(mysql_agent->metadata, "version", NULL);
+	hash_insert(mysql_agent->meta_buf, "hostname", NULL);
+	hash_insert(mysql_agent->meta_buf, "bind_address", NULL);
+	hash_insert(mysql_agent->meta_buf, "port", NULL);
+	hash_insert(mysql_agent->meta_buf, "version", NULL);
 
 	MYSQL_ROW row;
 	while((row = mysql_fetch_row(res)))
-		hash_insert(mysql_agent->metadata, row[0], new_metric(STRING, 0, row[1]));
+		hash_insert(mysql_agent->meta_buf, row[0], new_metric(STRING, 0, row[1]));
 
 	printf("[mysql] collecting metadata done\n");
 	mysql_free_result(res);
@@ -154,7 +161,7 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 	}
 
 	hash_t *hash_table = next_storage(mysql_agent);
-	for(size_t i=0; i<mysql_agent->number; ++i)
+	for(size_t i=0; i<mysql_agent->metric_number; ++i)
 		hash_insert(hash_table, mysql_agent->metrics[i], NULL);
 
 	MYSQL_ROW row;
@@ -170,36 +177,6 @@ void delete_mysql_agent(agent_t *mysql_agent) {
 	mysql_close(detail->mysql);
 	free(detail);
 	delete_agent(mysql_agent);
-}
-
-// TODO pretty? boolean?
-void mysql_agent_to_json(agent_t *mysql_agent, char *json, int pretty) {
-	sprintf(json++, "{");
-	sprintf(json, "\"%s\":\"%s\",", "hostname", (char *)value(hash_search(mysql_agent->metadata, "hostname")));
-	json += strlen(json);
-	sprintf(json, "\"%s\":\"%s\",", "bind_address", (char *)value(hash_search(mysql_agent->metadata, "bind_address")));
-	json += strlen(json);
-	sprintf(json, "\"%s\":\"%s\",", "port", (char *)value(hash_search(mysql_agent->metadata, "port")));
-	json += strlen(json);
-	sprintf(json, "\"%s\":\"%s\",", "version", (char *)value(hash_search(mysql_agent->metadata, "version")));
-	json += strlen(json);
-	timestamp ts = mysql_agent->last_update - (mysql_agent->buf_stored-1)*mysql_agent->period*NANO;
-	for(size_t k=0; k<mysql_agent->buf_stored; ++k) {
-		hash_t *hash = fetch(mysql_agent, ts);
-		sprintf(json, "\"%ld\":{", ts);
-		json += strlen(json);
-		for(size_t i=0; i<mysql_agent->number; ++i) {
-			sprintf(json, "\"%s\":%d", mysql_agent->metrics[i], *(int *)value(hash_search(hash, mysql_agent->metrics[i])));
-			json += strlen(json);
-			if(i < mysql_agent->number-1)
-				sprintf(json++, ",");
-		}
-		sprintf(json++, "}");
-		if(k < mysql_agent->buf_stored-1)
-			sprintf(json++, ",");
-		ts += (mysql_agent->period*NANO);
-	}
-	sprintf(json++, "}");
 }
 
 // TODO

@@ -1,5 +1,5 @@
-#ifndef _MYSQLC_H_
-#define _MYSQLC_H_
+#ifndef _MYSQL_AGENT_H_
+#define _MYSQL_AGENT_H_
 
 #include "agent.h"
 #include "snyohash.h"
@@ -17,7 +17,6 @@ void collect_mysql_metadata(agent_t *mysql_agent);
 void collect_mysql_metrics(agent_t *mysql_agent);
 void delete_mysql_agent(agent_t *mysql_agent);
 
-void mysql_agent_to_json(agent_t *mysql_agent, char *json, int pretty);
 MYSQL_RES *query_result(MYSQL *mysql, char *query);
 
 #endif
