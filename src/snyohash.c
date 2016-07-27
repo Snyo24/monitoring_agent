@@ -77,7 +77,6 @@ void delete_hash(hash_t *hash) {
 /*
  * Declared only in the source file
  */
-
 unsigned long hash_value(char *str) {
 	unsigned long hash = 5381;
 	int c;

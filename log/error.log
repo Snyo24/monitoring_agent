@@ -1,5 +1,10 @@
-[ERROR] 2016-07-26 16:03:07 <Not enough space for mysql agent> (at 21219:util.c:logging:79)
-[FATAL] 2016-07-26 17:54:02 Timeout (at aggregator.c:scheduler:73)
-[FATAL] 2016-07-26 17:54:02 Timeout (at aggregator.c:scheduler:73)
-[FATAL] 2016-07-26 17:54:02 Restarting an agent (at agent.c:restart:59)
-[FATAL] 2016-07-26 17:54:02 Restarting an agent (at agent.c:restart:59)
+[ERROR] 2016-07-26 18:06:44 Too old data to fetch on timestamp 1469523999135508828
+ (at agent.c:fetch:164)
+[ERROR] 2016-07-26 18:07:07 Too old data to fetch on timestamp 1469524025185228599
+ (at agent.c:fetch:160)
+[ERROR] 2016-07-26 18:07:53 Too old data to fetch on timestamp 1469524071212523233
+ (at agent.c:fetch:151)
+[ERROR] 2016-07-26 18:08:58 Too old data to fetch on timestamp 1469524135945049226
+ (at agent.c:fetch:151)
+[ERROR] 2016-07-26 18:09:36 Too old data to fetch on timestamp 1469524174031780474
+ (at agent.c:fetch:151)

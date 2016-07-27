@@ -54,7 +54,7 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	mysql_detail_t *detail = (mysql_detail_t *)malloc(sizeof(mysql_detail_t));
 	if(!detail) {
 		zlog_error(_log_tag, "Failed to allocate mysql detail");
-		mysql_agent->delete_agent(mysql_agent);
+		delete_agent(mysql_agent);
 		return NULL;
 	}
 
@@ -62,7 +62,7 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	if(!detail->mysql) {
 		zlog_error(_log_tag, "Failed to mysql_init");
 		free(detail);
-		mysql_agent->delete_agent(mysql_agent);
+		delete_agent(mysql_agent);
 		return NULL;
 	}
 
@@ -94,7 +94,7 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	mysql_agent->collect_metadata = collect_mysql_metadata;
 	mysql_agent->collect_metrics = collect_mysql_metrics;
 
-	mysql_agent->delete_agent = delete_mysql_agent;
+	mysql_agent->destructor = delete_mysql_agent;
 
 	return mysql_agent;
 }
@@ -112,6 +112,7 @@ void *mysql_main(void *_agent) {
 	pthread_mutex_unlock(&agent->sync);
 
 	run(agent);
+	zlog_debug(agent->log_tag, "MySQL agent is dead");
 	return NULL;
 }
 
@@ -164,7 +165,7 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 		exit(0);
 	}
 
-	hash_t *hash_table = next_storage(mysql_agent);
+	hash_t *hash_table = mysql_agent->buf[mysql_agent->buf_stored++];
 	for(size_t i=0; i<mysql_agent->metric_number; ++i)
 		hash_insert(hash_table, mysql_agent->metrics[i], NULL);
 

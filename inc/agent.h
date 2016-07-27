@@ -6,7 +6,7 @@
 
 #include <pthread.h>
 
-#define STORAGE_SIZE 5
+#define STORAGE_SIZE 3
 
 typedef struct _agent_info agent_t;
 
@@ -17,7 +17,6 @@ struct _agent_info {
 
 	/* Agent info */
 	int       period;
-
 	timestamp start_time;
 	timestamp last_update;
 	timestamp deadline;
@@ -25,10 +24,8 @@ struct _agent_info {
 	/* Thread variables */
 	void            *(*thread_main)(void *);
 	pthread_t       running_thread;
-
 	pthread_mutex_t sync;   // Synchronization
 	pthread_cond_t  synced;
-
 	pthread_mutex_t access; // Read, Write
 	pthread_cond_t  poked;
 
@@ -40,8 +37,6 @@ struct _agent_info {
 
 	/* Buffer */
 	hash_t *meta_buf;
-
-	size_t buf_start;
 	size_t buf_stored;
 	hash_t *buf[STORAGE_SIZE]; // metric hash
 
@@ -54,23 +49,25 @@ struct _agent_info {
 	/* Polymrphism */
 	void (*collect_metadata)(agent_t *);
 	void (*collect_metrics)(agent_t *);
-	void (*delete_agent)(agent_t *);
+	void (*destructor)(agent_t *);
 };
 
 agent_t *new_agent(int period);
+void delete_agent(agent_t *agent);
 
+// Command to agents
 void start(agent_t *agent);
 void restart(agent_t *agent);
-void run(agent_t *agent);	
 int outdated(agent_t *agent);
 void poke(agent_t *agent);
 int timeup(agent_t *agent);
 
-void delete_agent(agent_t *agent);
+int buffer_full(agent_t *agent);
+void post(agent_t *agent);
+void flush(agent_t *agent);
+void to_json(agent_t *mysql_agent, char *json, int pretty);
 
-hash_t *fetch(agent_t *agent, timestamp ts);
-hash_t *next_storage(agent_t *agent);
-
-void agent_to_json(agent_t *mysql_agent, char *json, int pretty);
+// Agent behavior
+void run(agent_t *agent);
 
 #endif

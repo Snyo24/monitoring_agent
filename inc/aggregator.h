@@ -7,6 +7,8 @@
 
 #define TICK NANO/4
 
+void *aggregator_tag;
+
 hash_t *agents;
 
 void initialize();
@@ -15,6 +17,5 @@ void finalize();
 
 // util
 agent_t *get_agent(char *name);
-void gather_json(char *json);
 
 #endif
