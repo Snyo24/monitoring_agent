@@ -8,9 +8,10 @@
 - mysql (install with apt-get)
 - yaml parser
 - zlog
+- cURL
 
 ## Compile
 	make
 
 ## Run
-- ./test
+    ./test
