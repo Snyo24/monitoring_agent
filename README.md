@@ -15,3 +15,6 @@
 
 ## Run
     ./test
+
+## Make document (Need doxygen)
+	make doc
