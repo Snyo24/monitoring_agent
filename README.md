@@ -1,20 +1,19 @@
-# Readme...
-
-## Environment
+# Environment
 - Ubuntu 64bit (Linux)
 - Language: C
 
-## Libraries need
-- mysql (install with apt-get)
-- yaml parser
+# Libraries need
+- mysql
+- yaml
 - zlog
 - cURL
+- Doxygen (to generate document)
 
-## Compile
+# Compile
 	make
 
-## Run
+# Run
     ./test
 
-## Make document (Need doxygen)
+# Generate documents
 	make doc
