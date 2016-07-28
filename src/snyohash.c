@@ -1,33 +1,29 @@
-/*************************************************************
-* FILENAME: snyohash.c
-*
-* DESCRIPTION :
-*     Source file about custom hash.
-*     (CAUTION) There is no delete function.
-*
-* AUTHOR: Snyo
-*
-* HISTORY:
-*     160714 - first written
-*     160725 - modified to work well with the agent structure
-*            - add auto sizing
-*            - description changed
-*
-*/
+/**
+ * @file snyohash.c
+ *
+ * @brief Custom hash
+ *
+ */
 
 #include "snyohash.h"
 
 #include <stdlib.h>
 #include <string.h>
 
+// asdf
 /* Following functions are only used in this source file */
 unsigned long hash_value(char *str);
 
+// asdf
 void double_up(hash_t *hash);
 hash_elem_t *new_hash_elem(char *key, void *item);
 hash_elem_t *hash_elem_find(hash_t *hT, char *key);
 void delete_hash_elem(hash_elem_t *elem);
 
+// asdf
+/*
+ * dfasdf
+ */
 hash_t *new_hash() {
 	hash_t *hash = (hash_t *)malloc(sizeof(hash_t));
 	if(!hash)

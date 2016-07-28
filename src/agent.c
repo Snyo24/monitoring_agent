@@ -1,3 +1,5 @@
+/** @file agent.c @author Snyo */
+
 #include "agent.h"
 
 #include "aggregator.h"
@@ -106,6 +108,8 @@ void delete_agent(agent_t *agent) {
 	pthread_mutex_destroy(&agent->access);
 	pthread_cond_destroy(&agent->poked);
 
+	// TODO stop thread, 
+
 	// TODO free hash_elems
 	delete_hash(agent->meta_buf);
 	for(size_t i=0; i<STORAGE_SIZE; ++i)
@@ -173,7 +177,6 @@ void post(agent_t *agent) {
 		struct curl_slist *headers = NULL;
 		headers = curl_slist_append(headers, "Accept: application/json");
 		headers = curl_slist_append(headers, "Content-Type: application/json");
-		headers = curl_slist_append(headers, "charsets: utf-8");
 
 		curl_easy_setopt(curl, CURLOPT_URL, "http://192.168.121.14:8082");
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -194,8 +197,8 @@ void flush(agent_t *agent) {
 			metric_t *m = (metric_t *)hash_search(agent->buf[i], agent->metrics[k]);
 			if(m) delete_metric(m);
 		}
-		delete_hash(agent->buf[i]);
-		agent->buf[i] = new_hash();
+		// delete_hash(agent->buf[i]);
+		// agent->buf[i] = new_hash();
 	}
 	agent->buf_stored = 0;
 }

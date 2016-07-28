@@ -1,3 +1,5 @@
+/** @file agent.h @author Snyo */
+
 #ifndef _AGENT_H_
 #define _AGENT_H_
 
@@ -29,12 +31,6 @@ struct _agent_info {
 	pthread_mutex_t access; // Read, Write
 	pthread_cond_t  poked;
 
-	/* Metric info */
-	int metric_number;
-	char **metrics;
-	int metadata_number;
-	char **metadata_list;
-
 	/* Buffer */
 	hash_t *meta_buf;
 	size_t buf_stored;
@@ -42,6 +38,12 @@ struct _agent_info {
 
 	/* Logging */
 	void *log_tag;
+
+	/* Metric info */
+	int metric_number;
+	char **metrics;
+	int metadata_number;
+	char **metadata_list;
 	
 	/* Inheritance */
 	void *detail;

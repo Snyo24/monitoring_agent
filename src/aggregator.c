@@ -1,3 +1,5 @@
+/** @file aggregator.c @author Snyo */
+
 #include "aggregator.h"
 
 #include "agent.h"

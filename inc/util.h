@@ -1,3 +1,5 @@
+/** @file util.h @author Snyo */
+
 #ifndef _UTIL_H_
 #define _UTIL_H_
 

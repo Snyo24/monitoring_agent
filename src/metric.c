@@ -1,3 +1,9 @@
+/**
+ * @file metric.c
+ * @author Snyo
+ * @brief Metric value
+ */
+
 #include "metric.h"
 
 #include <stdio.h>

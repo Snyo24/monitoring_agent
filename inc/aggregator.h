@@ -1,3 +1,9 @@
+/**
+ * @file aggregator.h
+ * @author Snyo 
+ * @brief Aggreator
+ */
+
 #ifndef _AGGREGATOR_H_
 #define _AGGREGATOR_H_
 

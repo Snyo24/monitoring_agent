@@ -1,3 +1,5 @@
+/** @file mysql_agent.c @author Snyo */
+
 #include "mysql_agent.h"
 
 #include "agent.h"
@@ -184,7 +186,6 @@ void delete_mysql_agent(agent_t *mysql_agent) {
 	delete_agent(mysql_agent);
 }
 
-// TODO
 MYSQL_RES *query_result(MYSQL *mysql, char *query) {
 	if(mysql_query(mysql, query))
 		return NULL;

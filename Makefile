@@ -44,6 +44,7 @@ all: directories $(TARGET)
 directories:
 	@mkdir -p $(OBJDIR)
 	@mkdir -p $(TARGETDIR)
+	@mkdir -p log
 
 $(TARGET): $(OBJECTS)
 	$(CC) -o $@ $^ $(LIB)
@@ -53,6 +54,10 @@ $(TARGET): $(OBJECTS)
 
 clean:
 	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR)
+	rm -rf ./ext/html
+
+doc:
+	@doxygen -s
 
 main.o: main.c
 agent.o: agent.c agent.h

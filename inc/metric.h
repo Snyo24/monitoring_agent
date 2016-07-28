@@ -1,16 +1,8 @@
-/*************************************************************
-* FILENAME: metric.h
-*
-* DESCRIPTION :
-*     Header file about metric.
-*
-*
-* AUTHOR: Snyo
-*
-* HISTORY:
-*     160704 - first written
-*
-*/
+/**
+ * @file metric.h
+ * @author Snyo
+ * @brief Metric value
+ */
 
 #ifndef _METRIC_H_
 #define _METRIC_H_

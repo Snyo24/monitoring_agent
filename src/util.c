@@ -1,3 +1,5 @@
+/** @file util.c @author Snyo */
+
 #include "util.h"
 
 #include <time.h>
