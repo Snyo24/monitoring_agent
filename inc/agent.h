@@ -6,9 +6,10 @@
 #include "snyohash.h"
 #include "util.h"
 
+#include <stdbool.h>
 #include <pthread.h>
 
-#define STORAGE_SIZE 3
+#define MAX_STORAGE 3
 
 typedef struct _agent_info agent_t;
 
@@ -18,13 +19,12 @@ struct _agent_info {
 	volatile unsigned updating : 1;
 
 	/* Agent info */
-	int       period;
-	timestamp start_time;
-	timestamp last_update;
-	timestamp deadline;
+	unsigned int period;
+	timestamp    start_time;
+	timestamp    last_update;
+	timestamp    deadline;
 
 	/* Thread variables */
-	void            *(*thread_main)(void *);
 	pthread_t       running_thread;
 	pthread_mutex_t sync;   // Synchronization
 	pthread_cond_t  synced;
@@ -32,18 +32,17 @@ struct _agent_info {
 	pthread_cond_t  poked;
 
 	/* Buffer */
-	hash_t *meta_buf;
-	size_t buf_stored;
-	hash_t *buf[STORAGE_SIZE]; // metric hash
+	size_t stored;
+	hash_t *buf[MAX_STORAGE+1]; // +1 for metadata
 
 	/* Logging */
 	void *log_tag;
 
 	/* Metric info */
 	int metric_number;
-	char **metrics;
+	char **metric_names;
 	int metadata_number;
-	char **metadata_list;
+	char **metadata_names;
 	
 	/* Inheritance */
 	void *detail;
@@ -54,22 +53,40 @@ struct _agent_info {
 	void (*destructor)(agent_t *);
 };
 
-agent_t *new_agent(int period);
+/** @brief Constructor */
+agent_t *new_agent(unsigned int period);
+/** @brief Destructor */
 void delete_agent(agent_t *agent);
 
-// Command to agents
+/**
+ * @defgroup agent_syscall
+ * System Calls
+ * @{
+ */
+/** @brief Start the agent in thread */
 void start(agent_t *agent);
+/** @brief Run loop */
+void *run(void *_agent);
+/** @brief Restart the agent */
 void restart(agent_t *agent);
-int outdated(agent_t *agent);
+/** @brief Poke the agent to start update */
 void poke(agent_t *agent);
-int timeup(agent_t *agent);
-
-int buffer_full(agent_t *agent);
+/** @brief Post the buffer */
 void post(agent_t *agent);
+/** @brief Flush the buffer */
 void flush(agent_t *agent);
-void to_json(agent_t *mysql_agent, char *json, int pretty);
+/** @brief Make the buffer to a JSON string */
+void to_json(agent_t *mysql_agent, char *json, bool pretty);
+/** @} */
 
-// Agent behavior
-void run(agent_t *agent);
+/**
+ * @defgroup agent_check
+ * Check status of the agent
+ * @{
+ */
+bool updating(agent_t *agent);
+bool timeup(agent_t *agent);
+bool outdated(agent_t *agent);
+bool buffer_full(agent_t *agent);
 
 #endif

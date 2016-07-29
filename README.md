@@ -1,19 +1,20 @@
-# Environment
+# Readme
+
+## Environment
 - Ubuntu 64bit (Linux)
 - Language: C
 
-# Libraries need
+## Libraries need
 - mysql
 - yaml
 - zlog
 - cURL
-- Doxygen (to generate document)
 
-# Compile
-	make
+## Compile
+	$ make
 
-# Run
-    ./test
+## Run
+    $ ./test
 
-# Generate documents
-	make doc
+## Generate documents (Need doxygen)
+	$ make doc

@@ -53,7 +53,7 @@ $(TARGET): $(OBJECTS)
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $< 
 
 clean:
-	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR) html
+	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR) html log
 
 doc:
 	@doxygen -s

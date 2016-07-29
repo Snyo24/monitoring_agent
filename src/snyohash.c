@@ -10,20 +10,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-// asdf
-/* Following functions are only used in this source file */
-unsigned long hash_value(char *str);
-
-// asdf
-void double_up(hash_t *hash);
+/** Following functions are private */
 hash_elem_t *new_hash_elem(char *key, void *item);
 hash_elem_t *hash_elem_find(hash_t *hT, char *key);
 void delete_hash_elem(hash_elem_t *elem);
+void double_up(hash_t *hash);
+unsigned long hash_value(char *str);
 
-// asdf
-/*
- * dfasdf
- */
 hash_t *new_hash() {
 	hash_t *hash = (hash_t *)malloc(sizeof(hash_t));
 	if(!hash)
@@ -52,7 +45,7 @@ void hash_insert(hash_t *hash, char *key, void *item) {
 		elem->item = item; // shallow copy
 	}
 
-	if(hash->chaining > (hash->size >> 1))
+	if(hash->chaining > (hash->size >> 1)+(hash->size >> 2))
 		double_up(hash);
 }
 
@@ -70,7 +63,7 @@ void delete_hash(hash_t *hash) {
 	free(hash);
 }
 
-/*
+/**
  * Declared only in the source file
  */
 unsigned long hash_value(char *str) {

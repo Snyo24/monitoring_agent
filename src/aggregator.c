@@ -17,7 +17,7 @@
 
 size_t agent_number;
 
-char *agent_name_list[] = {
+char *agent_names[] = {
 	"mysql"
 };
 
@@ -29,7 +29,7 @@ void initialize() {
 
 	zlog_info(aggregator_tag, "Initialize agents");
 
-	agent_number = sizeof(agent_name_list)/sizeof(char *);
+	agent_number = sizeof(agent_names)/sizeof(char *);
 
 	// Add an agents to the agent table
 	agents = new_hash();
@@ -38,7 +38,7 @@ void initialize() {
 		return;
 	}
 
-	zlog_info(aggregator_tag, "Initialize agent \'%s\'", agent_name_list[0]);
+	zlog_info(aggregator_tag, "Initialize agent \'%s\'", agent_names[0]);
 	agent_t *agent = new_mysql_agent(1, "conf/mysql.yaml");
 	if(!agent) {
 		zlog_error(aggregator_tag, "Failed to create an agent");
@@ -65,9 +65,9 @@ void scheduler() {
 		timestamp loop_start = get_timestamp();
 
 		for(size_t i=0; i<agent_number; ++i) {
-			agent_t *agent = get_agent(agent_name_list[i]);
-			zlog_debug(aggregator_tag, "Check the status of \'%s\'", agent_name_list[i]);
-			if(agent->updating) {
+			agent_t *agent = get_agent(agent_names[i]);
+			zlog_debug(aggregator_tag, "Check the status of \'%s\'", agent_names[i]);
+			if(updating(agent)) {
 				zlog_debug(aggregator_tag, "An agent is updating");
 				if(timeup(agent)) {
 					zlog_fatal(aggregator_tag, "Timeout");
@@ -79,7 +79,7 @@ void scheduler() {
 			}
 		}
 
-		zlog_debug(aggregator_tag, "Wait for %lums", TICK/1000);
+		zlog_debug(aggregator_tag, "Wait for %luus", TICK/1000);
 		timestamp next_loop = loop_start + TICK;
 		struct timespec timeout = {
 			next_loop/NANO,

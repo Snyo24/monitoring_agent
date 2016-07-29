@@ -12,6 +12,7 @@ timestamp get_timestamp() {
 	return now.tv_sec * NANO + now.tv_nsec;
 }
 
+// TODO generalize
 void yaml_parser(const char *file, char *result) {
 	yaml_parser_t parser;
 	yaml_token_t token;

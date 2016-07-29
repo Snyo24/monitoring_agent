@@ -13,14 +13,14 @@
 #include <mysql.h>
 #include <zlog.h>
 
-char *mysql_metadata[] = {
+char *mysql_metadata_names[] = {
 	"version",
 	"hostname",
 	"bind_address",
 	"port"
 };
 
-char *mysql_metrics[] = {
+char *mysql_metric_names[] = {
 	"Com_delete",
 	"Com_delete_multi",
 	"Com_insert",
@@ -86,12 +86,10 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	mysql_agent->detail = detail;
 
 	// polymorphism
-	mysql_agent->metric_number = sizeof(mysql_metrics)/sizeof(char *);
-	mysql_agent->metrics = mysql_metrics;
-	mysql_agent->metadata_number = sizeof(mysql_metadata)/sizeof(char *);
-	mysql_agent->metadata_list = mysql_metadata;
-
-	mysql_agent->thread_main = mysql_main;
+	mysql_agent->metric_number = sizeof(mysql_metric_names)/sizeof(char *);
+	mysql_agent->metric_names = mysql_metric_names;
+	mysql_agent->metadata_number = sizeof(mysql_metadata_names)/sizeof(char *);
+	mysql_agent->metadata_names = mysql_metadata_names;
 
 	mysql_agent->collect_metadata = collect_mysql_metadata;
 	mysql_agent->collect_metrics = collect_mysql_metrics;
@@ -99,23 +97,6 @@ agent_t *new_mysql_agent(int period, const char *conf) {
 	mysql_agent->destructor = delete_mysql_agent;
 
 	return mysql_agent;
-}
-
-void *mysql_main(void *_agent) {
-	agent_t *agent = (agent_t *)_agent;
-	zlog_debug(agent->log_tag, "MySQL thread is started");
-	pthread_mutex_lock(&agent->sync);
-	zlog_info(agent->log_tag, "Aquire access");
-	pthread_mutex_lock(&agent->access);
-	zlog_debug(agent->log_tag, "MySQL agent collects metadata");
-	// Collect metadata
-	agent->collect_metadata(agent);
-	pthread_cond_signal(&agent->synced);
-	pthread_mutex_unlock(&agent->sync);
-
-	run(agent);
-	zlog_debug(agent->log_tag, "MySQL agent is dead");
-	return NULL;
 }
 
 void collect_mysql_metadata(agent_t *mysql_agent) {
@@ -131,14 +112,10 @@ void collect_mysql_metadata(agent_t *mysql_agent) {
 		exit(0);
 	}
 
-	hash_insert(mysql_agent->meta_buf, "hostname", NULL);
-	hash_insert(mysql_agent->meta_buf, "bind_address", NULL);
-	hash_insert(mysql_agent->meta_buf, "port", NULL);
-	hash_insert(mysql_agent->meta_buf, "version", NULL);
-
+	hash_t *metadata = mysql_agent->buf[MAX_STORAGE];
 	MYSQL_ROW row;
 	while((row = mysql_fetch_row(res)))
-		hash_insert(mysql_agent->meta_buf, row[0], new_metric(STRING, 0, row[1]));
+		hash_insert(metadata, row[0], new_metric(STRING, 0, row[1]));
 
 	mysql_free_result(res);
 }
@@ -167,9 +144,7 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 		exit(0);
 	}
 
-	hash_t *hash_table = mysql_agent->buf[mysql_agent->buf_stored++];
-	for(size_t i=0; i<mysql_agent->metric_number; ++i)
-		hash_insert(hash_table, mysql_agent->metrics[i], NULL);
+	hash_t *hash_table = mysql_agent->buf[mysql_agent->stored++];
 
 	MYSQL_ROW row;
 	while((row = mysql_fetch_row(res))) {
