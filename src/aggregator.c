@@ -91,8 +91,3 @@ void scheduler() {
 	// Finishing
 	finalize();
 }
-
-agent_t *get_agent(char *name) {
-	zlog_debug(aggregator_tag, "Get the agent \'%s\'", name);
-	return hash_search(agents, name);
-}

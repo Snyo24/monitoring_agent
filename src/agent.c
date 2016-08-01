@@ -249,3 +249,8 @@ bool buffer_full(agent_t *agent) {
 	zlog_debug(agent->log_tag, "Buffer full?");
 	return agent->stored == MAX_STORAGE;
 }
+
+agent_t *get_agent(char *name) {
+	zlog_debug(aggregator_tag, "Get the agent \'%s\'", name);
+	return hash_search(agents, name);
+}

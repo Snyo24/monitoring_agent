@@ -88,5 +88,6 @@ bool updating(agent_t *agent);
 bool timeup(agent_t *agent);
 bool outdated(agent_t *agent);
 bool buffer_full(agent_t *agent);
+agent_t *get_agent(char *name);
 
 #endif
