@@ -176,8 +176,8 @@ void post(agent_t *agent) {
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, json);
 
-	    if(curl_easy_perform(curl) != CURLE_OK)
-			zlog_error(agent->log_tag, "POST failed");
+	  //   if(curl_easy_perform(curl) != CURLE_OK)
+			// zlog_error(agent->log_tag, "POST failed");
  
 		curl_easy_cleanup(curl);
 		curl_slist_free_all(headers);
