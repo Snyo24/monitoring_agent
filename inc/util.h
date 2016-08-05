@@ -20,6 +20,7 @@ typedef enum _log_level {
 } log_level_t;
 
 timestamp get_timestamp();
+void snyo_sleep(timestamp ns);
 void yaml_parser(const char *file, char *result);
 
 #endif

@@ -1,7 +1,7 @@
 /**
  * @file snyohash.h
  *
- * @brief Custom hash
+ * @brief Custom shash
  * @details (CAUTION) There is no delete function.
  * @author Snyo
  *
@@ -14,38 +14,50 @@
  *  + description changed
  *
  * @def INITIAL_SIZE
- * The initial size of Hash.
+ * The initial size of shash.
  * The size increases automatically.
  */
 
-#ifndef _SNYOHASH_H_
-#define _SNYOHASH_H_
+#ifndef _snyohash_H_
+#define _snyohash_H_
 
-#define INITIAL_SIZE 31
+#define INITIAL_SIZE 15
 
 #include <stddef.h>
 
-typedef struct _hash_elem_info hash_elem_t;
-typedef struct _hash_info hash_t;
+typedef struct _shash_elem shash_elem_t;
+typedef struct _shash shash_t;
 
-struct _hash_info {
+struct _shash {
 	size_t size;
 	unsigned int chaining;
-	hash_elem_t **table;
+	shash_elem_t **table;
 };
 
-struct _hash_elem_info {
+struct _shash_elem {
+	/* Key */
 	char *key;
 	unsigned long hash_value;
+
+	/* Item */
 	void *item;
-	hash_elem_t *next;
+	enum item_t {
+		ELEM_BOOLEAN = -5,
+		ELEM_INTEGER = -4,
+		ELEM_DOUBLE = -3,
+		ELEM_PTR = -2, // This type of elem will be shallow copied
+		ELEM_STRING = -1
+	} item_type;
+
+	/* Chaning */
+	shash_elem_t *next;
 };
 
-hash_t *new_hash();
-void hash_insert(hash_t *hT, char *key, void *item);
-void *hash_search(hash_t *hT, char *key);
-void delete_hash(hash_t *hash);
+shash_t *new_shash();
+void shash_insert(shash_t *shash, char *key, void *item, enum item_t type);
+void *shash_search(shash_t *shash, char *key);
+void delete_shash(shash_t *shash);
 
-size_t hash_to_json(hash_t *hT, char *_buf);
+size_t shash_to_json(shash_t *shash, char *json);
 
 #endif

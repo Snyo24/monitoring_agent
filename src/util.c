@@ -3,6 +3,7 @@
 #include "util.h"
 
 #include <time.h>
+
 #include <yaml.h>
 #include <zlog.h>
 
@@ -10,6 +11,16 @@ timestamp get_timestamp() {
 	struct timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
 	return now.tv_sec * NANO + now.tv_nsec;
+}
+
+void snyo_sleep(timestamp ns) {
+	if(ns <= 0)
+		return;
+	struct timespec timeout = {
+		ns/NANO,
+		ns%NANO
+	};
+	nanosleep(&timeout, NULL);
 }
 
 // TODO generalize

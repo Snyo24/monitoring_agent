@@ -15,7 +15,7 @@ DOCDIR		:= html
 #Flags, Libraries and Includes
 CFLAGS		:= -Wall -O2 -g
 LIB			:= -L/usr/lib/x86_64-linux-gnu -lpthread -lz -lm -lrt -ldl -lyaml -lzlog -lcurl -lmysqlclient
-INC			:= -I$(INCDIR) -I$(INCDIR)/agents -I/usr/include/mysql
+INC			:= -I$(INCDIR) -I/usr/include/mysql
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)
 AGENTS		:= $(wildcard $(SRCDIR)/agents/*.c)
@@ -26,9 +26,8 @@ OBJECTS		:= $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 all: directories $(TARGET)
 
 directories:
-	@mkdir -p $(OBJDIR)
-	@mkdir -p $(OBJDIR)/agents
 	@mkdir -p $(TARGETDIR)
+	@mkdir -p $(OBJDIR)/agents
 	@mkdir -p $(LOGDIR)
 
 $(TARGET): $(OBJECTS)

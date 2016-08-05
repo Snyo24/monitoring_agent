@@ -9,18 +9,19 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-#define MAX_STORAGE 3
+#define MAX_STORAGE 2
 
-typedef struct _agent_info agent_t;
+typedef struct _agent agent_t;
 
-struct _agent_info {
+struct _agent {
 	/* Status variables */
 	volatile unsigned alive : 1;
 	volatile unsigned updating : 1;
 
 	/* Agent info */
+	char id[50];
 	unsigned int period;
-	timestamp    start_time;
+	timestamp    first_update;
 	timestamp    last_update;
 	timestamp    deadline;
 
@@ -33,10 +34,10 @@ struct _agent_info {
 
 	/* Buffer */
 	size_t stored;
-	hash_t *buf[MAX_STORAGE+1]; // +1 for metadata
+	shash_t *buf[MAX_STORAGE+1]; // +1 for metadata
 
 	/* Logging */
-	void *log_tag;
+	void *tag;
 
 	/* Metric info */
 	int metric_number;
@@ -76,7 +77,7 @@ void post(agent_t *agent);
 /** @brief Flush the buffer */
 void flush(agent_t *agent);
 /** @brief Make the buffer to a JSON string */
-void to_json(agent_t *mysql_agent, char *json, bool pretty);
+void agent_to_json(agent_t *agent, char *json);
 /** @} */
 
 /**
