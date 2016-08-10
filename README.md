@@ -4,6 +4,9 @@
 - Ubuntu 64bit (Linux)
 - Language: C
 
+## System need
+- sysstat package
+
 ## Libraries need
 - mysql
 - yaml
