@@ -23,13 +23,11 @@
 
 #define INITIAL_SIZE 15
 
-#include <stddef.h>
-
 typedef struct _shash_elem shash_elem_t;
 typedef struct _shash shash_t;
 
 struct _shash {
-	size_t size;
+	int size;
 	unsigned int chaining;
 	shash_elem_t **table;
 };
@@ -58,6 +56,6 @@ void shash_insert(shash_t *shash, char *key, void *item, enum item_t type);
 void *shash_search(shash_t *shash, char *key);
 void delete_shash(shash_t *shash);
 
-size_t shash_to_json(shash_t *shash, char *json);
+int shash_to_json(shash_t *shash, char *json);
 
 #endif

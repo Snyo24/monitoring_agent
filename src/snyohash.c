@@ -40,7 +40,7 @@ void shash_insert(shash_t *shash, char *key, void *item, enum item_t type) {
 	if(!elem) { // If not exist, create it.
 		elem = new_shash_elem(key, item, type);
 
-		size_t idx = elem->hash_value%shash->size;
+		int idx = elem->hash_value%shash->size;
 		if(shash->table[idx]) shash->chaining++;
 		elem->next = shash->table[idx];
 		shash->table[idx] = elem;
@@ -75,22 +75,22 @@ void *shash_search(shash_t *shash, char *key) {
 
 void delete_shash(shash_t *shash) {
 	printf("2\n");
-	for(size_t i=0; i<shash->size; ++i) 
+	for(int i=0; i<shash->size; ++i) 
 		delete_shash_elem_rec(shash->table[i]);
 	free(shash->table);
 	free(shash);
 }
 
-size_t shash_to_json(shash_t *shash, char *_json) {
-	size_t elem_count = 0;
+int shash_to_json(shash_t *shash, char *_json) {
+	int elem_count = 0;
 	shash_elem_t *elems[shash->size<<1];
-	for(size_t i=0; i<shash->size; ++i)
+	for(int i=0; i<shash->size; ++i)
 		for(shash_elem_t *elem=shash->table[i]; elem; elem=elem->next)
 			elems[elem_count++] = elem;
 
 	char *json = _json;
 	json += sprintf(json, "{");
-	for(size_t i=0; i<elem_count; ++i) {
+	for(int i=0; i<elem_count; ++i) {
 		json += sprintf(json, "\"%s\":", elems[i]->key);
 		switch(elems[i]->item_type) {
 			case ELEM_BOOLEAN:
@@ -105,8 +105,8 @@ size_t shash_to_json(shash_t *shash, char *_json) {
 			json += sprintf(json, "\"%s\"", (char *)elems[i]->item); break;
 			default:
 			json += sprintf(json, "{");
-			for(size_t k=0; k<elems[i]->item_type/sizeof(shash_t *); ++k) {
-				json += sprintf(json, "\"%zu\":", k);
+			for(int k=0; k<elems[i]->item_type/sizeof(shash_t *); ++k) {
+				json += sprintf(json, "\"%d\":", k);
 				json += shash_to_json(((shash_t **)elems[i]->item)[k], json);
 				if(k < (elems[i]->item_type)/sizeof(shash_t *)-1)
 					json += sprintf(json, ",");
@@ -133,24 +133,24 @@ unsigned long hash_value(char *str) {
 }
 
 void double_up(shash_t *shash) {
-	size_t old_size = shash->size;
-	size_t new_size = (shash->size<<1) + 1;
+	int old_size = shash->size;
+	int new_size = (shash->size<<1) + 1;
 	shash_elem_t **old_table = shash->table;
 	shash_elem_t **new_table = (shash_elem_t **)malloc(new_size*sizeof(shash_elem_t *));
 	if(!new_table) return;
 	memset(new_table, 0, new_size*sizeof(shash_elem_t *));
 
-	for(size_t i=0; i<old_size; ++i) {
+	for(int i=0; i<old_size; ++i) {
 		shash_elem_t *prev = NULL;
 		for(shash_elem_t *e=old_table[i]; e; prev=e, e=e->next) {
 			if(prev) {
-				size_t idx = prev->hash_value%new_size;
+				int idx = prev->hash_value%new_size;
 				prev->next = new_table[idx];
 				new_table[idx] = prev;
 			}
 		}
 		if(prev) {
-			size_t idx = prev->hash_value%new_size;
+			int idx = prev->hash_value%new_size;
 			prev->next = new_table[idx];
 			new_table[idx] = prev;
 		}
@@ -204,7 +204,7 @@ void free_shash_elem(shash_elem_t *elem) {
 		case ELEM_STRING:
 		free(elem->item); break;
 		default:
-		for(size_t k=0; k<elem->item_type/sizeof(shash_t *); ++k)
+		for(int k=0; k<elem->item_type/sizeof(shash_t *); ++k)
 			delete_shash(((shash_t **)elem->item)[k]);
 		free(elem->item);
 	}
@@ -222,7 +222,7 @@ shash_elem_t *get_shash_elem_by_key(shash_t *shash, char *key) {
 		return NULL;
 
 	unsigned long hV = hash_value(key);
-	size_t i = hV%shash->size;
+	int i = hV%shash->size;
 	shash_elem_t *candidate = NULL;
 
 	for(shash_elem_t *e=shash->table[i]; e; e=e->next)

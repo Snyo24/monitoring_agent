@@ -12,7 +12,7 @@ typedef struct _mysql_detail {
 	MYSQL *mysql;
 } mysql_detail_t;
 
-agent_t *new_mysql_agent(const char *conf);
+agent_t *new_mysql_agent(const char *name, const char *conf);
 
 void *mysql_main(void *_agent);
 void collect_mysql_metadata(agent_t *mysql_agent);

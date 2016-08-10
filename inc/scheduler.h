@@ -1,7 +1,7 @@
 /**
  * @file scheduler.h
  * @author Snyo 
- * @brief Aggreator
+ * @brief Schedule agents
  */
 
 #ifndef _SCHEDULER_H_
@@ -12,12 +12,6 @@
 #include "util.h"
 
 #define TICK NANO/4
-
-void *scheduler_tag;
-
-shash_t *agents;
-
-sender_t *global_sender;
 
 void initialize();
 void schedule();

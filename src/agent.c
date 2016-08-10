@@ -16,13 +16,17 @@
 
 #include <curl/curl.h>
 
-agent_t *new_agent(unsigned int period) {
+extern void *scheduler_tag;
+extern sender_t *global_sender;
+
+agent_t *new_agent(const char *name, unsigned int period) {
 	agent_t *agent = (agent_t *)malloc(sizeof(agent_t));
 
 	if(!agent)
 		return NULL;
 	
 	agent->period = period;
+	agent->name = name;
 
 	// TODO init exception
 	pthread_mutex_init(&agent->sync, NULL);
@@ -31,7 +35,7 @@ agent_t *new_agent(unsigned int period) {
 	pthread_mutex_init(&agent->access, NULL);
 	pthread_cond_init(&agent->poked, NULL);
 
-	for(size_t i=0; i<MAX_STORAGE+1; ++i) {
+	for(int i=0; i<MAX_STORAGE+1; ++i) {
 		agent->buf[i] = new_shash();
 		if(!agent->buf[i]) {
 			for(; i>0; --i)
@@ -52,14 +56,14 @@ void delete_agent(agent_t *agent) {
 	pthread_cond_destroy(&agent->poked);
 
 	// TODO free shash_elems
-	for(size_t i=0; i<MAX_STORAGE+1; ++i)
+	for(int i=0; i<MAX_STORAGE+1; ++i)
 		delete_shash(agent->buf[i]);
 
 	free(agent);
 }
 
 void start(agent_t *agent) {
-	zlog_debug(scheduler_tag, "An agent is started");
+	zlog_debug(scheduler_tag, "Initiate agent values");
 
 	agent->alive = true;
 	agent->updating = false;
@@ -72,7 +76,7 @@ void start(agent_t *agent) {
 	// Start the thread
 	zlog_info(scheduler_tag, "Acquire sync");
 	pthread_mutex_lock(&agent->sync);
-	zlog_debug(scheduler_tag, "An agent is synced, starting thread");
+	zlog_debug(scheduler_tag, "Start agent thread");
 	pthread_create(&agent->running_thread, NULL, run, agent);
 
 	// Let the agent holds "access" lock
@@ -111,6 +115,7 @@ void *run(void *_agent) {
 		pthread_mutex_unlock(&agent->sync);
 
 		agent->collect_metrics(agent);
+		agent->stored++;
 
 		if(!agent->last_update) {
 			 agent->first_update = get_timestamp();
@@ -120,11 +125,6 @@ void *run(void *_agent) {
 		}
 		agent->updating = false;
 		zlog_debug(agent->tag, "Updating done");
-
-		if(buffer_full(agent)) {
-			post(agent);
-			flush(agent);
-		}
 	}
 	zlog_debug(agent->tag, "Agent is dying");
 	return NULL;
@@ -146,65 +146,62 @@ void poke(agent_t *agent) {
 	zlog_info(scheduler_tag, "Release access");
 	pthread_mutex_unlock(&agent->access);
 
-	// confirm the agent starts writting
+	// confirm the agent starts collecting
 	zlog_info(scheduler_tag, "Release sync to be synced");
 	pthread_cond_wait(&agent->synced, &agent->sync);
 	zlog_debug(scheduler_tag, "Synced");
 }
 
-void post(agent_t *agent) {
-	zlog_debug(agent->tag, "POST data");
+void pack(agent_t *agent) {
 	char payload[10000];
 	agent_to_json(agent, payload);
 	zlog_debug(agent->tag, "Payload\n%s (%zu)", payload, strlen(payload));
-	// register_json(global_sender, json);
-}
 
-void flush(agent_t *agent) {
 	zlog_debug(agent->tag, "Flushing buffer");
 	agent->stored = 0;
+
+	simple_send(global_sender, payload);
 }
 
 void agent_to_json(agent_t *agent, char *json) {
 	zlog_debug(agent->tag, "Dump buffer to a JSON string");
+	extern char g_license[];
+	extern char g_uuid[];
 	json += sprintf(json, "{");
-	json += sprintf(json, "\"last_update\":%lu,", agent->last_update);
+	json += sprintf(json, "\"license\":\"%s\",", g_license);
+	json += sprintf(json, "\"uuid\":\"%s\",", g_uuid);
+	json += sprintf(json, "\"payload\":");
+	json += sprintf(json, "{");
+	json += sprintf(json, "\"%s\":", agent->name);
+	json += sprintf(json, "{");
+	json += sprintf(json, "\"timestamp\":%lu,", agent->last_update);
 	json += sprintf(json, "\"period\":%d,", agent->period);
 	json += sprintf(json, "\"metadata\":");
 	json += shash_to_json(agent->buf[MAX_STORAGE], json);
-	json += sprintf(json, ",\"metrics\":{");
-	for(size_t i=0; i<MAX_STORAGE; ++i) {
-		json += sprintf(json, "\"%zu\":", MAX_STORAGE-i-1);
+	json += sprintf(json, ",\"metrics\":");
+	json += sprintf(json, "{");
+	for(int i=0; i<MAX_STORAGE; ++i) {
+		json += sprintf(json, "\"%d\":", MAX_STORAGE-i-1);
 		json += shash_to_json(agent->buf[i], json);
 		if(i < MAX_STORAGE-1)
 			json += sprintf(json, ",");
 	}
-	json += sprintf(json, "}");
-	json += sprintf(json, "}");
+	json += sprintf(json, "}}}}");
 }
 
 bool updating(agent_t *agent) {
-	zlog_debug(scheduler_tag, "Updating?");
 	return agent->updating;
 }
 
 bool timeup(agent_t *agent) {
-	zlog_debug(scheduler_tag, "Timeout?");
 	return get_timestamp() > agent->deadline;
 }
 
 bool outdated(agent_t *agent) {
-	zlog_debug(scheduler_tag, "Outdated?");
 	return !agent->last_update \
 	       || (get_timestamp() - agent->last_update)/NANO >= (agent->period);
 }
 
 bool buffer_full(agent_t *agent) {
-	zlog_debug(agent->tag, "Buffer full?");
 	return agent->stored == MAX_STORAGE;
-}
-
-agent_t *get_agent(char *name) {
-	zlog_debug(scheduler_tag, "Get the agent \'%s\'", name);
-	return shash_search(agents, name);
 }

@@ -9,6 +9,7 @@
 - yaml
 - zlog
 - cURL
+- uuid-dev
 
 ## Compile
 	$ make

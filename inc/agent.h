@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <pthread.h>
 
+#define AGENT_PERIOD 1
 #define MAX_STORAGE 2
 
 typedef struct _agent agent_t;
@@ -19,7 +20,7 @@ struct _agent {
 	volatile unsigned updating : 1;
 
 	/* Agent info */
-	char id[50];
+	const char   *name;
 	unsigned int period;
 	timestamp    first_update;
 	timestamp    last_update;
@@ -33,16 +34,16 @@ struct _agent {
 	pthread_cond_t  poked;
 
 	/* Buffer */
-	size_t stored;
+	int     stored;
 	shash_t *buf[MAX_STORAGE+1]; // +1 for metadata
 
 	/* Logging */
 	void *tag;
 
 	/* Metric info */
-	int metric_number;
+	int  metric_number;
 	char **metric_names;
-	int metadata_number;
+	int  metadata_number;
 	char **metadata_names;
 	
 	/* Inheritance */
@@ -55,7 +56,7 @@ struct _agent {
 };
 
 /** @brief Constructor */
-agent_t *new_agent(unsigned int period);
+agent_t *new_agent(const char *name, unsigned int period);
 /** @brief Destructor */
 void delete_agent(agent_t *agent);
 
@@ -73,9 +74,7 @@ void restart(agent_t *agent);
 /** @brief Poke the agent to start update */
 void poke(agent_t *agent);
 /** @brief Post the buffer */
-void post(agent_t *agent);
-/** @brief Flush the buffer */
-void flush(agent_t *agent);
+void pack(agent_t *agent);
 /** @brief Make the buffer to a JSON string */
 void agent_to_json(agent_t *agent, char *json);
 /** @} */
@@ -89,6 +88,5 @@ bool updating(agent_t *agent);
 bool timeup(agent_t *agent);
 bool outdated(agent_t *agent);
 bool buffer_full(agent_t *agent);
-agent_t *get_agent(char *name);
 
 #endif

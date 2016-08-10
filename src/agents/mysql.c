@@ -40,19 +40,18 @@ char *mysql_metric_names[] = {
 MYSQL_RES *query_result(MYSQL *mysql, char *query);
 
 // TODO exception, configuration parsing
-agent_t *new_mysql_agent(const char *conf) {
+agent_t *new_mysql_agent(const char *name, const char *conf) {
 	// logging
 	zlog_category_t *_tag = zlog_get_category("agent_mysql");
     if (!_tag) return NULL;
 
     zlog_debug(_tag, "Create a new mysql agent with period %d", 1);
 
-	agent_t *mysql_agent = new_agent(1);
+	agent_t *mysql_agent = new_agent(name, AGENT_PERIOD);
 	if(!mysql_agent) {
 		zlog_error(_tag, "Failed to create a general agent");
 		return NULL;
 	}
-	strncpy(mysql_agent->id, "540a14_MSQL1", 50);
 
 	// mysql detail setup
 	mysql_detail_t *detail = (mysql_detail_t *)malloc(sizeof(mysql_detail_t));
@@ -70,9 +69,10 @@ agent_t *new_mysql_agent(const char *conf) {
 		return NULL;
 	}
 
-	char result[4][50];
-	yaml_parser(conf, (char *)result);
-	if(!(mysql_real_connect(detail->mysql, result[0], result[1], result[2], NULL, 0, NULL, 0))) {
+	// char result[4][50];
+	// yaml_parser(conf, (char *)result);
+	// if(!(mysql_real_connect(detail->mysql, result[0], result[1], result[2], NULL, 0, NULL, 0))) {
+	if(!(mysql_real_connect(detail->mysql, "localhost", "root", "alcls7856@", NULL, 0, NULL, 0))) {
 		zlog_error(_tag, "Failed to mysql_real_connect");
 		mysql_close(detail->mysql);
 		free(detail);
@@ -145,16 +145,13 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 		exit(0);
 	}
 
-	shash_t *shash = mysql_agent->buf[mysql_agent->stored++];
+	shash_t *metrics = mysql_agent->buf[mysql_agent->stored];
 
 	MYSQL_ROW row;
 	while((row = mysql_fetch_row(res))) {
 		int x = atoi(row[1]);
-		shash_insert(shash, row[0], &x, ELEM_INTEGER);
+		shash_insert(metrics, row[0], &x, ELEM_INTEGER);
 	}
-	char buf[10000];
-	shash_to_json(shash, buf);
-	printf("%s\n", buf);
 	mysql_free_result(res);
 }
 
