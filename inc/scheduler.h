@@ -13,8 +13,8 @@
 
 #define TICK NANO/4
 
-void initialize();
+void scheduler_init();
 void schedule();
-void finalize();
+void scheduler_fini();
 
 #endif

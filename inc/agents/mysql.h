@@ -8,15 +8,16 @@
 
 #include <mysql.h>
 
+#define MYSQL_AGENT_PERIOD 1
+
 typedef struct _mysql_detail {
 	MYSQL *mysql;
 } mysql_detail_t;
 
-agent_t *new_mysql_agent(const char *name, const char *conf);
+agent_t *mysql_agent_init(const char *name, const char *conf);
 
-void *mysql_main(void *_agent);
 void collect_mysql_metadata(agent_t *mysql_agent);
 void collect_mysql_metrics(agent_t *mysql_agent);
-void delete_mysql_agent(agent_t *mysql_agent);
+void mysql_agent_fini(agent_t *mysql_agent);
 
 #endif

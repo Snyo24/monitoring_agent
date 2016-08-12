@@ -39,68 +39,58 @@ char *mysql_metric_names[] = {
 
 MYSQL_RES *query_result(MYSQL *mysql, char *query);
 
-// TODO exception, configuration parsing
-agent_t *new_mysql_agent(const char *name, const char *conf) {
-	// logging
-	zlog_category_t *_tag = zlog_get_category("agent_mysql");
-    if (!_tag) return NULL;
-
-    zlog_debug(_tag, "Create a new mysql agent with period %d", 1);
-
-	agent_t *mysql_agent = new_agent(name, AGENT_PERIOD);
+// TODO configuration parsing
+agent_t *mysql_agent_init(const char *name, const char *conf) {
+	agent_t *mysql_agent = agent_init(name, MYSQL_AGENT_PERIOD);
 	if(!mysql_agent) {
-		zlog_error(_tag, "Failed to create a general agent");
+		zlog_error(mysql_agent->tag, "Failed to create an agent");
 		return NULL;
 	}
 
 	// mysql detail setup
 	mysql_detail_t *detail = (mysql_detail_t *)malloc(sizeof(mysql_detail_t));
 	if(!detail) {
-		zlog_error(_tag, "Failed to allocate mysql detail");
-		delete_agent(mysql_agent);
+		zlog_error(mysql_agent->tag, "Failed to allocate mysql detail");
+		agent_fini(mysql_agent);
 		return NULL;
 	}
 
 	detail->mysql = mysql_init(NULL);
 	if(!detail->mysql) {
-		zlog_error(_tag, "Failed to mysql_init");
+		zlog_error(mysql_agent->tag, "Failed to mysql_init");
 		free(detail);
-		delete_agent(mysql_agent);
+		agent_fini(mysql_agent);
 		return NULL;
 	}
 
-	// char result[4][50];
-	// yaml_parser(conf, (char *)result);
-	// if(!(mysql_real_connect(detail->mysql, result[0], result[1], result[2], NULL, 0, NULL, 0))) {
-	if(!(mysql_real_connect(detail->mysql, "localhost", "root", "alcls7856@", NULL, 0, NULL, 0))) {
-		zlog_error(_tag, "Failed to mysql_real_connect");
+	// TODO, user conf
+	if(!(mysql_real_connect(detail->mysql, "localhost", "root", "snyo", NULL, 0, NULL, 0))) {
+		zlog_error(mysql_agent->tag, "Failed to mysql_real_connect");
 		mysql_close(detail->mysql);
 		free(detail);
-		delete_agent(mysql_agent);
+		agent_fini(mysql_agent);
 		return NULL;
 	}
-
-	// logging
-	mysql_agent->tag = (void *)_tag;
 
 	// inheritance
 	mysql_agent->detail = detail;
 
 	// polymorphism
-	mysql_agent->metric_number = sizeof(mysql_metric_names)/sizeof(char *);
-	mysql_agent->metric_names = mysql_metric_names;
+	mysql_agent->metric_number   = sizeof(mysql_metric_names)/sizeof(char *);
+	mysql_agent->metric_names    = mysql_metric_names;
 	mysql_agent->metadata_number = sizeof(mysql_metadata_names)/sizeof(char *);
-	mysql_agent->metadata_names = mysql_metadata_names;
+	mysql_agent->metadata_names  = mysql_metadata_names;
 
 	mysql_agent->collect_metadata = collect_mysql_metadata;
-	mysql_agent->collect_metrics = collect_mysql_metrics;
+	mysql_agent->collect_metrics  = collect_mysql_metrics;
 
-	mysql_agent->destructor = delete_mysql_agent;
+	mysql_agent->fini = mysql_agent_fini;
 
 	return mysql_agent;
 }
 
 void collect_mysql_metadata(agent_t *mysql_agent) {
+	zlog_debug(mysql_agent->tag, "Collecting metadata");
 	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
 		"show global variables where variable_name in (\
                                                     \'hostname\', \
@@ -122,6 +112,8 @@ void collect_mysql_metadata(agent_t *mysql_agent) {
 }
 
 void collect_mysql_metrics(agent_t *mysql_agent) {
+	zlog_debug(mysql_agent->tag, "Collecting metrics");
+	// if(mysql_agent->name[5] == '2') sleep(2);
 	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
 		"show global status where variable_name in (\
                                                     \'Com_delete\',\
@@ -155,11 +147,11 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 	mysql_free_result(res);
 }
 
-void delete_mysql_agent(agent_t *mysql_agent) {
+void mysql_agent_fini(agent_t *mysql_agent) {
 	mysql_detail_t *detail = (mysql_detail_t *)mysql_agent->detail;
 	mysql_close(detail->mysql);
 	free(detail);
-	delete_agent(mysql_agent);
+	agent_fini(mysql_agent);
 }
 
 MYSQL_RES *query_result(MYSQL *mysql, char *query) {

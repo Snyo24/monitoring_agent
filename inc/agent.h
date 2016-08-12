@@ -9,7 +9,6 @@
 #include <stdbool.h>
 #include <pthread.h>
 
-#define AGENT_PERIOD 1
 #define MAX_STORAGE 2
 
 typedef struct _agent agent_t;
@@ -17,7 +16,7 @@ typedef struct _agent agent_t;
 struct _agent {
 	/* Status variables */
 	volatile unsigned alive : 1;
-	volatile unsigned updating : 1;
+	volatile unsigned working : 1;
 
 	/* Agent info */
 	const char   *name;
@@ -52,13 +51,13 @@ struct _agent {
 	/* Polymrphism */
 	void (*collect_metadata)(agent_t *);
 	void (*collect_metrics)(agent_t *);
-	void (*destructor)(agent_t *);
+	void (*fini)(agent_t *);
 };
 
 /** @brief Constructor */
-agent_t *new_agent(const char *name, unsigned int period);
-/** @brief Destructor */
-void delete_agent(agent_t *agent);
+agent_t *agent_init(const char *name, unsigned int period);
+/** @brief Destruct2or */
+void agent_fini(agent_t *agent);
 
 /**
  * @defgroup agent_syscall
@@ -84,9 +83,8 @@ void agent_to_json(agent_t *agent, char *json);
  * Check status of the agent
  * @{
  */
-bool updating(agent_t *agent);
+bool busy(agent_t *agent);
 bool timeup(agent_t *agent);
 bool outdated(agent_t *agent);
-bool buffer_full(agent_t *agent);
 
 #endif

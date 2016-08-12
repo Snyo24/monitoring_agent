@@ -51,10 +51,10 @@ struct _shash_elem {
 	shash_elem_t *next;
 };
 
-shash_t *new_shash();
+shash_t *shash_init();
 void shash_insert(shash_t *shash, char *key, void *item, enum item_t type);
 void *shash_search(shash_t *shash, char *key);
-void delete_shash(shash_t *shash);
+void shash_fini(shash_t *shash);
 
 int shash_to_json(shash_t *shash, char *json);
 

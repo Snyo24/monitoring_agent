@@ -37,7 +37,7 @@ $(OBJDIR)/%.o : $(SRCDIR)/%.c
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@  
 
 clean:
-	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR) $(DOCDIR) $(LOGDIR)
+	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR) $(DOCDIR)
 
 doc:
 	@doxygen -s

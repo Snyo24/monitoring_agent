@@ -13,14 +13,14 @@
 #include <stdbool.h>
 
 /** Following functions are private */
-shash_elem_t *new_shash_elem(char *key, void *item, enum item_t type);
+shash_elem_t *shash_elem_init(char *key, void *item, enum item_t type);
 shash_elem_t *get_shash_elem_by_key(shash_t *shash, char *key);
-void delete_shash_elem_rec(shash_elem_t *elem);
-void free_shash_elem(shash_elem_t *elem);
+void shash_elem_fini_rec(shash_elem_t *elem);
+void shash_elem_fini(shash_elem_t *elem);
 void double_up(shash_t *shash);
 unsigned long hash_value(char *str);
 
-shash_t *new_shash() {
+shash_t *shash_init() {
 	shash_t *shash = (shash_t *)malloc(sizeof(shash_t));
 	if(!shash)
 		return NULL;
@@ -38,7 +38,7 @@ shash_t *new_shash() {
 void shash_insert(shash_t *shash, char *key, void *item, enum item_t type) {
 	shash_elem_t *elem = get_shash_elem_by_key(shash, key);
 	if(!elem) { // If not exist, create it.
-		elem = new_shash_elem(key, item, type);
+		elem = shash_elem_init(key, item, type);
 
 		int idx = elem->hash_value%shash->size;
 		if(shash->table[idx]) shash->chaining++;
@@ -73,10 +73,9 @@ void *shash_search(shash_t *shash, char *key) {
 	return elem->item;
 }
 
-void delete_shash(shash_t *shash) {
-	printf("2\n");
+void shash_fini(shash_t *shash) {
 	for(int i=0; i<shash->size; ++i) 
-		delete_shash_elem_rec(shash->table[i]);
+		shash_elem_fini_rec(shash->table[i]);
 	free(shash->table);
 	free(shash);
 }
@@ -162,7 +161,7 @@ void double_up(shash_t *shash) {
 	shash->table = new_table;
 }
 
-shash_elem_t *new_shash_elem(char *key, void *item, enum item_t type) {
+shash_elem_t *shash_elem_init(char *key, void *item, enum item_t type) {
 	shash_elem_t *elem = (shash_elem_t *)malloc(sizeof(shash_elem_t));
 	if(!elem) return NULL;
 
@@ -193,7 +192,7 @@ shash_elem_t *new_shash_elem(char *key, void *item, enum item_t type) {
 	return elem;
 }
 
-void free_shash_elem(shash_elem_t *elem) {
+void shash_elem_fini(shash_elem_t *elem) {
 	if(!elem) return;
 	free(elem->key);
 	switch(elem->item_type) {
@@ -205,16 +204,16 @@ void free_shash_elem(shash_elem_t *elem) {
 		free(elem->item); break;
 		default:
 		for(int k=0; k<elem->item_type/sizeof(shash_t *); ++k)
-			delete_shash(((shash_t **)elem->item)[k]);
+			shash_fini(((shash_t **)elem->item)[k]);
 		free(elem->item);
 	}
 	free(elem);
 }
 
-void delete_shash_elem_rec(shash_elem_t *elem) {
+void shash_elem_fini_rec(shash_elem_t *elem) {
 	if(!elem) return;
-	delete_shash_elem_rec(elem->next);
-	free_shash_elem(elem);
+	shash_elem_fini_rec(elem->next);
+	shash_elem_fini(elem);
 }
 
 shash_elem_t *get_shash_elem_by_key(shash_t *shash, char *key) {

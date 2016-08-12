@@ -6,37 +6,41 @@
 #ifndef _SENDER_H_
 #define _SENDER_H_
 
+#include <stdbool.h>
+
 #include <pthread.h>
 #include <curl/curl.h>
 
-#define MAX_HOLDING 2 
+#define MAX_HOLDING 3 
 #define MAX_LENGTH 2048
 
-typedef struct {
+typedef struct _sender{
 	/* Buffer info */
-	volatile int head;
-	volatile int tail;
+	int  head;
+	int  tail;
+	int  holding;
 	char *queue[MAX_HOLDING];
 
 	/* CURL */
-	CURL *curl;
+	CURL   *curl;
 	struct curl_slist *headers;
 
-	/* Threading */
-	pthread_t running_thread;
-	pthread_mutex_t sender_mutex;
+	/* Thread variables */
+	pthread_t       running_thread;
+	pthread_mutex_t mutex;
 
 	/* Logging */
 	void *tag;
-
-	/* Server host */
-	char *server;
 } sender_t;
 
-sender_t *new_sender(char *server);
-void start_sender(sender_t *sender);
-void post_all(sender_t *sender);
-void delete_sender(sender_t *sender);
-int simple_send(sender_t *sender, char *payload);
+sender_t *g_sender;
+
+void sender_init(const char *server);
+void sender_fini();
+
+void *sender_run(void *_sender);
+int reg_topic(char *payload);
+bool enq_payload(char *payload);
+void deq_payload();
 
 #endif
