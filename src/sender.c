@@ -18,7 +18,7 @@
 bool sender_empty();
 bool sender_full();
 void double_backoff();
-bool oldest_unsent();
+bool load_unsent();
 void drop_unsent();
 
 void sender_init() {
@@ -89,7 +89,7 @@ void *sender_run(void *__unused) {
 				g_sender->backoff = 1;
 
 				if(!g_sender->unsent_fp)
-					if(!oldest_unsent()) continue;
+					if(!load_unsent()) continue;
 
 				zlog_debug(g_sender->tag, "POST unsent JSON");
 				for(int i=0; i<MAX_HOLDING; ++i) {
@@ -123,21 +123,23 @@ void *sender_run(void *__unused) {
 	return NULL;
 }
 
-bool oldest_unsent() {
+bool load_unsent() {
 	for(int i=UNSENT_NUMBER-1; i>=0; --i) {
 		char unsent_log[20];
 		snprintf(unsent_log, 20, "log/unsent.%d", i);
 		if(file_exist(unsent_log)) {
-			rename(unsent_log, "log/unsent.sending");
+			if(rename(unsent_log, "log/unsent.sending"))
+				return false;
 			g_sender->unsent_fp = fopen("log/unsent.sending", "r");
-			return true;
+			return g_sender->unsent_fp != NULL;
 		}
 	}
 	if(!g_sender->unsent_fp) {
 		if(file_exist("log/unsent")) {
-			rename("log/unsent", "log/unsent.sending");
+			if(rename("log/unsent", "log/unsent.sending"))
+				return false;
 			g_sender->unsent_fp = fopen("log/unsent.sending", "r");
-			return true;
+			return g_sender->unsent_fp != NULL;
 		}
 	}
 	return false;
