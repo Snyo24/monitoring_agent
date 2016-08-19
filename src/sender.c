@@ -10,7 +10,7 @@
 
 #define SENDER_TICK NANO/5
 #define KAFKA_SERVER "http://10.10.202.115:8082/v1/agents"
-#define UNSENT_NUMBER 5 // TODO must control with configuration file
+#define UNSENT_NUMBER 2 // TODO must control with configuration file
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     255,format,##__VA_ARGS__))
@@ -92,8 +92,12 @@ void *sender_run(void *__unused) {
 				free(deq_payload());
 				g_sender->backoff = 1;
 
-				if(!g_sender->unsent_fp)
+				if(!g_sender->unsent_fp) {
 					if(!load_unsent()) continue;
+				} else if(file_exist(unsent_MAX)) {
+					drop_unsent();
+					if(!load_unsent()) continue;
+				}
 
 				zlog_debug(g_sender->tag, "POST unsent JSON");
 				for(int i=0; i<MAX_HOLDING; ++i) {
@@ -104,8 +108,6 @@ void *sender_run(void *__unused) {
 						break;
 					} else if(!sender_post(buf)) {
 						zlog_debug(g_sender->tag, "POST fail");
-						if(file_exist(unsent_MAX))
-							drop_unsent();
 						break;
 					}
 				}
@@ -145,17 +147,17 @@ bool load_unsent() {
 		char unsent_log[20];
 		snprintf(unsent_log, 20, "log/unsent.%d", i);
 		if(file_exist(unsent_log)) {
-			if(rename(unsent_log, "log/unsent.sending"))
+			if(rename(unsent_log, "log/unsent_sending"))
 				return false;
-			g_sender->unsent_fp = fopen("log/unsent.sending", "r");
+			g_sender->unsent_fp = fopen("log/unsent_sending", "r");
 			return g_sender->unsent_fp != NULL;
 		}
 	}
 	if(!g_sender->unsent_fp) {
 		if(file_exist("log/unsent")) {
-			if(rename("log/unsent", "log/unsent.sending"))
+			if(rename("log/unsent", "log/unsent_sending"))
 				return false;
-			g_sender->unsent_fp = fopen("log/unsent.sending", "r");
+			g_sender->unsent_fp = fopen("log/unsent_sending", "r");
 			return g_sender->unsent_fp != NULL;
 		}
 	}
@@ -163,7 +165,7 @@ bool load_unsent() {
 }
 
 void drop_unsent() {
-	zlog_debug(g_sender->tag, "Close and remove unsent.sending");
+	zlog_debug(g_sender->tag, "Close and remove unsent_sending");
 	fclose(g_sender->unsent_fp);
 	remove("log/unsent.sending");
 	g_sender->unsent_fp = NULL;
