@@ -8,18 +8,19 @@
 #include <zlog.h>
 #include <curl/curl.h>
 
-#define SENDER_TICK NANO/2
+#define SENDER_TICK NANO/5
 #define KAFKA_SERVER "http://10.10.202.115:8082/v1/agents"
-#define UNSENT_NUMBER 2
+#define UNSENT_NUMBER 5 // TODO must control with configuration file
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     255,format,##__VA_ARGS__))
 
+char *deq_payload();
 bool sender_empty();
 bool sender_full();
-void double_backoff();
 bool load_unsent();
 void drop_unsent();
+void double_backoff();
 
 void sender_init() {
 	g_sender = NULL;
@@ -70,10 +71,13 @@ void sender_fini() {
 }
 
 void *sender_run(void *__unused) {
+	char unsent_MAX[20];
+	snprintf(unsent_MAX, 20, "log/unsent.%d", UNSENT_NUMBER-1);
+
 	while(g_sender->alive) {
 		zlog_debug(g_sender->tag, "Sender has %d/%d JSON", g_sender->holding, MAX_HOLDING+EXTRA_HOLDING);
 		if(sender_full()) {
-			zlog_debug(g_sender->tag, "Write down unsent JSON in the buffer");
+			zlog_debug(g_sender->tag, "Store unsent JSON");
 			pthread_mutex_lock(&g_sender->enqmtx);
 			while(!sender_empty()) {
 				char *payload = deq_payload();
@@ -95,18 +99,14 @@ void *sender_run(void *__unused) {
 				for(int i=0; i<MAX_HOLDING; ++i) {
 					char buf[4096];
 					if(!fgets(buf, 4096, g_sender->unsent_fp)) {
-						zlog_debug(g_sender->tag, "fgets fail");
+						zlog_debug(g_sender->tag, "fgets() fail");
 						drop_unsent();
 						break;
-					} else {
-						if(!sender_post(buf)) {
-							zlog_debug(g_sender->tag, "Send fail");
-							char unsent_MAX[20];
-							snprintf(unsent_MAX, 20, "log/unsent.%d", UNSENT_NUMBER-1);
-							if(file_exist(unsent_MAX))
-								drop_unsent();
-							break;;
-						}
+					} else if(!sender_post(buf)) {
+						zlog_debug(g_sender->tag, "POST fail");
+						if(file_exist(unsent_MAX))
+							drop_unsent();
+						break;
 					}
 				}
 			} else {
@@ -121,6 +121,23 @@ void *sender_run(void *__unused) {
 		}
 	}
 	return NULL;
+}
+
+bool sender_post(char *payload) {
+	curl_easy_setopt(g_sender->curl, CURLOPT_POSTFIELDS, payload);
+	long status_code;
+	CURLcode curl_code = curl_easy_perform(g_sender->curl);
+	curl_easy_getinfo(g_sender->curl, CURLINFO_RESPONSE_CODE, &status_code);
+	return curl_code == CURLE_OK && status_code == 202;
+}
+
+void enq_payload(char *payload) {
+	pthread_mutex_lock(&g_sender->enqmtx);
+	zlog_error(g_sender->tag, "Queuing Idx: %d", g_sender->tail);
+	g_sender->queue[g_sender->tail++] = payload;
+	g_sender->tail %= (MAX_HOLDING+EXTRA_HOLDING);
+	g_sender->holding++;
+	pthread_mutex_unlock(&g_sender->enqmtx);
 }
 
 bool load_unsent() {
@@ -146,26 +163,10 @@ bool load_unsent() {
 }
 
 void drop_unsent() {
+	zlog_debug(g_sender->tag, "Close and remove unsent.sending");
 	fclose(g_sender->unsent_fp);
 	remove("log/unsent.sending");
 	g_sender->unsent_fp = NULL;
-}
-
-int sender_post(char *payload) {
-	curl_easy_setopt(g_sender->curl, CURLOPT_POSTFIELDS, payload);
-	long status_code;
-	CURLcode curl_code = curl_easy_perform(g_sender->curl);
-	curl_easy_getinfo(g_sender->curl, CURLINFO_RESPONSE_CODE, &status_code);
-	return curl_code == CURLE_OK && status_code == 202;
-}
-
-void enq_payload(char *payload) {
-	pthread_mutex_lock(&g_sender->enqmtx);
-	zlog_error(g_sender->tag, "Queuing Idx: %d", g_sender->tail);
-	g_sender->queue[g_sender->tail++] = payload;
-	g_sender->tail %= (MAX_HOLDING+EXTRA_HOLDING);
-	g_sender->holding++;
-	pthread_mutex_unlock(&g_sender->enqmtx);
 }
 
 char *deq_payload() {
@@ -175,12 +176,12 @@ char *deq_payload() {
 	return ret;
 }
 
-bool sender_full() {
-	return g_sender->holding >= MAX_HOLDING;
-}
-
 bool sender_empty() {
 	return g_sender->holding == 0;
+}
+
+bool sender_full() {
+	return g_sender->holding >= MAX_HOLDING;
 }
 
 void double_backoff() {

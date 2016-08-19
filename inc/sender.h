@@ -6,6 +6,8 @@
 #ifndef _SENDER_H_
 #define _SENDER_H_
 
+#include <stdbool.h>
+
 #include <pthread.h>
 #include <curl/curl.h>
 
@@ -44,8 +46,7 @@ void sender_init();
 void sender_fini();
 
 void *sender_run(void *_sender);
-int sender_post(char *payload);
+bool sender_post(char *payload);
 void enq_payload(char *payload);
-char *deq_payload();
 
 #endif
