@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include <yaml.h>
-#include <zlog.h>
+#include <sys/stat.h>
 
 timestamp get_timestamp() {
 	struct timespec now;
@@ -21,6 +21,11 @@ void snyo_sleep(timestamp ns) {
 		ns%NANO
 	};
 	nanosleep(&timeout, NULL);
+}
+
+int file_exist(char *filename) {
+	struct stat st;
+	return !stat(filename, &st);
 }
 
 // TODO generalize

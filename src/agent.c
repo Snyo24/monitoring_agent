@@ -164,7 +164,7 @@ void pack(agent_t *agent) {
 	agent->first_update = 0;
 
 	zlog_debug(agent->tag, "Enqueue the payload");
-	while(!enq_payload(payload));
+	enq_payload(payload);
 }
 
 void agent_to_json(agent_t *agent, char *json) {

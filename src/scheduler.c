@@ -10,9 +10,15 @@
 
 #include <stdio.h>
 #include <string.h>
+
 #include <pthread.h>
 #include <unistd.h>
-#include <uuid/uuid.h>
+
+#include <zlog.h>
+// #include <uuid/uuid.h>
+
+#define SCHEDULER_TICK NANO/2
+#define AGENT_NUMBER (sizeof(agent_names)/sizeof(char *))
 
 zlog_category_t *scheduler_tag;
 
@@ -25,7 +31,6 @@ agent_t *(*agent_constructors[])(const char *, const char *) = {
 	mysql_agent_init
 };
 shash_t *agents;
-int agent_number = sizeof(agent_names)/sizeof(char *);
 
 char g_license[100];
 char g_uuid[40];
@@ -43,7 +48,7 @@ void scheduler_init() {
 
     /* Sender */
 	zlog_debug(scheduler_tag, "Initialize sender");
-	sender_init("http://192.168.122.37:8082/v1/agents");
+	sender_init();
     if (!g_sender) {
     	zlog_error(scheduler_tag, "Fail to create a new sender");
     	exit(1);
@@ -69,7 +74,7 @@ void scheduler_init() {
 	ptr += sprintf(ptr, "\",\"agents\":\"");
 	ptr += get_agents(ptr);
 	ptr += sprintf(ptr, "\"}");
-	if(reg_topic(reg_json) > 0) {
+	if(!sender_post(reg_json)) {
 		zlog_error(scheduler_tag, "Fail to register topic");
     	exit(1);
 	}
@@ -82,7 +87,7 @@ void scheduler_init() {
     	exit(1);
 	}
 
-	for(int i=0; i<agent_number; ++i) {
+	for(int i=0; i<AGENT_NUMBER; ++i) {
 		zlog_debug(scheduler_tag, "Initialize agent \'%s\'", agent_names[i]);
 		char conf_file[100];
 		// TODO, genralize conf file name
@@ -100,8 +105,7 @@ void scheduler_init() {
 void schedule() {
 	scheduler_init();
 	while(1) {
-		timestamp loop_start = get_timestamp();
-		for(int i=0; i<agent_number; ++i) {
+		for(int i=0; i<AGENT_NUMBER; ++i) {
 			agent_t *agent = (agent_t *)shash_search(agents, agent_names[i]);
 			if(!agent) continue;
 			zlog_debug(scheduler_tag, "Status of \'%s\' [%c%c%c]", \
@@ -117,11 +121,8 @@ void schedule() {
 			}
 		}
 
-		if(TICK > get_timestamp()-loop_start) {
-			timestamp remain_tick = TICK-(get_timestamp()-loop_start);
-			zlog_debug(scheduler_tag, "Sleep for %fms", remain_tick/1000000.0);
-			snyo_sleep(remain_tick);
-		}
+		zlog_debug(scheduler_tag, "Sleep for %fms", SCHEDULER_TICK/1000000.0);
+		snyo_sleep(SCHEDULER_TICK);
 	}
 	scheduler_fini();
 }
@@ -155,9 +156,9 @@ int get_uuid(char *uuid) {
 
 int get_agents(char *agents) {
 	int n = 0;
-	for(int i=0; i<agent_number; ++i) {
+	for(int i=0; i<AGENT_NUMBER; ++i) {
 		n += sprintf(agents+n, "%s", agent_names[i]);
-		if(i < agent_number-1)
+		if(i < AGENT_NUMBER-1)
 			sprintf(agents+n++, ",");
 	}
 	return n;

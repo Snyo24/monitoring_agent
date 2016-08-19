@@ -11,8 +11,6 @@
 #include "snyohash.h"
 #include "util.h"
 
-#define TICK NANO/4
-
 void scheduler_init();
 void schedule();
 void scheduler_fini();
