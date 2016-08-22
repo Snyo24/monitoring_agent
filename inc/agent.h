@@ -8,6 +8,7 @@
 
 #include <stdbool.h>
 #include <pthread.h>
+#include <json/json.h>
 
 #define MAX_STORAGE 2
 
@@ -65,7 +66,8 @@ void agent_fini(agent_t *agent);
  * @{
  */
 /** @brief Start the agent in thread */
-void start(agent_t *agent);
+int start(agent_t *agent);
+void kill(agent_t *agent);
 /** @brief Run loop */
 void *run(void *_agent);
 /** @brief Restart the agent */

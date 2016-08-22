@@ -6,7 +6,7 @@
 #include "agent.h"
 #include "snyohash.h"
 
-#include <mysql.h>
+#include <mysql/mysql.h>
 
 #define MYSQL_AGENT_PERIOD 1
 

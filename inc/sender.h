@@ -45,7 +45,6 @@ sender_t *g_sender;
 void sender_init();
 void sender_fini();
 
-void *sender_run(void *_sender);
 bool sender_post(char *payload);
 void enq_payload(char *payload);
 

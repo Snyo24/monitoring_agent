@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <mysql.h>
+#include <mysql/mysql.h>
 #include <zlog.h>
 
 char *mysql_metadata_names[] = {
@@ -20,20 +20,6 @@ char *mysql_metadata_names[] = {
 };
 
 char *mysql_metric_names[] = {
-	"Com_delete",
-	"Com_delete_multi",
-	"Com_insert",
-	"Com_insert_select",
-	"Com_replace_select",
-	"Com_select",
-	"Com_update",
-	"Com_update_multi",
-	"Com_stmt_close",
-	"Com_stmt_execute",
-	"Com_stmt_fetch",
-	"Com_stmt_prepare",
-	"Com_execute_sql",
-	"Com_prepare_sql",
 	"Queries"
 };
 
@@ -113,7 +99,6 @@ void collect_mysql_metadata(agent_t *mysql_agent) {
 
 void collect_mysql_metrics(agent_t *mysql_agent) {
 	zlog_debug(mysql_agent->tag, "Collecting metrics");
-	// if(mysql_agent->name[5] == '2') sleep(2);
 	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
 		"show global status where variable_name in (\
                                                     \'Queries\');");

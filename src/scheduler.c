@@ -58,23 +58,23 @@ void scheduler_init() {
 	// Example
 	// {
 	//     "license":"asdf",
-	//     "hostname":"abcd",
-	//     "uuid": "1234",
-	//     "agents": "MySQL1, MySQL2"
+	//     "uuid": "00000000-0000-0000-0000-000000000000",
+	//     "hostname":"Snyo",
+	//     "agents": ["MySQL1", "MySQL2"]
 	// }
 	zlog_debug(scheduler_tag, "Register topic to the server");
 	char reg_json[128], *ptr;
 	ptr = reg_json;
 	get_license(g_license);
 	ptr += sprintf(ptr, "{\"license\":\"%s", g_license);
-	ptr += sprintf(ptr, "\",\"hostname\":\"");
-	ptr += get_hostname(ptr);
 	get_uuid(g_uuid);
 	ptr += sprintf(ptr, "\",\"uuid\":\"%.*s", 36, g_uuid);
-	ptr += sprintf(ptr, "\",\"agents\":\"");
+	ptr += sprintf(ptr, "\",\"hostname\":\"");
+	ptr += get_hostname(ptr);
+	ptr += sprintf(ptr, "\",\"agents\":[");
 	ptr += get_agents(ptr);
-	ptr += sprintf(ptr, "\"}");
-	if(!sender_post(reg_json)) {
+	ptr += sprintf(ptr, "]}");
+	if(!!sender_post(reg_json)) {
 		zlog_error(scheduler_tag, "Fail to register topic");
     	exit(1);
 	}
@@ -97,7 +97,8 @@ void scheduler_init() {
 			zlog_error(scheduler_tag, "Failed to create \'%s\'", agent_names[i]);
 		} else {
 			shash_insert(agents, agent_names[i], agent, ELEM_PTR);
-			start(agent);
+			while(start(agent))
+				kill(agent);
 		}
 	}
 }
@@ -157,7 +158,7 @@ int get_uuid(char *uuid) {
 int get_agents(char *agents) {
 	int n = 0;
 	for(int i=0; i<AGENT_NUMBER; ++i) {
-		n += sprintf(agents+n, "%s", agent_names[i]);
+		n += sprintf(agents+n, "\"%s\"", agent_names[i]);
 		if(i < AGENT_NUMBER-1)
 			sprintf(agents+n++, ",");
 	}

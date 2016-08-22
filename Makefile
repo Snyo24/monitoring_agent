@@ -14,8 +14,8 @@ DOCDIR		:= html
 
 #Flags, Libraries and Includes
 CFLAGS		:= -Wall -O2 -g
-LIB			:= -L/usr/lib/x86_64-linux-gnu -lpthread -lz -lm -lrt -ldl -lyaml -lzlog -lcurl -lmysqlclient #-luuid
-INC			:= -I$(INCDIR) -I/usr/include/mysql
+LIB			:= -L/usr/lib/x86_64-linux-gnu -lpthread -lz -lm -lrt -ldl -lyaml -lzlog -lcurl -lmysqlclient -ljson #-luuid
+INC			:= -I$(INCDIR)
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)
 AGENTS		:= $(wildcard $(SRCDIR)/agents/*.c)

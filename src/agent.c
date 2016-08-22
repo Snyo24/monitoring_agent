@@ -12,13 +12,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+
 #include <pthread.h>
+#include <errno.h>
 
 #include <zlog.h>
 #include <curl/curl.h>
+#include <json/json.h>
 
 extern void *scheduler_tag;
-extern sender_t *global_sender;
 
 agent_t *agent_init(const char *name, unsigned int period) {
 	char category[100];
@@ -68,7 +70,7 @@ void agent_fini(agent_t *agent) {
 	free(agent);
 }
 
-void start(agent_t *agent) {
+int start(agent_t *agent) {
 	zlog_debug(scheduler_tag, "Initialize agent values");
 
 	agent->alive = true;
@@ -84,15 +86,19 @@ void start(agent_t *agent) {
 	pthread_create(&agent->running_thread, NULL, run, agent);
 
 	// Let the agent holds "access" lock
-	pthread_cond_wait(&agent->synced, &agent->sync);
-	zlog_debug(scheduler_tag, "Agent thread is now running");
+	struct timespec timeout = {get_timestamp()/NANO + 2, 0};
+	return pthread_cond_timedwait(&agent->synced, &agent->sync, &timeout);
+}
+
+void kill(agent_t *agent) {
+	pthread_cancel(agent->running_thread);
+	pthread_mutex_unlock(&agent->sync);
+	pthread_mutex_unlock(&agent->access);
 }
 
 void restart(agent_t *agent) {
 	zlog_fatal(scheduler_tag, "Restart \'%s\'", agent->name);
-	pthread_cancel(agent->running_thread);
-	pthread_mutex_unlock(&agent->sync);
-	pthread_mutex_unlock(&agent->access);
+	kill(agent);
 	start(agent);
 }
 
@@ -112,6 +118,7 @@ void *run(void *_agent) {
 
 	pthread_mutex_lock(&agent->sync);
 	pthread_mutex_lock(&agent->access);
+	agent->collect_metadata(agent);
 	pthread_cond_signal(&agent->synced);
 	pthread_mutex_unlock(&agent->sync);
 
@@ -130,7 +137,6 @@ void *run(void *_agent) {
 		pthread_mutex_unlock(&agent->sync);
 
 		zlog_debug(agent->tag, "Start updating");
-		agent->collect_metadata(agent); // TODO, collect metadata not in every period
 		agent->collect_metrics(agent);
 		agent->stored++;
 
@@ -174,22 +180,28 @@ void agent_to_json(agent_t *agent, char *json) {
 	json += sprintf(json, "{");
 	json += sprintf(json, "\"license\":\"%s\",", g_license);
 	json += sprintf(json, "\"uuid\":\"%s\",", g_uuid);
-	json += sprintf(json, "\"payload\":");
-	json += sprintf(json, "{");
-	json += sprintf(json, "\"%s\":", agent->name);
-	json += sprintf(json, "{");
-	json += sprintf(json, "\"timestamp\":%lu,", agent->first_update);
+	json += sprintf(json, "\"agent\":\"%s\",", agent->name);
 	json += sprintf(json, "\"metadata\":");
 	json += shash_to_json(agent->buf[MAX_STORAGE], json);
-	json += sprintf(json, ",\"metrics\":");
-	json += sprintf(json, "{");
+	json += sprintf(json, ",\"metrics\":[");
+	for(int k=0; k<agent->metric_number; ++k) {
+		json += sprintf(json, "\"%s\"", agent->metric_names[k]);
+		if(k < agent->metric_number-1)
+			json += sprintf(json, ",");
+	}
+	json += sprintf(json, "],\"values\":{");
 	for(int i=0; i<MAX_STORAGE; ++i) {
-		json += sprintf(json, "\"%d\":", i);
-		json += shash_to_json(agent->buf[i], json);
+		json += sprintf(json, "\"%lu\":[", i*NANO+agent->first_update);
+		for(int k=0; k<agent->metric_number; ++k) {
+			json += sprintf(json, "\"%u\"", (int)shash_search(agent->buf[i], agent->metric_names[k]));
+			if(k < agent->metric_number-1)
+				json += sprintf(json, ",");
+		}
+		json += sprintf(json, "]");
 		if(i < MAX_STORAGE-1)
 			json += sprintf(json, ",");
 	}
-	json += sprintf(json, "}}}}");
+	json += sprintf(json, "}}");
 }
 
 bool busy(agent_t *agent) {

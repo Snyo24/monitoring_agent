@@ -15,6 +15,7 @@
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     255,format,##__VA_ARGS__))
 
+void *sender_run(void *__unused);
 char *deq_payload();
 bool sender_empty();
 bool sender_full();
@@ -59,7 +60,7 @@ void sender_init() {
 	g_sender->backoff = 1;
 
 	pthread_mutex_init(&g_sender->enqmtx, NULL);
-	pthread_create(&g_sender->running_thread, NULL, sender_run, NULL);
+	pthread_create(&g_sender->running_thread, NULL, sender_run, g_sender);
 }
 
 void sender_fini() {
@@ -70,55 +71,59 @@ void sender_fini() {
 	curl_easy_cleanup(g_sender->curl);
 }
 
-void *sender_run(void *__unused) {
-	char unsent_MAX[20];
-	snprintf(unsent_MAX, 20, "log/unsent.%d", UNSENT_NUMBER-1);
+void *sender_run(void *_sender) {
+	sender_t *sender = (sender_t *)_sender;
 
-	while(g_sender->alive) {
-		zlog_debug(g_sender->tag, "Sender has %d/%d JSON", g_sender->holding, MAX_HOLDING+EXTRA_HOLDING);
+	char unsent_max[20];
+	snprintf(unsent_max, 20, "log/unsent.%d", UNSENT_NUMBER-1);
+
+	while(sender->alive) {
+		zlog_debug(sender->tag, "Sender has %d/%d JSON", sender->holding, MAX_HOLDING+EXTRA_HOLDING);
 		if(sender_full()) {
-			zlog_debug(g_sender->tag, "Store unsent JSON");
-			pthread_mutex_lock(&g_sender->enqmtx);
+			zlog_debug(sender->tag, "Store unsent JSON");
+			pthread_mutex_lock(&sender->enqmtx);
 			while(!sender_empty()) {
 				char *payload = deq_payload();
-				zlog_unsent(g_sender->tag, "%s", payload);
+				zlog_unsent(sender->tag, "%s", payload);
 				free(payload);
 			}
-			pthread_mutex_unlock(&g_sender->enqmtx);
+			pthread_mutex_unlock(&sender->enqmtx);
 		} else if(!sender_empty()) {
-			zlog_debug(g_sender->tag, "Try POST (timeout: 1s)");
-			if(sender_post(g_sender->queue[g_sender->head])) {
-				zlog_debug(g_sender->tag, "POST success");
+			zlog_debug(sender->tag, "Try POST (timeout: 1s)");
+			if(sender_post(sender->queue[sender->head])) {
+				zlog_debug(sender->tag, "POST success");
 				free(deq_payload());
-				g_sender->backoff = 1;
+				sender->backoff = 1;
 
-				if(!g_sender->unsent_fp) {
+				if(!sender->unsent_fp) {
 					if(!load_unsent()) continue;
-				} else if(file_exist(unsent_MAX)) {
+				} else if(file_exist(unsent_max)) {
 					drop_unsent();
 					if(!load_unsent()) continue;
 				}
 
-				zlog_debug(g_sender->tag, "POST unsent JSON");
+				snyo_sleep(NANO);
+
+				zlog_debug(sender->tag, "POST unsent JSON");
 				for(int i=0; i<MAX_HOLDING; ++i) {
 					char buf[4096];
-					if(!fgets(buf, 4096, g_sender->unsent_fp)) {
-						zlog_debug(g_sender->tag, "fgets() fail");
+					if(!fgets(buf, 4096, sender->unsent_fp)) {
+						zlog_debug(sender->tag, "fgets() fail");
 						drop_unsent();
 						break;
 					} else if(!sender_post(buf)) {
-						zlog_debug(g_sender->tag, "POST fail");
+						zlog_debug(sender->tag, "POST fail");
 						break;
 					}
 				}
 			} else {
-				zlog_debug(g_sender->tag, "POST fail");
-				zlog_debug(g_sender->tag, "Sleep for %lums", g_sender->backoff*SENDER_TICK/1000000);
-				snyo_sleep(g_sender->backoff*SENDER_TICK);
+				zlog_debug(sender->tag, "POST fail");
+				zlog_debug(sender->tag, "Sleep for %lums", sender->backoff*SENDER_TICK/1000000);
+				snyo_sleep(sender->backoff*SENDER_TICK);
 				double_backoff();
 			}
 		} else {
-			zlog_debug(g_sender->tag, "Sleep for %lums", SENDER_TICK/1000000);
+			zlog_debug(sender->tag, "Sleep for %lums", SENDER_TICK/1000000);
 			snyo_sleep(SENDER_TICK);
 		}
 	}
@@ -153,13 +158,11 @@ bool load_unsent() {
 			return g_sender->unsent_fp != NULL;
 		}
 	}
-	if(!g_sender->unsent_fp) {
-		if(file_exist("log/unsent")) {
-			if(rename("log/unsent", "log/unsent_sending"))
-				return false;
-			g_sender->unsent_fp = fopen("log/unsent_sending", "r");
-			return g_sender->unsent_fp != NULL;
-		}
+	if(file_exist("log/unsent")) {
+		if(rename("log/unsent", "log/unsent_sending"))
+			return false;
+		g_sender->unsent_fp = fopen("log/unsent_sending", "r");
+		return g_sender->unsent_fp != NULL;
 	}
 	return false;
 }
