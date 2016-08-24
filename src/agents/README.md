@@ -1,9 +1,10 @@
 ## CAUTION
 
-"void *detail" in agent structure is for implementing inheritance.
+"void *detail" in agent structure is used for implementing inheritance.
 
-"detail" will contain not common variable of agent.
+"detail" will contain not common variable of the agent structure.
 (e.g. MYSQL *mysql, FILE *fd)
+
 
 DO NOT COLLECT METRIC IN THIS VARIABLE.
 
