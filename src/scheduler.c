@@ -49,10 +49,6 @@ void scheduler_init() {
     /* Sender */
 	zlog_debug(scheduler_tag, "Initialize sender");
 	sender_init();
-    if (!g_sender) {
-    	zlog_error(scheduler_tag, "Fail to create a new sender");
-    	exit(1);
-    }
 
 	/* Register topics */
 	// Example

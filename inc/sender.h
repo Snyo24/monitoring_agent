@@ -40,7 +40,7 @@ typedef struct _sender{
 	unsigned backoff :6;
 } sender_t;
 
-sender_t *g_sender;
+sender_t g_sender;
 
 void sender_init();
 void sender_fini();
