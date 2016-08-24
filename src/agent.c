@@ -86,7 +86,7 @@ int start(agent_t *agent) {
 	pthread_create(&agent->running_thread, NULL, run, agent);
 
 	// Let the agent holds "access" lock
-	struct timespec timeout = {get_timestamp()/NANO + 2, 0};
+	struct timespec timeout = {get_timestamp()/GIGA + 2, 0};
 	return pthread_cond_timedwait(&agent->synced, &agent->sync, &timeout);
 }
 
@@ -118,6 +118,7 @@ void *run(void *_agent) {
 
 	pthread_mutex_lock(&agent->sync);
 	pthread_mutex_lock(&agent->access);
+	 // TODO must handle timeout in this phase, or put it into the loop
 	agent->collect_metadata(agent);
 	pthread_cond_signal(&agent->synced);
 	pthread_mutex_unlock(&agent->sync);
@@ -131,7 +132,7 @@ void *run(void *_agent) {
 		pthread_mutex_lock(&agent->sync);
 
 		agent->working = true;
-		agent->deadline = get_timestamp() + (NANO/10*9)*agent->period;
+		agent->deadline = get_timestamp() + (GIGA/10*9)*agent->period;
 
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
@@ -143,7 +144,7 @@ void *run(void *_agent) {
 		if(!agent->last_update) {
 			 agent->last_update = get_timestamp();
 		} else {
-			agent->last_update += agent->period*NANO;
+			agent->last_update += agent->period*GIGA;
 		}
 		if(!agent->first_update)
 			agent->first_update = agent->last_update;
@@ -159,6 +160,7 @@ void *run(void *_agent) {
 	return NULL;
 }
 
+//////////////////////////////////////////////////////////// TODO packing the jobj (libjsonc)
 void pack(agent_t *agent) {
 	zlog_debug(agent->tag, "Packing \'%s\'", agent->name);
 	char *payload = (char *)malloc(sizeof(char) * 4196);
@@ -173,6 +175,7 @@ void pack(agent_t *agent) {
 	enq_payload(payload);
 }
 
+//////////////////////////////////////////////////////////// TODO must be deprecated,
 void agent_to_json(agent_t *agent, char *json) {
 	zlog_debug(agent->tag, "Dump buffer to a JSON string");
 	extern char g_license[];
@@ -181,9 +184,9 @@ void agent_to_json(agent_t *agent, char *json) {
 	json += sprintf(json, "\"license\":\"%s\",", g_license);
 	json += sprintf(json, "\"uuid\":\"%s\",", g_uuid);
 	json += sprintf(json, "\"agent\":\"%s\",", agent->name);
-	json += sprintf(json, "\"metadata\":");
-	json += shash_to_json(agent->buf[MAX_STORAGE], json);
-	json += sprintf(json, ",\"metrics\":[");
+	// json += sprintf(json, "\"metadata\":");
+	// json += shash_to_json(agent->buf[MAX_STORAGE], json);
+	json += sprintf(json, "\"metrics\":[");
 	for(int k=0; k<agent->metric_number; ++k) {
 		json += sprintf(json, "\"%s\"", agent->metric_names[k]);
 		if(k < agent->metric_number-1)
@@ -191,7 +194,7 @@ void agent_to_json(agent_t *agent, char *json) {
 	}
 	json += sprintf(json, "],\"values\":{");
 	for(int i=0; i<MAX_STORAGE; ++i) {
-		json += sprintf(json, "\"%lu\":[", i*NANO+agent->first_update);
+		json += sprintf(json, "\"%lu\":[", i*GIGA+agent->first_update);
 		for(int k=0; k<agent->metric_number; ++k) {
 			json += sprintf(json, "\"%u\"", (int)shash_search(agent->buf[i], agent->metric_names[k]));
 			if(k < agent->metric_number-1)
@@ -214,5 +217,5 @@ bool timeup(agent_t *agent) {
 
 bool outdated(agent_t *agent) {
 	return !agent->last_update \
-	       || (get_timestamp() - agent->last_update)/NANO >= (agent->period);
+	       || (get_timestamp() - agent->last_update)/GIGA >= (agent->period);
 }

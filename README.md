@@ -4,15 +4,14 @@
 - Ubuntu 64bit (Linux)
 - Language: C
 
-## System need
-- sysstat package
-
 ## Libraries need
 - mysql
 - yaml
 - zlog
 - cURL
 - uuid-dev
+- json-c
+- sysstat
 
 ## Compile
 	$ make

@@ -49,7 +49,7 @@ struct _agent {
 	/* Inheritance */
 	void *detail;
 
-	/* Polymrphism */
+	/* Polymorphism */
 	void (*collect_metadata)(agent_t *);
 	void (*collect_metrics)(agent_t *);
 	void (*fini)(agent_t *);

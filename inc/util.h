@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 
-#define NANO ((uint64_t)1000000000)
+#define GIGA ((uint64_t)1000000000)
 
 typedef uint64_t timestamp;
 

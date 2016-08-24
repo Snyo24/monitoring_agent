@@ -17,7 +17,7 @@
 #include <zlog.h>
 // #include <uuid/uuid.h>
 
-#define SCHEDULER_TICK NANO/2
+#define SCHEDULER_TICK GIGA/2
 #define AGENT_NUMBER (sizeof(agent_names)/sizeof(char *))
 
 zlog_category_t *scheduler_tag;
@@ -74,7 +74,8 @@ void scheduler_init() {
 	ptr += sprintf(ptr, "\",\"agents\":[");
 	ptr += get_agents(ptr);
 	ptr += sprintf(ptr, "]}");
-	if(!!sender_post(reg_json)) {
+	printf("%s\n", reg_json);
+	if(!sender_post(reg_json)) {
 		zlog_error(scheduler_tag, "Fail to register topic");
     	exit(1);
 	}

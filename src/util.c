@@ -10,15 +10,15 @@
 timestamp get_timestamp() {
 	struct timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
-	return now.tv_sec * NANO + now.tv_nsec;
+	return now.tv_sec * GIGA + now.tv_nsec;
 }
 
 void snyo_sleep(timestamp ns) {
 	if(ns <= 0)
 		return;
 	struct timespec timeout = {
-		ns/NANO,
-		ns%NANO
+		ns/GIGA,
+		ns%GIGA
 	};
 	nanosleep(&timeout, NULL);
 }
