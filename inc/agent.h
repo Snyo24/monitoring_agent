@@ -35,7 +35,7 @@ struct _agent {
 
 	/* Buffer */
 	int     stored;
-	shash_t *buf[MAX_STORAGE+1]; // +1 for metadata
+	shash_t *buf[MAX_STORAGE]; // +1 for metadata
 
 	/* Logging */
 	void *tag;
@@ -43,14 +43,11 @@ struct _agent {
 	/* Metric info */
 	int  metric_number;
 	char **metric_names;
-	int  metadata_number;
-	char **metadata_names;
 	
 	/* Inheritance */
 	void *detail;
 
 	/* Polymorphism */
-	void (*collect_metadata)(agent_t *);
 	void (*collect_metrics)(agent_t *);
 	void (*fini)(agent_t *);
 };

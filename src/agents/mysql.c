@@ -64,37 +64,11 @@ agent_t *mysql_agent_init(const char *name, const char *conf) {
 	// polymorphism
 	mysql_agent->metric_number   = sizeof(mysql_metric_names)/sizeof(char *);
 	mysql_agent->metric_names    = mysql_metric_names;
-	mysql_agent->metadata_number = sizeof(mysql_metadata_names)/sizeof(char *);
-	mysql_agent->metadata_names  = mysql_metadata_names;
-
-	mysql_agent->collect_metadata = collect_mysql_metadata;
 	mysql_agent->collect_metrics  = collect_mysql_metrics;
 
 	mysql_agent->fini = mysql_agent_fini;
 
 	return mysql_agent;
-}
-
-void collect_mysql_metadata(agent_t *mysql_agent) {
-	zlog_debug(mysql_agent->tag, "Collecting metadata");
-	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
-		"show global variables where variable_name in (\
-                                                    \'hostname\', \
-                                                    \'bind_address\', \
-                                                    \'port\', \
-                                                    \'version\');");
-
-	if(!res) {
-		zlog_error(mysql_agent->tag, "Fail to get query result");
-		exit(0);
-	}
-
-	shash_t *metadata = mysql_agent->buf[MAX_STORAGE];
-	MYSQL_ROW row;
-	while((row = mysql_fetch_row(res)))
-		shash_insert(metadata, row[0], row[1], ELEM_STRING);
-
-	mysql_free_result(res);
 }
 
 void collect_mysql_metrics(agent_t *mysql_agent) {

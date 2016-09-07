@@ -16,7 +16,6 @@ typedef struct _mysql_detail {
 
 agent_t *mysql_agent_init(const char *name, const char *conf);
 
-void collect_mysql_metadata(agent_t *mysql_agent);
 void collect_mysql_metrics(agent_t *mysql_agent);
 void mysql_agent_fini(agent_t *mysql_agent);
 
