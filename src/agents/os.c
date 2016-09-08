@@ -13,15 +13,15 @@
 #include <json/json.h>
 
 char *os_metric_names[] = {
-	"disk/usage",
-	"disk/number",
-	"network/byte_in",
-	"network/byte_out",
-	"network/packet_in",
-	"network/packet_out",
-	"network/byte_in_per_sec",
-	"network/byte_out_per_sec",
-	"network/number"
+	"dist_stat/usage",
+	"dist_stat/number",
+	"net_stat/byte_in",
+	"net_stat/byte_out",
+	"net_stat/packet_in",
+	"net_stat/packet_out",
+	"net_stat/byte_in_per_sec",
+	"net_stat/byte_out_per_sec",
+	"net_stat/number"
 };
 
 // TODO configuration parsing
@@ -100,6 +100,25 @@ void collect_os_metrics(agent_t *os_agent) {
 		os_detail->last_byte_out = byte_out;
 	}
 	pclose(net_fp);
+
+	/* Memory and CPU */
+	FILE *top_fp = popen("top -n 1 | grep -A 5 PID | awk \'{print $3, $10, $11, $13}\'", "r");
+	json_object *process;
+	char tmp[100];
+	fgets(tmp, 100, top_fp);
+	for(int i=0; i<5; ++i) {
+		char user[100], name[100];
+		double cpu, mem;
+		if(fscanf(top_fp, "%s%lf%lf%s", user, &cpu, &mem, name) == 4) {
+			process = json_object_new_object();
+			json_object_object_add(process, "user", json_object_new_string(user));
+			json_object_object_add(process, "cpu%%", json_object_new_double(cpu));
+			json_object_object_add(process, "mem%%", json_object_new_double(mem));
+			json_object_object_add(process, "name", json_object_new_string(name));
+			json_object_array_add(values, process);
+		}
+	}
+	pclose(top_fp);
 	add(os_agent, values);
 }
 
