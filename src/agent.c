@@ -40,13 +40,9 @@ agent_t *agent_init(const char *name, unsigned int period) {
 	pthread_mutex_init(&agent->access, NULL);
 	pthread_cond_init(&agent->poked, NULL);
 
-	for(int i=0; i<MAX_STORAGE+1; ++i) {
-		agent->buf[i] = shash_init();
-		if(!agent->buf[i]) {
-			for(; i>0; --i) shash_fini(agent->buf[i-1]);
-			return NULL;
-		}
-	}
+	agent->values = json_object_new_object();
+
+	agent->metric_array = json_object_new_array();
 	
 	agent->tag = (void *)_tag;
 	agent->name = name;
@@ -62,10 +58,6 @@ void agent_fini(agent_t *agent) {
 
 	pthread_mutex_destroy(&agent->access);
 	pthread_cond_destroy(&agent->poked);
-
-	// TODO free shash_elems
-	for(int i=0; i<MAX_STORAGE+1; ++i)
-		shash_fini(agent->buf[i]);
 
 	free(agent);
 }
@@ -118,8 +110,6 @@ void *run(void *_agent) {
 
 	pthread_mutex_lock(&agent->sync);
 	pthread_mutex_lock(&agent->access);
-	 // TODO must handle timeout in this phase, or put it into the loop
-	agent->collect_metadata(agent);
 	pthread_cond_signal(&agent->synced);
 	pthread_mutex_unlock(&agent->sync);
 
@@ -137,10 +127,6 @@ void *run(void *_agent) {
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
 
-		zlog_debug(agent->tag, "Start updating");
-		agent->collect_metrics(agent);
-		agent->stored++;
-
 		if(!agent->last_update) {
 			 agent->last_update = get_timestamp();
 		} else {
@@ -149,9 +135,15 @@ void *run(void *_agent) {
 		if(!agent->first_update)
 			agent->first_update = agent->last_update;
 
+		zlog_debug(agent->tag, "Start updating");
+		agent->collect_metrics(agent);
+		agent->stored++;
+
 		if(agent->stored == MAX_STORAGE) {
 			zlog_debug(agent->tag, "Buffer is full");
 			pack(agent);
+			json_object_put(agent->values);
+			agent->values = json_object_new_object();
 		}
 		agent->working = false;
 		zlog_debug(agent->tag, "Updating done");
@@ -160,11 +152,27 @@ void *run(void *_agent) {
 	return NULL;
 }
 
-//////////////////////////////////////////////////////////// TODO packing the jobj (libjsonc)
 void pack(agent_t *agent) {
 	zlog_debug(agent->tag, "Packing \'%s\'", agent->name);
-	char *payload = (char *)malloc(sizeof(char) * 4196);
-	agent_to_json(agent, payload);
+
+	json_object *package = json_object_new_object();
+	extern char g_license[];
+	extern char g_uuid[];
+	json_object_object_add(package, "license", json_object_new_string(g_license));
+	json_object_object_add(package, "uuid", json_object_new_string(g_uuid));
+	json_object_object_add(package, "agent", json_object_new_string(agent->name));
+	json_object *m_arr = json_object_new_array();
+	for(int k=0; k<agent->metric_number; ++k) {
+		json_object_array_add(m_arr, json_object_new_string(agent->metric_names[k]));
+	}
+	json_object_object_add(package, "metrics", m_arr);
+	json_object_put(agent->metric_array);
+	agent->metric_array = json_object_new_array();
+	json_object_object_add(package, "values", agent->values);
+
+	char *payload;
+	// agent_to_json(agent, payload);
+	payload = strdup(json_object_to_json_string(package));
 	zlog_debug(agent->tag, "Payload\n%s (%zu)", payload, strlen(payload));
 
 	zlog_debug(agent->tag, "Flushing buffer");
@@ -175,36 +183,10 @@ void pack(agent_t *agent) {
 	enq_payload(payload);
 }
 
-//////////////////////////////////////////////////////////// TODO must be deprecated,
-void agent_to_json(agent_t *agent, char *json) {
-	zlog_debug(agent->tag, "Dump buffer to a JSON string");
-	extern char g_license[];
-	extern char g_uuid[];
-	json += sprintf(json, "{");
-	json += sprintf(json, "\"license\":\"%s\",", g_license);
-	json += sprintf(json, "\"uuid\":\"%s\",", g_uuid);
-	json += sprintf(json, "\"agent\":\"%s\",", agent->name);
-	// json += sprintf(json, "\"metadata\":");
-	// json += shash_to_json(agent->buf[MAX_STORAGE], json);
-	json += sprintf(json, "\"metrics\":[");
-	for(int k=0; k<agent->metric_number; ++k) {
-		json += sprintf(json, "\"%s\"", agent->metric_names[k]);
-		if(k < agent->metric_number-1)
-			json += sprintf(json, ",");
-	}
-	json += sprintf(json, "],\"values\":{");
-	for(int i=0; i<MAX_STORAGE; ++i) {
-		json += sprintf(json, "\"%lu\":[", i*GIGA+agent->first_update);
-		for(int k=0; k<agent->metric_number; ++k) {
-			json += sprintf(json, "\"%u\"", (int)shash_search(agent->buf[i], agent->metric_names[k]));
-			if(k < agent->metric_number-1)
-				json += sprintf(json, ",");
-		}
-		json += sprintf(json, "]");
-		if(i < MAX_STORAGE-1)
-			json += sprintf(json, ",");
-	}
-	json += sprintf(json, "}}");
+void add(agent_t *agent, json_object *jarr) {
+	char last_update_str[20];
+	sprintf(last_update_str, "%lu", agent->last_update);
+	json_object_object_add(agent->values, last_update_str, jarr);
 }
 
 bool busy(agent_t *agent) {

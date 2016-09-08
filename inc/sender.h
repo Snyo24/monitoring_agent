@@ -11,8 +11,11 @@
 #include <pthread.h>
 #include <curl/curl.h>
 
-#define MAX_HOLDING 3
-#define EXTRA_HOLDING 66 // Need extra space for agents number * 2
+#define QUEUE_MAX 5
+#define QUEUE_EXTRA 66
+
+#define UNSENT_FILE_NAME_MAX 16
+#define BACKOFF_EXP 6
 
 typedef struct _sender{
 	/* Status */
@@ -26,7 +29,7 @@ typedef struct _sender{
 	int  head;
 	int  tail;
 	int  holding;
-	char *queue[MAX_HOLDING + EXTRA_HOLDING];
+	char *queue[QUEUE_MAX + QUEUE_EXTRA];
 
 	/* Thread variables */
 	pthread_t       running_thread;
@@ -37,7 +40,8 @@ typedef struct _sender{
 
 	/* Sending fail */
 	FILE *unsent_fp;
-	unsigned backoff :6;
+	char _unsent_file_name[UNSENT_FILE_NAME_MAX];
+	unsigned backoff :BACKOFF_EXP;
 } sender_t;
 
 sender_t g_sender;

@@ -9,9 +9,8 @@
 #include <curl/curl.h>
 
 #define SENDER_TICK GIGA/5
-#define DNS "http://10.10.202.115:8082/v1/agents"
+#define DNS "http://10.10.200.171:8082/v1/agents"
 #define UNSENT_NUMBER 2 // TODO must control with configuration file
-#define UNSENT_NAME_LENGTH 16
 #define UNSENT_SENDING "log/unsent_sending"
 #define MAX_JSON_BYTE 4096
 #define ONE_SUCCESS_TRY_N_UNSENT 3
@@ -19,12 +18,15 @@
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     255,format,##__VA_ARGS__))
 
-void *sender_run(void *__unused);
+void *sender_run(void *_sender);
+
 char *deq_payload();
 bool sender_empty();
 bool sender_full();
+
+char *unsent_file(int i);
 bool load_unsent();
-void drop_unsent();
+void drop_unsent_sending();
 void double_backoff();
 
 void sender_init() {
@@ -33,25 +35,25 @@ void sender_init() {
 
 	g_sender.alive = 1;
 
-	for(int i=UNSENT_NUMBER-1; i>=0; --i) {
-		char unsent_log[20];
-		snprintf(unsent_log, 20, "log/unsent.%d", i);
-		if(file_exist(unsent_log))
-			if(remove(unsent_log))
+	/* Clear unsent json files */
+	sprintf(g_sender._unsent_file_name, "log/unsent");
+	for(int i=UNSENT_NUMBER-1; i>=-1; --i) {
+		char *unsent = unsent_file(i);
+		if(file_exist(unsent))
+			if(remove(unsent))
 				zlog_error(_tag, "Fail to remove junk unsent");
 	}
-	remove("log/unsent_sending");
-	remove("log/unsent");
+	remove(UNSENT_SENDING);
 
 	zlog_debug(_tag, "Setup cURL");
 	g_sender.curl = curl_easy_init();
 	if(!g_sender.curl) {
 		zlog_error(_tag, "Fail to setup cURL");
-		return;
+		exit(0);
 	} else {
 		zlog_debug(_tag, "Setup cURL header");
 		g_sender.headers = NULL;
-		g_sender.headers = curl_slist_append(g_sender.headers, "Accept: application/json");
+		// g_sender.headers = curl_slist_append(g_sender.headers, "Accept: application/json");
 		g_sender.headers = curl_slist_append(g_sender.headers, "Content-Type: application/vnd.exem.v1+json");
 
 		zlog_debug(_tag, "Setup cURL option");
@@ -88,7 +90,7 @@ void *sender_run(void *_sender) {
 	snprintf(unsent_max, 20, "log/unsent.%d", UNSENT_NUMBER-1);
 
 	while(sender->alive) {
-		zlog_debug(sender->tag, "Sender has %d/%d JSON", sender->holding, MAX_HOLDING+EXTRA_HOLDING);
+		zlog_debug(sender->tag, "Sender has %d/%d JSON", sender->holding, QUEUE_MAX+QUEUE_EXTRA);
 		if(sender_full()) {
 			zlog_debug(sender->tag, "Store unsent JSON");
 			pthread_mutex_lock(&sender->enqmtx);
@@ -108,18 +110,18 @@ void *sender_run(void *_sender) {
 				if(!sender->unsent_fp) {
 					if(!load_unsent()) continue;
 				} else if(file_exist(unsent_max)) {
-					drop_unsent();
+					drop_unsent_sending();
 					if(!load_unsent()) continue;
 				}
 
 				snyo_sleep(GIGA);
 
-				zlog_debug(sender->tag, "POST unsent JSON");
+				zlog_debug(sender->tag, "POST %d unsent JSON", ONE_SUCCESS_TRY_N_UNSENT);
 				for(int i=0; i<ONE_SUCCESS_TRY_N_UNSENT; ++i) {
 					char buf[MAX_JSON_BYTE];
 					if(!fgets(buf, MAX_JSON_BYTE, sender->unsent_fp)) {
 						zlog_debug(sender->tag, "fgets() fail");
-						drop_unsent();
+						drop_unsent_sending();
 						break;
 					} else if(!sender_post(buf)) {
 						zlog_debug(sender->tag, "POST unsent fail");
@@ -129,7 +131,7 @@ void *sender_run(void *_sender) {
 			} else {
 				zlog_debug(sender->tag, "POST fail");
 				zlog_debug(sender->tag, "Sleep for %lums", sender->backoff*SENDER_TICK/1000000);
-				snyo_sleep(sender->backoff*SENDER_TICK);
+				snyo_sleep(SENDER_TICK*sender->backoff);
 				double_backoff();
 			}
 		} else {
@@ -153,42 +155,45 @@ void enq_payload(char *payload) {
 	pthread_mutex_lock(&g_sender.enqmtx);
 	zlog_error(g_sender.tag, "Queuing Idx: %d", g_sender.tail);
 	g_sender.queue[g_sender.tail++] = payload;
-	g_sender.tail %= (MAX_HOLDING+EXTRA_HOLDING);
+	g_sender.tail %= (QUEUE_MAX+QUEUE_EXTRA);
 	g_sender.holding++;
 	pthread_mutex_unlock(&g_sender.enqmtx);
 }
 
+char *unsent_file(int i) {
+	if(i >= 0) {
+		snprintf(g_sender._unsent_file_name+10, 5, ".%i", i);
+	} else {
+		g_sender._unsent_file_name[10] = '\0';
+	}
+	return g_sender._unsent_file_name;
+}
+
 bool load_unsent() {
-	char unsent_log[UNSENT_NAME_LENGTH];
-	sprintf(unsent_log, "log/unsent.");
-	for(int i=UNSENT_NUMBER-1; i>=0; --i) {
-		sprintf(unsent_log+11, "%d", i);
-		if(file_exist(unsent_log)) {
-			if(rename(unsent_log, UNSENT_SENDING))
+	if(!file_exist(unsent_file(0)) && !file_exist(unsent_file(-1)))
+		return false;
+	for(int i=UNSENT_NUMBER-1; i>=-1; --i) {
+		char *unsent = unsent_file(i);
+		if(file_exist(unsent)) {
+			if(rename(unsent, UNSENT_SENDING))
 				return false;
 			g_sender.unsent_fp = fopen(UNSENT_SENDING, "r");
 			return g_sender.unsent_fp != NULL;
 		}
 	}
-	if(file_exist("log/unsent")) {
-		if(rename("log/unsent", UNSENT_SENDING))
-			return false;
-		g_sender.unsent_fp = fopen(UNSENT_SENDING, "r");
-		return g_sender.unsent_fp != NULL;
-	}
 	return false;
 }
 
-void drop_unsent() {
+void drop_unsent_sending() {
 	zlog_debug(g_sender.tag, "Close and remove unsent_sending");
 	fclose(g_sender.unsent_fp);
-	remove("log/unsent_sending");
 	g_sender.unsent_fp = NULL;
+	remove(UNSENT_SENDING);
 }
 
 char *deq_payload() {
 	char *ret = g_sender.queue[g_sender.head++];
-	g_sender.head %= (MAX_HOLDING+EXTRA_HOLDING);
+	g_sender.head %= (QUEUE_MAX+QUEUE_EXTRA);
 	g_sender.holding--;
 	return ret;
 }
@@ -198,7 +203,7 @@ bool sender_empty() {
 }
 
 bool sender_full() {
-	return g_sender.holding >= MAX_HOLDING;
+	return g_sender.holding >= QUEUE_MAX;
 }
 
 void double_backoff() {

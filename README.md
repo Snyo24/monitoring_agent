@@ -5,12 +5,11 @@
 - Language: C
 
 ## Libraries need
-- mysql
-- yaml
-- zlog
-- cURL
-- uuid-dev
-- json-c
+- libmysqlclient-dev
+- yaml (http://pyyaml.org/wiki/LibYAML)
+- zlog (https://hardysimpson.github.io/zlog/UsersGuide-EN.html)
+- libcurl (https://curl.haxx.se/docs/install.html)
+- json-c (https://linuxprograms.wordpress.com/2010/05/20/install-json-c-in-linux/)
 - sysstat
 
 ## Compile

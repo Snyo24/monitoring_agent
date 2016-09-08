@@ -4,6 +4,7 @@
 
 #include "agent.h"
 #include "agents/mysql.h"
+#include "agents/os.h"
 #include "snyohash.h"
 #include "sender.h"
 #include "util.h"
@@ -15,7 +16,6 @@
 #include <unistd.h>
 
 #include <zlog.h>
-// #include <uuid/uuid.h>
 
 #define SCHEDULER_TICK GIGA/2
 #define AGENT_NUMBER (sizeof(agent_names)/sizeof(char *))
@@ -24,11 +24,13 @@ zlog_category_t *scheduler_tag;
 
 char *agent_names[] = {
 	"MySQL1",
-	"MySQL2"
+	"MySQL2",
+	"OS"
 };
 agent_t *(*agent_constructors[])(const char *, const char *) = {
 	mysql_agent_init,
-	mysql_agent_init
+	mysql_agent_init,
+	os_agent_init
 };
 shash_t *agents;
 
@@ -127,6 +129,7 @@ void schedule() {
 
 void scheduler_fini() {
 	// TODO
+	sender_fini();
 }
 
 
@@ -135,7 +138,7 @@ void scheduler_fini() {
  */
 
 int get_license(char *license) {
-	return sprintf(license, "%s", "test");
+	return sprintf(license, "%s", "efgh");
 }
 
 int get_hostname(char *hostname) {
@@ -148,7 +151,7 @@ int get_uuid(char *uuid) {
 	// uuid_t out;
 	// uuid_generate_time(out);
 	// uuid_unparse(out, uuid);
-	sprintf(uuid, "00000000-0000-0000-0000-000000000000");
+	sprintf(uuid, "11111111-0000-0000-0000-000000000000");
 	return 36;
 }
 

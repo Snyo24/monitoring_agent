@@ -35,7 +35,7 @@ struct _agent {
 
 	/* Buffer */
 	int     stored;
-	shash_t *buf[MAX_STORAGE]; // +1 for metadata
+	json_object *values;
 
 	/* Logging */
 	void *tag;
@@ -43,6 +43,7 @@ struct _agent {
 	/* Metric info */
 	int  metric_number;
 	char **metric_names;
+	json_object *metric_array;
 	
 	/* Inheritance */
 	void *detail;
@@ -73,8 +74,7 @@ void restart(agent_t *agent);
 void poke(agent_t *agent);
 /** @brief Post the buffer */
 void pack(agent_t *agent);
-/** @brief Make the buffer to a JSON string */
-void agent_to_json(agent_t *agent, char *json);
+void add(agent_t *agent, json_object *jarr);
 /** @} */
 
 /**

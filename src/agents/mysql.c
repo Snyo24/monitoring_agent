@@ -11,16 +11,12 @@
 
 #include <mysql/mysql.h>
 #include <zlog.h>
-
-char *mysql_metadata_names[] = {
-	"version",
-	"hostname",
-	"bind_address",
-	"port"
-};
+#include <json/json.h>
 
 char *mysql_metric_names[] = {
-	"Queries"
+	"Queries",
+	"Slow_queries",
+	"Com_insert"
 };
 
 MYSQL_RES *query_result(MYSQL *mysql, char *query);
@@ -64,7 +60,7 @@ agent_t *mysql_agent_init(const char *name, const char *conf) {
 	// polymorphism
 	mysql_agent->metric_number   = sizeof(mysql_metric_names)/sizeof(char *);
 	mysql_agent->metric_names    = mysql_metric_names;
-	mysql_agent->collect_metrics  = collect_mysql_metrics;
+	mysql_agent->collect_metrics = collect_mysql_metrics;
 
 	mysql_agent->fini = mysql_agent_fini;
 
@@ -74,22 +70,21 @@ agent_t *mysql_agent_init(const char *name, const char *conf) {
 void collect_mysql_metrics(agent_t *mysql_agent) {
 	zlog_debug(mysql_agent->tag, "Collecting metrics");
 	MYSQL_RES *res = query_result(((mysql_detail_t *)mysql_agent->detail)->mysql, \
-		"show global status where variable_name in (\
-                                                    \'Queries\');");
+		"show global status where variable_name in (\'Queries\',\'Slow_queries\',\'Com_insert\');");
 
 	if(!res) {
 		zlog_error(mysql_agent->tag, "Fail to get query result");
 		exit(0);
 	}
 
-	shash_t *metrics = mysql_agent->buf[mysql_agent->stored];
-
+	json_object *value_array = json_object_new_array();
 	MYSQL_ROW row;
 	while((row = mysql_fetch_row(res))) {
 		int x = atoi(row[1]);
-		shash_insert(metrics, row[0], &x, ELEM_INTEGER);
+		json_object_array_add(value_array, json_object_new_int(x));
 	}
 	mysql_free_result(res);
+	add(mysql_agent, value_array);
 }
 
 void mysql_agent_fini(agent_t *mysql_agent) {

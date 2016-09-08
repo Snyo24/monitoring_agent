@@ -4,7 +4,6 @@
 #define _MYSQL_H_
 
 #include "agent.h"
-#include "snyohash.h"
 
 #include <mysql/mysql.h>
 
@@ -15,7 +14,6 @@ typedef struct _mysql_detail {
 } mysql_detail_t;
 
 agent_t *mysql_agent_init(const char *name, const char *conf);
-
 void collect_mysql_metrics(agent_t *mysql_agent);
 void mysql_agent_fini(agent_t *mysql_agent);
 
