@@ -3,6 +3,7 @@
 #include "scheduler.h"
 
 #include "agent.h"
+#include "agents/dummy.h"
 #include "agents/mysql.h"
 #include "agents/os.h"
 #include "snyohash.h"
@@ -17,20 +18,27 @@
 
 #include <zlog.h>
 
-#define SCHEDULER_TICK GIGA/2
-#define AGENT_NUMBER (sizeof(agent_names)/sizeof(char *))
+#include <arpa/inet.h>
+#include <netdb.h>
 
-zlog_category_t *scheduler_tag;
+#define SCHEDULER_TICK NS_PER_S/1
 
-char *agent_names[] = {
-	"MySQL1",
-	"MySQL2",
+#define REG_URI "http://10.10.202.115:8082/v1/agents"
+#define METRIC_URI "http://10.10.202.115:8082/v1/metrics"
+
+void *scheduler_tag;
+
+const char *agent_names[] = {
 	"OS"
 };
+const char *agent_types[] = {
+	"os_linux_v1"
+};
+const char *agent_ids[] = {
+	"test"
+};
 agent_t *(*agent_constructors[])(const char *, const char *) = {
-	mysql_agent_init,
-	mysql_agent_init,
-	os_agent_init
+	new_os_agent
 };
 shash_t *agents;
 
@@ -38,9 +46,11 @@ char g_license[100];
 char g_uuid[40];
 
 int get_license(char *license);
-int get_hostname(char *hostname);
 int get_uuid(char *uuid);
-int get_agents(char *agents);
+int get_agents_names(char *agents);
+int get_agents_types(char *agents);
+int get_agents_ids(char *agents);
+int get_hostname(char *hostname);
 
 // TODO exception handling
 void scheduler_init() {
@@ -48,30 +58,24 @@ void scheduler_init() {
 	scheduler_tag = (void *)zlog_get_category("Scheduler");
     if (!scheduler_tag) exit(1);
 
-    /* Sender */
-	zlog_debug(scheduler_tag, "Initialize sender");
-	sender_init();
-
 	/* Register topics */
-	// Example
-	// {
-	//     "license":"asdf",
-	//     "uuid": "00000000-0000-0000-0000-000000000000",
-	//     "hostname":"Snyo",
-	//     "agents": ["MySQL1", "MySQL2"]
-	// }
+	sender_set_uri(REG_URI);
 	zlog_debug(scheduler_tag, "Register topic to the server");
-	char reg_json[128], *ptr;
+	char reg_json[200], *ptr;
 	ptr = reg_json;
 	get_license(g_license);
 	ptr += sprintf(ptr, "{\"license\":\"%s", g_license);
 	get_uuid(g_uuid);
 	ptr += sprintf(ptr, "\",\"uuid\":\"%.*s", 36, g_uuid);
-	ptr += sprintf(ptr, "\",\"hostname\":\"");
+	ptr += sprintf(ptr, "\",\"target_name\":[");
+	ptr += get_agents_names(ptr);
+	ptr += sprintf(ptr, "],\"target_type\":[");
+	ptr += get_agents_types(ptr);
+	ptr += sprintf(ptr, "],\"target_id\":[");
+	ptr += get_agents_ids(ptr);
+	ptr += sprintf(ptr, "],\"hostname\":\"");
 	ptr += get_hostname(ptr);
-	ptr += sprintf(ptr, "\",\"agents\":[");
-	ptr += get_agents(ptr);
-	ptr += sprintf(ptr, "]}");
+	ptr += sprintf(ptr, "\"}");
 	printf("%s\n", reg_json);
 	if(!sender_post(reg_json)) {
 		zlog_error(scheduler_tag, "Fail to register topic");
@@ -86,26 +90,27 @@ void scheduler_init() {
     	exit(1);
 	}
 
-	for(int i=0; i<AGENT_NUMBER; ++i) {
-		zlog_debug(scheduler_tag, "Initialize agent \'%s\'", agent_names[i]);
-		char conf_file[100];
-		// TODO, genralize conf file name
-		sprintf(conf_file, "conf/%s.yaml", "mysql");
-		agent_t *agent = (agent_constructors[i])(agent_names[i], conf_file);
+	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
+		zlog_debug(scheduler_tag, "Create an agent \'%s\'", agent_names[i]);
+		agent_t *agent = (agent_constructors[i])(agent_names[i], NULL);
 		if(!agent) {
 			zlog_error(scheduler_tag, "Failed to create \'%s\'", agent_names[i]);
 		} else {
-			shash_insert(agents, agent_names[i], agent, ELEM_PTR);
-			while(start(agent))
-				kill(agent);
+			if(!start(agent)) {
+				shash_insert(agents, agent_names[i], agent);
+			} else {
+				delete_agent(agent);
+			}
 		}
 	}
+	sender_set_uri(METRIC_URI);
+	sender_start();
 }
 
 void schedule() {
 	scheduler_init();
 	while(1) {
-		for(int i=0; i<AGENT_NUMBER; ++i) {
+		for(int i=0; i<NUMBER_OF(agent_names); ++i) {
 			agent_t *agent = (agent_t *)shash_search(agents, agent_names[i]);
 			if(!agent) continue;
 			zlog_debug(scheduler_tag, "Status of \'%s\' [%c%c%c]", \
@@ -121,7 +126,7 @@ void schedule() {
 			}
 		}
 
-		zlog_debug(scheduler_tag, "Sleep for %fms", SCHEDULER_TICK/1000000.0);
+		zlog_debug(scheduler_tag, "Sleep for %lums", SCHEDULER_TICK/1000000);
 		snyo_sleep(SCHEDULER_TICK);
 	}
 	scheduler_fini();
@@ -141,26 +146,46 @@ int get_license(char *license) {
 	return sprintf(license, "%s", "efgh");
 }
 
-int get_hostname(char *hostname) {
-	if(!gethostname(hostname, 100))
-		return strlen(hostname);
-	return sprintf(hostname, "fail_to_get_hostname");
-}
-
 int get_uuid(char *uuid) {
-	// uuid_t out;
-	// uuid_generate_time(out);
-	// uuid_unparse(out, uuid);
-	sprintf(uuid, "11111111-0000-0000-0000-000000000000");
+	sprintf(uuid, "550e8400-e29b-41d4-a716-446655440000");
 	return 36;
 }
 
-int get_agents(char *agents) {
+int get_agents_names(char *agents) {
 	int n = 0;
-	for(int i=0; i<AGENT_NUMBER; ++i) {
+	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
 		n += sprintf(agents+n, "\"%s\"", agent_names[i]);
-		if(i < AGENT_NUMBER-1)
+		if(i < NUMBER_OF(agent_names)-1)
 			sprintf(agents+n++, ",");
 	}
 	return n;
+}
+
+int get_agents_types(char *agents) {
+	int n = 0;
+	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
+		n += sprintf(agents+n, "\"%s\"", agent_types[i]);
+		if(i < NUMBER_OF(agent_names)-1)
+			sprintf(agents+n++, ",");
+	}
+	return n;
+}
+
+int get_agents_ids(char *agents) {
+	int n = 0;
+	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
+		n += sprintf(agents+n, "\"%s\"", agent_ids[i]);
+		if(i < NUMBER_OF(agent_names)-1)
+			sprintf(agents+n++, ",");
+	}
+	return n;
+}
+
+int get_hostname(char *hostname) {
+	if(!gethostname(hostname, 100)){
+	struct hostent *ip = gethostbyname(hostname);
+	printf("%s\n", inet_ntoa(*((struct in_addr *)ip->h_addr_list[0])));
+		return strlen(hostname);
+	}
+	return sprintf(hostname, "fail_to_get_hostname");
 }

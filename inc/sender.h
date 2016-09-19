@@ -17,7 +17,7 @@
 #define UNSENT_FILE_NAME_MAX 16
 #define BACKOFF_EXP 6
 
-typedef struct _sender{
+typedef struct _sender {
 	/* Status */
 	volatile unsigned alive :1;
 
@@ -39,16 +39,17 @@ typedef struct _sender{
 	void *tag;
 
 	/* Sending fail */
-	FILE *unsent_fp;
+	FILE *unsent_sending_fp;
 	char _unsent_file_name[UNSENT_FILE_NAME_MAX];
+	int  dirty;
 	unsigned backoff :BACKOFF_EXP;
 } sender_t;
 
-sender_t g_sender;
-
-void sender_init();
+int sender_init();
+void sender_start();
 void sender_fini();
 
+void sender_set_uri(const char *uri);
 bool sender_post(char *payload);
 void enq_payload(char *payload);
 

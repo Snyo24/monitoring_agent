@@ -5,7 +5,16 @@
 
 #include <stdint.h>
 
-#define GIGA ((uint64_t)1000000000)
+#define NS_PER_S (1000000000UL)
+#define NUMBER_OF(arr) (sizeof(arr)/sizeof(arr[0]))
+#define ASSERT(cond, callback, ret, tag, ...) \
+					do { \
+						if(!(cond)) { \
+							if(tag) zlog_error(tag, ##__VA_ARGS__); \
+							callback; \
+							return ret; \
+						} \
+					} while(0)
 
 typedef uint64_t timestamp;
 

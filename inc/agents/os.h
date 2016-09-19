@@ -7,14 +7,13 @@
 
 #include <mysql/mysql.h>
 
-#define OS_AGENT_PERIOD 1
+#define OS_AGENT_PERIOD 3
 
 typedef struct _os_detail {
-	int last_byte_in, last_byte_out;
 } os_detail_t;
 
-agent_t *os_agent_init(const char *name, const char *conf);
+agent_t *new_os_agent(const char *name, const char *conf);
 void collect_os_metrics(agent_t *os_agent);
-void os_agent_fini(agent_t *os_agent);
+void delete_os_agent(agent_t *os_agent);
 
 #endif

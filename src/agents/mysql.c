@@ -13,17 +13,17 @@
 #include <zlog.h>
 #include <json/json.h>
 
-char *mysql_metric_names[] = {
+const char *mysql_metric_names[] = {
+	"Com_insert",
 	"Queries",
-	"Slow_queries",
-	"Com_insert"
+	"Slow_queries"
 };
 
 MYSQL_RES *query_result(MYSQL *mysql, char *query);
 
 // TODO configuration parsing
-agent_t *mysql_agent_init(const char *name, const char *conf) {
-	agent_t *mysql_agent = agent_init(name, MYSQL_AGENT_PERIOD);
+agent_t *new_mysql_agent(const char *name, const char *conf) {
+	agent_t *mysql_agent = new_agent(name, MYSQL_AGENT_PERIOD);
 	if(!mysql_agent) {
 		zlog_error(mysql_agent->tag, "Failed to create an agent");
 		return NULL;
@@ -33,7 +33,7 @@ agent_t *mysql_agent_init(const char *name, const char *conf) {
 	mysql_detail_t *detail = (mysql_detail_t *)malloc(sizeof(mysql_detail_t));
 	if(!detail) {
 		zlog_error(mysql_agent->tag, "Failed to allocate mysql detail");
-		agent_fini(mysql_agent);
+		delete_agent(mysql_agent);
 		return NULL;
 	}
 
@@ -41,16 +41,16 @@ agent_t *mysql_agent_init(const char *name, const char *conf) {
 	if(!detail->mysql) {
 		zlog_error(mysql_agent->tag, "Failed to mysql_init");
 		free(detail);
-		agent_fini(mysql_agent);
+		delete_agent(mysql_agent);
 		return NULL;
 	}
 
 	// TODO, user conf
-	if(!(mysql_real_connect(detail->mysql, "localhost", "root", "snyo", NULL, 0, NULL, 0))) {
+	if(!(mysql_real_connect(detail->mysql, "localhost", "root", "snyo", NULL, 0, NULL, CLIENT_MULTI_STATEMENTS))) {
 		zlog_error(mysql_agent->tag, "Failed to mysql_real_connect");
 		mysql_close(detail->mysql);
 		free(detail);
-		agent_fini(mysql_agent);
+		delete_agent(mysql_agent);
 		return NULL;
 	}
 
@@ -58,11 +58,10 @@ agent_t *mysql_agent_init(const char *name, const char *conf) {
 	mysql_agent->detail = detail;
 
 	// polymorphism
-	mysql_agent->metric_number   = sizeof(mysql_metric_names)/sizeof(char *);
 	mysql_agent->metric_names    = mysql_metric_names;
 	mysql_agent->collect_metrics = collect_mysql_metrics;
 
-	mysql_agent->fini = mysql_agent_fini;
+	mysql_agent->fini = delete_mysql_agent;
 
 	return mysql_agent;
 }
@@ -74,7 +73,7 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 
 	if(!res) {
 		zlog_error(mysql_agent->tag, "Fail to get query result");
-		exit(0);
+		return;
 	}
 
 	json_object *value_array = json_object_new_array();
@@ -84,14 +83,14 @@ void collect_mysql_metrics(agent_t *mysql_agent) {
 		json_object_array_add(value_array, json_object_new_int(x));
 	}
 	mysql_free_result(res);
-	add(mysql_agent, value_array);
+	add_metrics(mysql_agent, value_array);
 }
 
-void mysql_agent_fini(agent_t *mysql_agent) {
+void delete_mysql_agent(agent_t *mysql_agent) {
 	mysql_detail_t *detail = (mysql_detail_t *)mysql_agent->detail;
 	mysql_close(detail->mysql);
 	free(detail);
-	agent_fini(mysql_agent);
+	delete_agent(mysql_agent);
 }
 
 MYSQL_RES *query_result(MYSQL *mysql, char *query) {

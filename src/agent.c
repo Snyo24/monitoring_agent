@@ -4,7 +4,6 @@
  */
 #include "agent.h"
 
-#include "scheduler.h"
 #include "snyohash.h"
 #include "sender.h"
 #include "util.h"
@@ -14,35 +13,35 @@
 #include <stdbool.h>
 
 #include <pthread.h>
-#include <errno.h>
 
 #include <zlog.h>
-#include <curl/curl.h>
 #include <json/json.h>
+
+#define MAX_AGENT_NAME 50
 
 extern void *scheduler_tag;
 
-agent_t *agent_init(const char *name, unsigned int period) {
-	char category[100];
-	sprintf(category, "Agent_%s", name);
+agent_t *new_agent(const char *name, unsigned int period) {
+	/* Category init */
+	char category[6 + MAX_AGENT_NAME + 1] = "Agent_";
+	snprintf(category+6, MAX_AGENT_NAME, "%s", name);
 	zlog_category_t *_tag = zlog_get_category(category);
-    if (!_tag) return NULL;
+	ASSERT(_tag, NULL, NULL, scheduler_tag, "Fail to zlog init of %s", category);
 
-    zlog_debug(_tag, "Create a new agent \'%s\'", name);
-
+	/* New agent */
+    zlog_debug(scheduler_tag, "Create a new agent \'%s\'", name);
 	agent_t *agent = (agent_t *)malloc(sizeof(agent_t));
-	if(!agent) return NULL;
+	ASSERT(agent, NULL, NULL, scheduler_tag, "Allocation fail");
+
+	agent->alive = 0;
 
 	// TODO init exception
 	pthread_mutex_init(&agent->sync, NULL);
 	pthread_cond_init(&agent->synced, NULL);
-
 	pthread_mutex_init(&agent->access, NULL);
 	pthread_cond_init(&agent->poked, NULL);
 
 	agent->values = json_object_new_object();
-
-	agent->metric_array = json_object_new_array();
 	
 	agent->tag = (void *)_tag;
 	agent->name = name;
@@ -51,11 +50,12 @@ agent_t *agent_init(const char *name, unsigned int period) {
 	return agent;
 }
 
-void agent_fini(agent_t *agent) {
+void delete_agent(agent_t *agent) {
 	zlog_debug(scheduler_tag, "Deleting an agent");
+	if(!agent) return;
+
 	pthread_mutex_destroy(&agent->sync);
 	pthread_cond_destroy(&agent->synced);
-
 	pthread_mutex_destroy(&agent->access);
 	pthread_cond_destroy(&agent->poked);
 
@@ -65,8 +65,8 @@ void agent_fini(agent_t *agent) {
 int start(agent_t *agent) {
 	zlog_debug(scheduler_tag, "Initialize agent values");
 
-	agent->alive = true;
-	agent->working = false;
+	agent->alive = 1;
+	agent->working = 0;
 
 	agent->last_update = 0;
 	agent->deadline = 0;
@@ -78,11 +78,12 @@ int start(agent_t *agent) {
 	pthread_create(&agent->running_thread, NULL, run, agent);
 
 	// Let the agent holds "access" lock
-	struct timespec timeout = {get_timestamp()/GIGA + 2, 0};
+	struct timespec timeout = {get_timestamp()/NS_PER_S + 5, 0};
 	return pthread_cond_timedwait(&agent->synced, &agent->sync, &timeout);
 }
 
 void kill(agent_t *agent) {
+	agent->alive = 0;
 	pthread_cancel(agent->running_thread);
 	pthread_mutex_unlock(&agent->sync);
 	pthread_mutex_unlock(&agent->access);
@@ -121,8 +122,8 @@ void *run(void *_agent) {
 		// Prevent the scheduler not to do other work before collecting start
 		pthread_mutex_lock(&agent->sync);
 
-		agent->working = true;
-		agent->deadline = get_timestamp() + (GIGA/10*9)*agent->period;
+		agent->working = 1;
+		agent->deadline = get_timestamp() + (NS_PER_S/10*9)*agent->period;
 
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
@@ -130,7 +131,7 @@ void *run(void *_agent) {
 		if(!agent->last_update) {
 			 agent->last_update = get_timestamp();
 		} else {
-			agent->last_update += agent->period*GIGA;
+			agent->last_update += agent->period*NS_PER_S;
 		}
 		if(!agent->first_update)
 			agent->first_update = agent->last_update;
@@ -145,7 +146,7 @@ void *run(void *_agent) {
 			json_object_put(agent->values);
 			agent->values = json_object_new_object();
 		}
-		agent->working = false;
+		agent->working = 0;
 		zlog_debug(agent->tag, "Updating done");
 	}
 	zlog_debug(agent->tag, "Agent is dying");
@@ -159,19 +160,23 @@ void pack(agent_t *agent) {
 	extern char g_license[];
 	extern char g_uuid[];
 	json_object_object_add(package, "license", json_object_new_string(g_license));
+	json_object_object_add(package, "target_id", json_object_new_string(agent->id));
 	json_object_object_add(package, "uuid", json_object_new_string(g_uuid));
-	json_object_object_add(package, "agent", json_object_new_string(agent->name));
-	json_object *m_arr = json_object_new_array();
-	for(int k=0; k<agent->metric_number; ++k) {
-		json_object_array_add(m_arr, json_object_new_string(agent->metric_names[k]));
-	}
-	json_object_object_add(package, "metrics", m_arr);
-	json_object_put(agent->metric_array);
-	agent->metric_array = json_object_new_array();
+	json_object_object_add(package, "target_name", json_object_new_string(agent->name));
+	json_object_object_add(package, "agent_ip", json_object_new_string(agent->agent_ip));
+	json_object_object_add(package, "target_ip", json_object_new_string(agent->target_ip));
+	json_object_object_add(package, "target_type", json_object_new_string(agent->type));
+	// json_object *m_arr = json_object_new_array();
+	// for(int k=0; k<NUMBER_OF(agent->metric_names); ++k) {
+	// 	json_object_array_add(m_arr, json_object_new_string(agent->metric_names[k]));
+	// }
+	// json_object_object_add(package, "metrics", m_arr);
+	// json_object_put(agent->metrics);
+	// agent->metrics = json_object_new_array();
+	json_object_object_add(package, "metrics", agent->metric_names2);
 	json_object_object_add(package, "values", agent->values);
 
 	char *payload;
-	// agent_to_json(agent, payload);
 	payload = strdup(json_object_to_json_string(package));
 	zlog_debug(agent->tag, "Payload\n%s (%zu)", payload, strlen(payload));
 
@@ -183,10 +188,10 @@ void pack(agent_t *agent) {
 	enq_payload(payload);
 }
 
-void add(agent_t *agent, json_object *jarr) {
-	char last_update_str[20];
-	sprintf(last_update_str, "%lu", agent->last_update);
-	json_object_object_add(agent->values, last_update_str, jarr);
+void add_metrics(agent_t *agent, json_object *metrics) {
+	char ts_str[20];
+	sprintf(ts_str, "%lu", agent->last_update);
+	json_object_object_add(agent->values, ts_str, metrics);
 }
 
 bool busy(agent_t *agent) {
@@ -199,5 +204,5 @@ bool timeup(agent_t *agent) {
 
 bool outdated(agent_t *agent) {
 	return !agent->last_update \
-	       || (get_timestamp() - agent->last_update)/GIGA >= (agent->period);
+	       || (get_timestamp() - agent->last_update)/NS_PER_S >= (agent->period);
 }

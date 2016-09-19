@@ -39,21 +39,14 @@ struct _shash_elem {
 
 	/* Item */
 	void *item;
-	enum item_t {
-		ELEM_BOOLEAN = -5,
-		ELEM_INTEGER = -4,
-		ELEM_DOUBLE = -3,
-		ELEM_PTR = -2, // This type of elem will be shallow copied
-		ELEM_STRING = -1
-	} item_type;
 
 	/* Chaning */
 	shash_elem_t *next;
 };
 
 shash_t *shash_init();
-void shash_insert(shash_t *shash, char *key, void *item, enum item_t type);
-void *shash_search(shash_t *shash, char *key);
+void shash_insert(shash_t *shash, const char *key, void *item);
+void *shash_search(shash_t *shash, const char *key);
 void shash_fini(shash_t *shash);
 
 int shash_to_json(shash_t *shash, char *json);

@@ -21,6 +21,10 @@ struct _agent {
 
 	/* Agent info */
 	const char   *name;
+	const char   *type;
+	const char   *id;
+	const char   *agent_ip;
+	const char   *target_ip;
 	unsigned int period;
 	timestamp    first_update;
 	timestamp    last_update;
@@ -41,9 +45,8 @@ struct _agent {
 	void *tag;
 
 	/* Metric info */
-	int  metric_number;
-	char **metric_names;
-	json_object *metric_array;
+	const char **metric_names;
+	json_object *metric_names2;
 	
 	/* Inheritance */
 	void *detail;
@@ -54,9 +57,9 @@ struct _agent {
 };
 
 /** @brief Constructor */
-agent_t *agent_init(const char *name, unsigned int period);
-/** @brief Destruct2or */
-void agent_fini(agent_t *agent);
+agent_t *new_agent(const char *name, unsigned int period);
+/** @brief Destructor */
+void delete_agent(agent_t *agent);
 
 /**
  * @defgroup agent_syscall
@@ -74,7 +77,7 @@ void restart(agent_t *agent);
 void poke(agent_t *agent);
 /** @brief Post the buffer */
 void pack(agent_t *agent);
-void add(agent_t *agent, json_object *jarr);
+void add_metrics(agent_t *agent, json_object *jarr);
 /** @} */
 
 /**
