@@ -5,7 +5,7 @@
 #include "agent.h"
 #include "agents/dummy.h"
 #include "agents/mysql.h"
-#include "agents/os.h"
+#include "agents/network.h"
 #include "snyohash.h"
 #include "sender.h"
 #include "util.h"
@@ -29,16 +29,13 @@
 void *scheduler_tag;
 
 const char *agent_names[] = {
-	"OS"
+	"NET"
 };
 const char *agent_types[] = {
-	"os_linux_v1"
-};
-const char *agent_ids[] = {
-	"test"
+	"net_linux_v1"
 };
 agent_t *(*agent_constructors[])(const char *, const char *) = {
-	new_os_agent
+	new_network_agent
 };
 shash_t *agents;
 
@@ -53,10 +50,33 @@ int get_agents_ids(char *agents);
 int get_hostname(char *hostname);
 
 // TODO exception handling
-void scheduler_init() {
+int scheduler_init() {
 	/* Logging */
 	scheduler_tag = (void *)zlog_get_category("Scheduler");
-    if (!scheduler_tag) exit(1);
+    if (!scheduler_tag) return -1;
+
+    /* Agents */
+	zlog_debug(scheduler_tag, "Initialize agents");
+	agents = shash_init();
+	if(!agents) {
+		zlog_error(scheduler_tag, "Failed to create an agent hash");
+    	return -1;
+	}
+
+	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
+		zlog_debug(scheduler_tag, "Create an agent \'%s\'", agent_names[i]);
+		agent_t *agent = (agent_constructors[i])(agent_names[i], NULL);
+		if(!agent) {
+			zlog_error(scheduler_tag, "Failed to create \'%s\'", agent_names[i]);
+		} else {
+			zlog_debug(scheduler_tag, "Start the agent \'%s\'", agent_names[i]);
+			if(!start(agent)) {
+				shash_insert(agents, agent_names[i], agent);
+			} else {
+				delete_agent(agent);
+			}
+		}
+	}
 
 	/* Register topics */
 	sender_set_uri(REG_URI);
@@ -77,51 +97,32 @@ void scheduler_init() {
 	ptr += get_hostname(ptr);
 	ptr += sprintf(ptr, "\"}");
 	printf("%s\n", reg_json);
-	if(!sender_post(reg_json)) {
+	if(sender_post(reg_json) < 0) {
 		zlog_error(scheduler_tag, "Fail to register topic");
-    	exit(1);
-	}
-
-    /* Agents */
-	zlog_debug(scheduler_tag, "Initialize agents");
-	agents = shash_init();
-	if(!agents) {
-		zlog_error(scheduler_tag, "Failed to create an agent hash");
-    	exit(1);
-	}
-
-	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
-		zlog_debug(scheduler_tag, "Create an agent \'%s\'", agent_names[i]);
-		agent_t *agent = (agent_constructors[i])(agent_names[i], NULL);
-		if(!agent) {
-			zlog_error(scheduler_tag, "Failed to create \'%s\'", agent_names[i]);
-		} else {
-			if(!start(agent)) {
-				shash_insert(agents, agent_names[i], agent);
-			} else {
-				delete_agent(agent);
-			}
-		}
+    	return -1;
 	}
 	sender_set_uri(METRIC_URI);
-	sender_start();
+
+	return 0;
 }
 
 void schedule() {
-	scheduler_init();
 	while(1) {
 		for(int i=0; i<NUMBER_OF(agent_names); ++i) {
 			agent_t *agent = (agent_t *)shash_search(agents, agent_names[i]);
 			if(!agent) continue;
 			zlog_debug(scheduler_tag, "Status of \'%s\' [%c%c%c]", \
-				                            agent_names[i], \
+			                                agent_names[i], \
 			                                outdated(agent)?'O':'.', \
 			                                busy(agent)?'B':'.', \
 			                                busy(agent)&&timeup(agent)?'T':'.');
 			if(busy(agent)) {
-				if(timeup(agent))
+				if(timeup(agent)) {
+					zlog_fatal(scheduler_tag, "Restarting \'%s\'", agent->name);
 					restart(agent);
+				}
 			} else if(outdated(agent)) {
+				zlog_debug(scheduler_tag, "Poking \'%s\'", agent->name);
 				poke(agent);
 			}
 		}
@@ -129,7 +130,6 @@ void schedule() {
 		zlog_debug(scheduler_tag, "Sleep for %lums", SCHEDULER_TICK/1000000);
 		snyo_sleep(SCHEDULER_TICK);
 	}
-	scheduler_fini();
 }
 
 void scheduler_fini() {
@@ -174,7 +174,7 @@ int get_agents_types(char *agents) {
 int get_agents_ids(char *agents) {
 	int n = 0;
 	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
-		n += sprintf(agents+n, "\"%s\"", agent_ids[i]);
+		n += sprintf(agents+n, "\"test\"");
 		if(i < NUMBER_OF(agent_names)-1)
 			sprintf(agents+n++, ",");
 	}

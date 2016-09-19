@@ -33,7 +33,7 @@ directories:
 $(TARGET): $(OBJECTS)
 	$(CC) -o $@ $^ $(LIB)
 
-$(OBJDIR)/%.o : $(SRCDIR)/%.c
+$(OBJDIR)/%.o : $(SRCDIR)/%.c $(INCDIR)/%.h
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@  
 
 clean:

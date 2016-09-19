@@ -19,31 +19,33 @@
 
 #define MAX_AGENT_NAME 50
 
-extern void *scheduler_tag;
-
+/**
+ * return a pointer for success, NULL for failure
+ */
 agent_t *new_agent(const char *name, unsigned int period) {
-	/* Category init */
+	// zlog cat init
 	char category[6 + MAX_AGENT_NAME + 1] = "Agent_";
 	snprintf(category+6, MAX_AGENT_NAME, "%s", name);
 	zlog_category_t *_tag = zlog_get_category(category);
-	ASSERT(_tag, NULL, NULL, scheduler_tag, "Fail to zlog init of %s", category);
+	if(!_tag) return NULL;
 
-	/* New agent */
-    zlog_debug(scheduler_tag, "Create a new agent \'%s\'", name);
+	// allocation
 	agent_t *agent = (agent_t *)malloc(sizeof(agent_t));
-	ASSERT(agent, NULL, NULL, scheduler_tag, "Allocation fail");
+	if(!agent) return NULL;
+
+	// init variables
+	if(pthread_mutex_init(&agent->sync, NULL) \
+	  || pthread_cond_init(&agent->synced, NULL) \
+	  || pthread_mutex_init(&agent->access, NULL) \
+	  || pthread_cond_init(&agent->poked, NULL)
+	  || !(agent->values = json_object_new_object())) {
+		delete_agent(agent);
+		return NULL;
+	}
 
 	agent->alive = 0;
-
-	// TODO init exception
-	pthread_mutex_init(&agent->sync, NULL);
-	pthread_cond_init(&agent->synced, NULL);
-	pthread_mutex_init(&agent->access, NULL);
-	pthread_cond_init(&agent->poked, NULL);
-
-	agent->values = json_object_new_object();
 	
-	agent->tag = (void *)_tag;
+	agent->tag = _tag;
 	agent->name = name;
 	agent->period = period;
 
@@ -51,29 +53,27 @@ agent_t *new_agent(const char *name, unsigned int period) {
 }
 
 void delete_agent(agent_t *agent) {
-	zlog_debug(scheduler_tag, "Deleting an agent");
 	if(!agent) return;
 
+	// The mutex, cond will be unset regardless of its state.
 	pthread_mutex_destroy(&agent->sync);
 	pthread_cond_destroy(&agent->synced);
 	pthread_mutex_destroy(&agent->access);
 	pthread_cond_destroy(&agent->poked);
+	json_object_put(agent->values);
 
 	free(agent);
 }
 
 int start(agent_t *agent) {
-	zlog_debug(scheduler_tag, "Initialize agent values");
-
 	agent->alive = 1;
 	agent->working = 0;
 
 	agent->last_update = 0;
-	agent->deadline = 0;
+	agent->due = 0;
 
 	agent->stored = 0;
 
-	zlog_debug(scheduler_tag, "Start agent thread");
 	pthread_mutex_lock(&agent->sync);
 	pthread_create(&agent->running_thread, NULL, run, agent);
 
@@ -90,19 +90,16 @@ void kill(agent_t *agent) {
 }
 
 void restart(agent_t *agent) {
-	zlog_fatal(scheduler_tag, "Restart \'%s\'", agent->name);
 	kill(agent);
 	start(agent);
 }
 
 void poke(agent_t *agent) {
 	pthread_mutex_lock(&agent->access);
-	zlog_info(scheduler_tag, "Poking the agent");
 	pthread_cond_signal(&agent->poked);
 	pthread_mutex_unlock(&agent->access);
 
 	// confirm the agent starts collecting
-	zlog_info(scheduler_tag, "Waiting to be synced");
 	pthread_cond_wait(&agent->synced, &agent->sync);
 }
 
@@ -115,7 +112,7 @@ void *run(void *_agent) {
 	pthread_mutex_unlock(&agent->sync);
 
 	while(agent->alive) {
-		zlog_info(agent->tag, "Waiting to be poked");
+		zlog_debug(agent->tag, "Waiting to be poked");
 		pthread_cond_wait(&agent->poked, &agent->access);
 		zlog_debug(agent->tag, "Poked");
 
@@ -123,10 +120,14 @@ void *run(void *_agent) {
 		pthread_mutex_lock(&agent->sync);
 
 		agent->working = 1;
-		agent->deadline = get_timestamp() + (NS_PER_S/10*9)*agent->period;
+		agent->due = get_timestamp() + (NS_PER_S/10*9)*agent->period;
 
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
+
+		zlog_debug(agent->tag, "Start updating");
+		agent->collect_metrics(agent);
+		agent->stored++;
 
 		if(!agent->last_update) {
 			 agent->last_update = get_timestamp();
@@ -135,10 +136,6 @@ void *run(void *_agent) {
 		}
 		if(!agent->first_update)
 			agent->first_update = agent->last_update;
-
-		zlog_debug(agent->tag, "Start updating");
-		agent->collect_metrics(agent);
-		agent->stored++;
 
 		if(agent->stored == MAX_STORAGE) {
 			zlog_debug(agent->tag, "Buffer is full");
@@ -173,7 +170,6 @@ void pack(agent_t *agent) {
 	// json_object_object_add(package, "metrics", m_arr);
 	// json_object_put(agent->metrics);
 	// agent->metrics = json_object_new_array();
-	json_object_object_add(package, "metrics", agent->metric_names2);
 	json_object_object_add(package, "values", agent->values);
 
 	char *payload;
@@ -199,7 +195,7 @@ bool busy(agent_t *agent) {
 }
 
 bool timeup(agent_t *agent) {
-	return get_timestamp() > agent->deadline;
+	return get_timestamp() > agent->due;
 }
 
 bool outdated(agent_t *agent) {

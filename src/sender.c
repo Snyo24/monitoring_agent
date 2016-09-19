@@ -47,7 +47,7 @@ bool sender_empty();
 bool sender_full();
 
 char *unsent_file(int i);
-bool load_unsent();
+int load_unsent();
 void drop_unsent_sending();
 void double_backoff();
 
@@ -108,16 +108,16 @@ void *sender_run(void *_sender) {
 			pthread_mutex_unlock(&sender->enqmtx);
 		} else if(!sender_empty()) {
 			zlog_debug(sender->tag, "Try POST (timeout: 1s)");
-			if(sender_post(sender->queue[sender->head])) {
+			if(!sender_post(sender->queue[sender->head])) {
 				zlog_debug(sender->tag, "POST success");
 				free(deq_payload());
 				sender->backoff = 1;
 
 				if(!sender->unsent_sending_fp) {
-					if(!load_unsent()) continue;
+					if(load_unsent() < 0) continue;
 				} else if(file_exist(unsent_end)) {
 					drop_unsent_sending();
-					if(!load_unsent()) continue;
+					if(load_unsent() < 0) continue;
 				}
 
 				snyo_sleep(NS_PER_S);
@@ -129,7 +129,7 @@ void *sender_run(void *_sender) {
 						zlog_debug(sender->tag, "fgets() fail");
 						drop_unsent_sending();
 						break;
-					} else if(!sender_post(buf)) {
+					} else if(sender_post(buf) < 0) {
 						zlog_debug(sender->tag, "POST unsent fail");
 						break;
 					}
@@ -161,7 +161,7 @@ int clear_unsent() {
 	return success;
 }
 
-bool sender_post(char *payload) {
+int sender_post(char *payload) {
 	curl_easy_setopt(sender.curl, CURLOPT_POSTFIELDS, payload);
 	CURLcode curl_code = curl_easy_perform(sender.curl);
 	long status_code;
@@ -172,7 +172,7 @@ bool sender_post(char *payload) {
 		sender_fini();
 		exit(1);
 	}
-	return curl_code == CURLE_OK && status_code == 202;
+	return (curl_code == CURLE_OK && status_code == 202) - 1;
 }
 
 void enq_payload(char *payload) {
@@ -195,19 +195,19 @@ char *unsent_file(int i) {
 	return sender._unsent_file_name;
 }
 
-bool load_unsent() {
+int load_unsent() {
 	if(!file_exist(unsent_file(UNSENT_BEGIN)) && !file_exist(unsent_file(0)))
-		return false;
+		return -1;
 	for(int i=UNSENT_END; i>=UNSENT_BEGIN; --i) {
 		char *unsent = unsent_file(i);
 		if(file_exist(unsent)) {
 			if(rename(unsent, UNSENT_SENDING))
-				return false;
+				return -1;
 			sender.unsent_sending_fp = fopen(UNSENT_SENDING, "r");
-			return sender.unsent_sending_fp != NULL;
+			return (sender.unsent_sending_fp != NULL)-1;
 		}
 	}
-	return false;
+	return -1;
 }
 
 void drop_unsent_sending() {

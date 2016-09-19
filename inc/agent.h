@@ -28,7 +28,7 @@ struct _agent {
 	unsigned int period;
 	timestamp    first_update;
 	timestamp    last_update;
-	timestamp    deadline;
+	timestamp    due;
 
 	/* Thread variables */
 	pthread_t       running_thread;
@@ -38,7 +38,7 @@ struct _agent {
 	pthread_cond_t  poked;
 
 	/* Buffer */
-	int     stored;
+	int stored;
 	json_object *values;
 
 	/* Logging */
@@ -46,14 +46,13 @@ struct _agent {
 
 	/* Metric info */
 	const char **metric_names;
-	json_object *metric_names2;
 	
 	/* Inheritance */
 	void *detail;
 
 	/* Polymorphism */
 	void (*collect_metrics)(agent_t *);
-	void (*fini)(agent_t *);
+	void (*delete)(agent_t *);
 };
 
 /** @brief Constructor */

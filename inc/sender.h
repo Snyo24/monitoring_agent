@@ -50,7 +50,7 @@ void sender_start();
 void sender_fini();
 
 void sender_set_uri(const char *uri);
-bool sender_post(char *payload);
+int sender_post(char *payload);
 void enq_payload(char *payload);
 
 #endif

@@ -56,7 +56,7 @@ agent_t *new_dummy_agent(const char *name, const char *conf) {
 	dummy_agent->metric_names    = dummy_metric_names;
 	dummy_agent->collect_metrics = collect_dummy_metrics;
 
-	dummy_agent->fini = delete_dummy_agent;
+	dummy_agent->delete = delete_dummy_agent;
 
 	return dummy_agent;
 }

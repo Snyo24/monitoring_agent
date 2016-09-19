@@ -20,23 +20,17 @@ const char *os_metric_names[] = {
 };
 
 void collect_disk_metrics(json_object *values);
-void collect_network_metrics(json_object *values);
+void collect_network_metrics2(json_object *values);
 void collect_proc_metrics(json_object *values);
 void collect_cpu_metrics(json_object *values);
 
 // TODO configuration parsing
 agent_t *new_os_agent(const char *name, const char *conf) {
 	agent_t *os_agent = new_agent(name, OS_AGENT_PERIOD);
-	ASSERT(os_agent, delete_os_agent(os_agent), NULL, os_agent->tag, "Allocation fail");
 	if(!os_agent) {
 		zlog_error(os_agent->tag, "Failed to create an agent");
 		return NULL;
 	}
-
-	os_agent->type = "os_linux_v1";
-	os_agent->id   = "test";
-	os_agent->agent_ip  = "test";
-	os_agent->target_ip = "test";
 
 	// os detail setup
 	os_detail_t *detail = (os_detail_t *)malloc(sizeof(os_detail_t));
@@ -46,31 +40,18 @@ agent_t *new_os_agent(const char *name, const char *conf) {
 		return NULL;
 	}
 
+	os_agent->type = "os_linux_v1";
+	os_agent->id   = "test";
+	os_agent->agent_ip  = "test";
+	os_agent->target_ip = "test";
+
 	// inheritance
 	os_agent->detail = detail;
 
 	// polymorphism
 	os_agent->metric_names    = os_metric_names;
-	os_agent->metric_names2   = json_object_new_object();
 	os_agent->collect_metrics = collect_os_metrics;
-	os_agent->fini = delete_os_agent;
-
-	json_object *metric_arr = json_object_new_array();
-	json_object_array_add(metric_arr, json_object_new_string("usage"));
-	json_object_object_add(os_agent->metric_names2, "disk_stat", metric_arr);
-	json_object *metric_arr2 = json_object_new_array();
-	json_object_array_add(metric_arr2, json_object_new_string("byte_in"));
-	json_object_array_add(metric_arr2, json_object_new_string("byte_out"));
-	json_object_array_add(metric_arr2, json_object_new_string("packet_in"));
-	json_object_array_add(metric_arr2, json_object_new_string("packet_out"));
-	json_object_object_add(os_agent->metric_names2, "net_stat", metric_arr2);
-	json_object *metric_arr3 = json_object_new_array();
-	json_object_array_add(metric_arr3, json_object_new_string("user"));
-	json_object_array_add(metric_arr3, json_object_new_string("cpu_use"));
-	json_object_array_add(metric_arr3, json_object_new_string("mem_use"));
-	json_object_object_add(os_agent->metric_names2, "proc_stat", metric_arr3);
-	json_object *metric_arr4 = json_object_new_array();
-	json_object_object_add(os_agent->metric_names2, "cpu_stat", metric_arr4);
+	os_agent->delete = delete_os_agent;
 
 	return os_agent;
 }
@@ -80,7 +61,7 @@ void collect_os_metrics(agent_t *os_agent) {
 
 	json_object *values = json_object_new_array();
 	collect_disk_metrics(values);
-	collect_network_metrics(values);
+	collect_network_metrics2(values);
 	collect_proc_metrics(values);
 	collect_cpu_metrics(values);
 
@@ -107,7 +88,7 @@ void collect_disk_metrics(json_object *values) {
 	pclose(df_fp);
 }
 
-void collect_network_metrics(json_object *values) {
+void collect_network_metrics2(json_object *values) {
 	/* Network */
 	FILE *net_fp = popen("cat /proc/net/dev | grep : | awk \'{sub(\":\", \"\", $1); print $1, $2, $3, $10, $11}\'", "r");
 	char net_name[100];
@@ -150,10 +131,10 @@ void collect_proc_metrics(json_object *values) {
 
 void collect_cpu_metrics(json_object *values) {
 	/* CPU numbers */
-	FILE *lscpu_fp = popen("lscpu | grep \'^CPU(s):\' | awk \'{print $2}\'", "r");
+	FILE *cpu_fp = popen("lscpu | grep \'^CPU(s):\' | awk \'{print $2}\'", "r");
 	int cpu_num;
-	while(fscanf(lscpu_fp, "%d", &cpu_num) == 1) {
+	while(fscanf(cpu_fp, "%d", &cpu_num) == 1) {
 		json_object_array_add(values, json_object_new_int(cpu_num));
 	}
-	pclose(lscpu_fp);
+	pclose(cpu_fp);
 }

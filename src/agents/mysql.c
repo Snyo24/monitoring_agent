@@ -61,7 +61,7 @@ agent_t *new_mysql_agent(const char *name, const char *conf) {
 	mysql_agent->metric_names    = mysql_metric_names;
 	mysql_agent->collect_metrics = collect_mysql_metrics;
 
-	mysql_agent->fini = delete_mysql_agent;
+	mysql_agent->delete = delete_mysql_agent;
 
 	return mysql_agent;
 }

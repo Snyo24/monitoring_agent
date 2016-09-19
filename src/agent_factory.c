@@ -28,18 +28,18 @@ int main(int argc, char **argv) {
         exit(1);
     }
 
-    /* Sender init */
-	if(sender_init() < 0) {
-		printf("Fail to initialize sender\n");
-		exit(1);
-	}
-
     char license[100];
     char uuid[37];
     get_configuration("user.conf", license, uuid);
-    printf("%s %s \n", license, uuid);
 
+    /* Sender init */
+	if(sender_init() < 0 || scheduler_init() < 0) {
+		printf("Fail to initialize\n");
+		exit(1);
+	}
+    sender_start();
 	schedule();
+	scheduler_fini();
 
     zlog_fini();
 	return 0;

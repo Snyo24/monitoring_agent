@@ -11,7 +11,7 @@
 #include "snyohash.h"
 #include "util.h"
 
-void scheduler_init();
+int scheduler_init();
 void schedule();
 void scheduler_fini();
 

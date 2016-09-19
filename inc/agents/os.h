@@ -5,8 +5,6 @@
 
 #include "agent.h"
 
-#include <mysql/mysql.h>
-
 #define OS_AGENT_PERIOD 3
 
 typedef struct _os_detail {
