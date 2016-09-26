@@ -24,6 +24,7 @@ typedef struct _sender {
 	/* CURL */
 	CURL   *curl;
 	struct curl_slist *headers;
+	char response[1000];
 
 	/* Buffer info */
 	int  head;

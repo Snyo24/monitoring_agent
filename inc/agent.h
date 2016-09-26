@@ -19,12 +19,14 @@ struct _agent {
 	volatile unsigned alive : 1;
 	volatile unsigned working : 1;
 
-	/* Agent info */
-	const char   *name;
-	const char   *type;
-	const char   *id;
-	const char   *agent_ip;
-	const char   *target_ip;
+	/* Target info */
+	const char *name;
+	const char *type;
+	int        id;
+	const char *agent_ip;
+	const char *target_ip;
+
+	/* Collecting varables */
 	unsigned int period;
 	timestamp    first_update;
 	timestamp    last_update;
@@ -87,5 +89,6 @@ void add_metrics(agent_t *agent, json_object *jarr);
 bool busy(agent_t *agent);
 bool timeup(agent_t *agent);
 bool outdated(agent_t *agent);
+/** @} */
 
 #endif

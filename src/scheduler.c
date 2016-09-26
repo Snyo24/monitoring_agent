@@ -21,10 +21,10 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#define SCHEDULER_TICK NS_PER_S/1
+#define SCHEDULER_TICK NS_PER_S/3
 
-#define REG_URI "http://10.10.202.115:8082/v1/agents"
-#define METRIC_URI "http://10.10.202.115:8082/v1/metrics"
+#define REG_URI "http://52.78.162.142/v1/agents"
+#define METRIC_URI "http://52.78.162.142/v1/metrics"
 
 void *scheduler_tag;
 
@@ -32,7 +32,7 @@ const char *agent_names[] = {
 	"NET"
 };
 const char *agent_types[] = {
-	"net_linux_v1"
+	"linux_linux_1.0"
 };
 agent_t *(*agent_constructors[])(const char *, const char *) = {
 	new_network_agent
@@ -86,16 +86,14 @@ int scheduler_init() {
 	get_license(g_license);
 	ptr += sprintf(ptr, "{\"license\":\"%s", g_license);
 	get_uuid(g_uuid);
-	ptr += sprintf(ptr, "\",\"uuid\":\"%.*s", 36, g_uuid);
-	ptr += sprintf(ptr, "\",\"target_name\":[");
-	ptr += get_agents_names(ptr);
-	ptr += sprintf(ptr, "],\"target_type\":[");
+	ptr += sprintf(ptr, "\",\"uuid\":\"%.*s\"", 36, g_uuid);
+	ptr += sprintf(ptr, ",\"agent_type\":\"%s\"","linux_1.0");
+	ptr += sprintf(ptr, ",\"target_type\":[");
 	ptr += get_agents_types(ptr);
-	ptr += sprintf(ptr, "],\"target_id\":[");
+	ptr += sprintf(ptr, "],\"target_num\":[");
 	ptr += get_agents_ids(ptr);
-	ptr += sprintf(ptr, "],\"hostname\":\"");
-	ptr += get_hostname(ptr);
-	ptr += sprintf(ptr, "\"}");
+	ptr += sprintf(ptr, "]");
+	ptr += sprintf(ptr, "}");
 	printf("%s\n", reg_json);
 	if(sender_post(reg_json) < 0) {
 		zlog_error(scheduler_tag, "Fail to register topic");
@@ -143,7 +141,7 @@ void scheduler_fini() {
  */
 
 int get_license(char *license) {
-	return sprintf(license, "%s", "efgh");
+	return sprintf(license, "%s", "license_exem4");
 }
 
 int get_uuid(char *uuid) {
@@ -174,7 +172,7 @@ int get_agents_types(char *agents) {
 int get_agents_ids(char *agents) {
 	int n = 0;
 	for(int i=0; i<NUMBER_OF(agent_names); ++i) {
-		n += sprintf(agents+n, "\"test\"");
+		n += sprintf(agents+n, "%d", i+1);
 		if(i < NUMBER_OF(agent_names)-1)
 			sprintf(agents+n++, ",");
 	}
@@ -182,10 +180,7 @@ int get_agents_ids(char *agents) {
 }
 
 int get_hostname(char *hostname) {
-	if(!gethostname(hostname, 100)){
-	struct hostent *ip = gethostbyname(hostname);
-	printf("%s\n", inet_ntoa(*((struct in_addr *)ip->h_addr_list[0])));
+	if(!gethostname(hostname, 100))
 		return strlen(hostname);
-	}
 	return sprintf(hostname, "fail_to_get_hostname");
 }

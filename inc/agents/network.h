@@ -5,7 +5,7 @@
 
 #include "agent.h"
 
-#define NETWORK_AGENT_PERIOD 3
+#define NETWORK_AGENT_PERIOD 1
 
 typedef struct _network_detail {
 } network_detail_t;

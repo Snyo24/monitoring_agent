@@ -109,8 +109,6 @@ void double_up(shash_t *shash) {
 
 void shash_elem_fini_rec(shash_elem_t *elem) {
 	if(!elem) {
-		free(elem->key);
-		free(elem);
 		return;
 	}
 	shash_elem_fini_rec(elem->next);

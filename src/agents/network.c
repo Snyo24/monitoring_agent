@@ -12,6 +12,7 @@
 #include <json/json.h>
 
 const char *network_metric_names[] = {
+	"net_stat/name",
 	"net_stat/byte_in",
 	"net_stat/byte_out",
 	"net_stat/packet_in",
@@ -31,8 +32,8 @@ agent_t *new_network_agent(const char *name, const char *conf) {
 		return NULL;
 	}
 
-	agent->type = "network_linux_v1";
-	agent->id   = "test";
+	agent->type = "linux_linux_1.0";
+	agent->id   = 1;
 	agent->agent_ip  = "test";
 	agent->target_ip = "test";
 
@@ -57,17 +58,29 @@ void collect_network_metrics(agent_t *agent) {
 	int byte_in, byte_out;
 	int pckt_in, pckt_out;
 	json_object *net_json = json_object_new_object();
-	while(fscanf(net_fp, "%s%d%d%d%d", net_name, &byte_in, &byte_out, &pckt_in, &pckt_out) == 5) {
-		json_object *net_info = json_object_new_array();
+	json_object *net_info = json_object_new_array();
+	if(fscanf(net_fp, "%s%d%d%d%d", net_name, &byte_in, &byte_out, &pckt_in, &pckt_out) == 5) {
+		// json_object *net_info = json_object_new_array();
+		// // bytes in and out
+		// json_object_array_add(net_info, json_object_new_int(byte_in));
+		// json_object_array_add(net_info, json_object_new_int(byte_out));
+		// // packets in and out
+		// json_object_array_add(net_info, json_object_new_int(pckt_in));
+		// json_object_array_add(net_info, json_object_new_int(pckt_out));
+		// json_object_object_add(net_json, net_name, net_info);
+
+		// json_object_array_add(net_info, json_object_new_int(byte_in));
+		// json_object_array_add(net_info, json_object_new_int(byte_out));
+		// json_object_array_add(values, net_info);
+		json_object_array_add(values, json_object_new_string(net_name));
 		// bytes in and out
-		json_object_array_add(net_info, json_object_new_int(byte_in));
-		json_object_array_add(net_info, json_object_new_int(byte_out));
+		json_object_array_add(values, json_object_new_int(byte_in));
+		json_object_array_add(values, json_object_new_int(byte_out));
 		// packets in and out
-		json_object_array_add(net_info, json_object_new_int(pckt_in));
-		json_object_array_add(net_info, json_object_new_int(pckt_out));
-		json_object_object_add(net_json, net_name, net_info);
+		json_object_array_add(values, json_object_new_int(pckt_in));
+		json_object_array_add(values, json_object_new_int(pckt_out));
 	}
-	json_object_array_add(values, net_json);
+	// json_object_array_add(values, net_json);
 	pclose(net_fp);
 
 	add_metrics(agent, values);

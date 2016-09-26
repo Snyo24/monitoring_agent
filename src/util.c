@@ -1,11 +1,21 @@
 /** @file util.c @author Snyo */
 
 #include "util.h"
+#include "snyohash.h"
 
+#include <stdio.h>
+#include <string.h>
+#include <stdarg.h>
 #include <time.h>
 
 #include <sys/stat.h>
-#include <yaml.h>
+
+#define rtrim(str) 	do { \
+						for(int i=strlen(str)-1; \
+							i>=0 && (str[i]==' ' || str[i]=='\t'); \
+							--i) \
+							str[i] = '\0'; \
+					} while(0)
 
 timestamp get_timestamp() {
 	struct timespec now;
@@ -28,58 +38,38 @@ int file_exist(char *filename) {
 	return !stat(filename, &st);
 }
 
-// TODO generalize
-void yaml_parser(const char *file, char *result) {
-	yaml_parser_t parser;
-	yaml_token_t token;
-	yaml_parser_initialize(&parser);
+int parse_conf(const char *file, shash_t *map, ...) {
+	FILE *fp = fopen(file, "r");
+	if(!fp) return -1;
 
-	FILE *yaml = fopen(file, "rb");
-	yaml_parser_set_input_file(&parser, yaml);
+	va_list args;
+	va_start(args, map);
 
-	int status = 0;
-	char *target;
-	char *scalar;
+	int line_num = 0;
+	char line[1000];
 
-	do {
-		yaml_parser_scan(&parser, &token);
-		switch(token.type) {
-		/* Stream start/end */
-		case YAML_STREAM_START_TOKEN: printf("STREAM START\n"); break;
-		case YAML_STREAM_END_TOKEN:   printf("STREAM END\n");   break;
-		/* Token types (read before actual token) */
-		case YAML_KEY_TOKEN:   printf("(Key token)   "); status = 0; break;
-		case YAML_VALUE_TOKEN: printf("(Value token) "); status = 1; break;
-		/* Block delimeters */
-		case YAML_BLOCK_SEQUENCE_START_TOKEN: printf("Start Block (Sequence)\n"); break;
-		case YAML_BLOCK_ENTRY_TOKEN:          printf("Start Block (Entry)\n");    break;
-		case YAML_BLOCK_END_TOKEN:            printf("End block\n");              break;
-		/* Data */
-		case YAML_BLOCK_MAPPING_START_TOKEN:  printf("[Block mapping]\n");            break;
-		case YAML_SCALAR_TOKEN:
-		scalar = (char *)token.data.scalar.value;
-		printf("scalar %s \n", scalar);
-		if(status) {
-			strcpy(target, (char *)scalar);
-		} else {
-			if(!strcmp("db_host", scalar))
-				target = (result);
-			else if(!strcmp(scalar, "db_user"))
-				target = (result+50);
-			else if(!strcmp(scalar, "db_pass"))
-				target = (result+100);
-			else if(!strcmp(scalar, "db_name"))
-				target = (result+150);
+	while(fgets(line, 999, fp)) {
+		++line_num;
+		if(line[0] == '#' || line[0] == '\n') continue;
+
+		char field[100];
+		char *value = va_arg(args, char *);
+
+		int ofs = 0;
+		while(line[ofs] == ' ' || line[ofs] == '\t') ++ofs;
+
+		if(sscanf(line+ofs, "%[^:]:%*[ \t]%[^\n]\n", field, value) != 2) {
+			printf("Syntax error: %s (%s:%d)\n", line, file, line_num);
+			va_end(args);
+			return -1;
 		}
-		break;
-		/* Others */
-		default:
-		printf("Got token of type %d\n", token.type);
-		}
-		if(token.type != YAML_STREAM_END_TOKEN)
-			yaml_token_delete(&token);
-	} while(token.type != YAML_STREAM_END_TOKEN);
+		rtrim(field);
+		rtrim(value);
 
-	/* Destroy the Parser object. */
-	yaml_parser_delete(&parser);
+		shash_insert(map, field, value);
+	}
+
+	va_end(args);
+
+	return 0;
 }

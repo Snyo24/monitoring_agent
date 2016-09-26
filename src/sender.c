@@ -51,6 +51,11 @@ int load_unsent();
 void drop_unsent_sending();
 void double_backoff();
 
+size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
+	printf("%.*s\n", (int)size*(int)nmemb, ptr);
+	return nmemb;
+}
+
 int sender_init() {
 	sender.tag = zlog_get_category("Sender");
     if(!sender.tag) return -1;
@@ -63,6 +68,8 @@ int sender_init() {
 	if(!(sender.curl = curl_easy_init()) \
 	|| !(sender.headers = curl_slist_append(sender.headers, CONTENT_TYPE)) \
 	|| curl_easy_setopt(sender.curl, CURLOPT_HTTPHEADER, sender.headers) > 0 \
+	|| curl_easy_setopt(sender.curl, CURLOPT_WRITEFUNCTION, write_callback) > 0 \
+	|| curl_easy_setopt(sender.curl, CURLOPT_WRITEDATA, sender.response) > 0 \
 	|| curl_easy_setopt(sender.curl, CURLOPT_TIMEOUT, 1) > 0) {
 		zlog_error(sender.tag, "Fail to setup cURL");
 		sender_fini();

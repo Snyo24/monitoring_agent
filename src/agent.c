@@ -125,10 +125,6 @@ void *run(void *_agent) {
 		pthread_cond_signal(&agent->synced);
 		pthread_mutex_unlock(&agent->sync);
 
-		zlog_debug(agent->tag, "Start updating");
-		agent->collect_metrics(agent);
-		agent->stored++;
-
 		if(!agent->last_update) {
 			 agent->last_update = get_timestamp();
 		} else {
@@ -136,6 +132,10 @@ void *run(void *_agent) {
 		}
 		if(!agent->first_update)
 			agent->first_update = agent->last_update;
+
+		zlog_debug(agent->tag, "Start updating");
+		agent->collect_metrics(agent);
+		agent->stored++;
 
 		if(agent->stored == MAX_STORAGE) {
 			zlog_debug(agent->tag, "Buffer is full");
@@ -157,17 +157,16 @@ void pack(agent_t *agent) {
 	extern char g_license[];
 	extern char g_uuid[];
 	json_object_object_add(package, "license", json_object_new_string(g_license));
-	json_object_object_add(package, "target_id", json_object_new_string(agent->id));
+	json_object_object_add(package, "target_num", json_object_new_int(agent->id));
 	json_object_object_add(package, "uuid", json_object_new_string(g_uuid));
-	json_object_object_add(package, "target_name", json_object_new_string(agent->name));
 	json_object_object_add(package, "agent_ip", json_object_new_string(agent->agent_ip));
 	json_object_object_add(package, "target_ip", json_object_new_string(agent->target_ip));
 	json_object_object_add(package, "target_type", json_object_new_string(agent->type));
-	// json_object *m_arr = json_object_new_array();
-	// for(int k=0; k<NUMBER_OF(agent->metric_names); ++k) {
-	// 	json_object_array_add(m_arr, json_object_new_string(agent->metric_names[k]));
-	// }
-	// json_object_object_add(package, "metrics", m_arr);
+	json_object *m_arr = json_object_new_array();
+	for(int k=0; k<4; ++k) {
+		json_object_array_add(m_arr, json_object_new_string(agent->metric_names[k]));
+	}
+	json_object_object_add(package, "metrics", m_arr);
 	// json_object_put(agent->metrics);
 	// agent->metrics = json_object_new_array();
 	json_object_object_add(package, "values", agent->values);
