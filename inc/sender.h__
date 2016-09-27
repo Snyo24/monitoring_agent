@@ -1,0 +1,39 @@
+/**
+ * @file sender.h
+ * @author Snyo 
+ */
+
+#ifndef _SENDER_H_
+#define _SENDER_H_
+
+#include "runnable.h"
+
+#include <curl/curl.h>
+
+#define UNSENT_FILE_NAME_MAX 16
+#define BACKOFF_EXP 6
+
+// typedef runnable_t sender_t;
+
+typedef struct _sender {
+	/* CURL */
+	CURL   *curl;
+	struct curl_slist *headers;
+	char response[1000];
+
+	/* Sending fail */
+	FILE *unsent_sending_fp;
+	char _unsent_file_name[UNSENT_FILE_NAME_MAX];
+	int  dirty;
+	unsigned backoff : BACKOFF_EXP;
+} sender_t;
+
+int sender_init();
+void sender_start();
+void sender_fini();
+
+void sender_set_uri(const char *uri);
+int sender_post(char *payload);
+void enq_payload(char *payload);
+
+#endif

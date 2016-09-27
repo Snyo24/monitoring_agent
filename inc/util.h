@@ -3,9 +3,7 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-#include "snyohash.h"
-
-#include <stdint.h>
+#include "shash.h"
 
 #define NS_PER_S (1000000000UL)
 #define NUMBER_OF(arr) (sizeof(arr)/sizeof(arr[0]))

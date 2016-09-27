@@ -7,12 +7,16 @@
 #ifndef _SCHEDULER_H_
 #define _SCHEDULER_H_
 
-#include "sender.h"
-#include "snyohash.h"
-#include "util.h"
+#include "runnable.h"
+#include "shash.h"
 
-int scheduler_init();
-void schedule();
-void scheduler_fini();
+typedef runnable_t scheduler_t;
+typedef struct _scheduling_detail {
+	shash_t *plugins;
+} scheduling_detail_t;
+
+int  scheduler_init(scheduler_t *scheduler);
+void scheduler_main(void *_scheduler);
+void scheduler_fini(scheduler_t *scheduler);
 
 #endif

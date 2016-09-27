@@ -1,11 +1,11 @@
 /**
- * @file snyohash.c
+ * @file shash.c
  *
  * @brief Custom hash
  *
  */
 
-#include "snyohash.h"
+#include "shash.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@ void shash_elem_fini_rec(shash_elem_t *elem);
 void double_up(shash_t *shash);
 unsigned long hash_value(const char *str);
 
-shash_t *shash_init() {
+shash_t *new_shash() {
 	shash_t *shash = (shash_t *)malloc(sizeof(shash_t));
 	if(!shash)
 		return NULL;
@@ -59,7 +59,7 @@ void *shash_search(shash_t *shash, const char *key) {
 	return elem->item;
 }
 
-void shash_fini(shash_t *shash) {
+void delete_shash(shash_t *shash) {
 	for(int i=0; i<shash->size; ++i) 
 		shash_elem_fini_rec(shash->table[i]);
 	free(shash->table);

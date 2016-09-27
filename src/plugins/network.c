@@ -1,55 +1,46 @@
-/** @file network_agent.c @author Snyo */
+/** @file network_plugin.c @author Snyo */
 
-#include "agents/network.h"
+#include "plugins/network.h"
 
-#include "agent.h"
+#include "pluggable.h"
 #include "util.h"
 
 #include <stdio.h>
 #include <string.h>
 
 #include <zlog.h>
-#include <json/json.h>
-
-const char *network_metric_names[] = {
-	"net_stat/name",
-	"net_stat/byte_in",
-	"net_stat/byte_out",
-	"net_stat/packet_in",
-	"net_stat/packet_out"
-};
 
 // TODO configuration parsing
-agent_t *new_network_agent(const char *name, const char *conf) {
-	agent_t *agent = new_agent(name, NETWORK_AGENT_PERIOD);
-	if(!agent) return NULL;
+plugin_t *new_network_plugin(const char *name, const char *conf) {
+	plugin_t *plugin = new_plugin(1);
+	if(!plugin) return NULL;
 
 	// network detail setup
 	network_detail_t *detail = (network_detail_t *)malloc(sizeof(network_detail_t));
 	if(!detail) {
-		zlog_error(agent->tag, "Failed to allocate network detail");
-		delete_agent(agent);
+		zlog_error(plugin->tag, "Failed to allocate network detail");
+		delete_plugin(plugin);
 		return NULL;
 	}
 
-	agent->type = "linux_linux_1.0";
-	agent->id   = 1;
-	agent->agent_ip  = "test";
-	agent->target_ip = "test";
+	plugin->type = "linux_linux_1.0";
+	plugin->num   = 1;
+	plugin->plugin_ip  = "test";
+	plugin->target_ip = "test";
 
 	// inheritance
-	agent->detail = detail;
+	plugin->detail = detail;
 
 	// polymorphism
-	agent->metric_names    = network_metric_names;
-	agent->collect_metrics = collect_network_metrics;
-	agent->delete = delete_agent;
+	plugin->metric_names    = network_metric_names;
+	plugin->collect_metrics = collect_network_metrics;
+	plugin->delete = delete_plugin;
 
-	return agent;
+	return plugin;
 }
 
-void collect_network_metrics(agent_t *agent) {
-	zlog_debug(agent->tag, "Collecting metrics");
+void collect_network_metrics(plugin_t *plugin) {
+	zlog_debug(plugin->tag, "Collecting metrics");
 
 	json_object *values = json_object_new_array();
 	/* Network */
@@ -57,8 +48,6 @@ void collect_network_metrics(agent_t *agent) {
 	char net_name[100];
 	int byte_in, byte_out;
 	int pckt_in, pckt_out;
-	json_object *net_json = json_object_new_object();
-	json_object *net_info = json_object_new_array();
 	if(fscanf(net_fp, "%s%d%d%d%d", net_name, &byte_in, &byte_out, &pckt_in, &pckt_out) == 5) {
 		// json_object *net_info = json_object_new_array();
 		// // bytes in and out
@@ -83,10 +72,10 @@ void collect_network_metrics(agent_t *agent) {
 	// json_object_array_add(values, net_json);
 	pclose(net_fp);
 
-	add_metrics(agent, values);
+	add_metrics(plugin, values);
 }
 
-void delete_network_agent(agent_t *agent) {
-	free(agent->detail);
-	delete_agent(agent);
+void delete_network_plugin(plugin_t *plugin) {
+	free(plugin->detail);
+	delete_plugin(plugin);
 }

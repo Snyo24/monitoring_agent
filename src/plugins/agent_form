@@ -15,8 +15,8 @@ const char *network_metric_names[] = {
 };
 
 // TODO configuration parsing
-agent_t *new_network_agent(const char *name, const char *conf) {
-	agent_t *agent = new_agent(name, NETWORK_AGENT_PERIOD);
+plugin_t *new_network_agent(const char *name, const char *conf) {
+	plugin_t *agent = new_agent(name, NETWORK_AGENT_PERIOD);
 	if(!agent) return NULL;
 
 	// network detail setup
@@ -43,7 +43,7 @@ agent_t *new_network_agent(const char *name, const char *conf) {
 	return agent;
 }
 
-void collect_network_metrics(agent_t *agent) {
+void collect_network_metrics(plugin_t *agent) {
 	zlog_debug(agent->tag, "Collecting metrics");
 
 	json_object *values = json_object_new_array();
@@ -51,7 +51,7 @@ void collect_network_metrics(agent_t *agent) {
 	add_metrics(agent, values);
 }
 
-void delete_agent(agent_t *agent) {
+void delete_agent(plugin_t *agent) {
 	free(agent->detail);
 	delete_agent(agent);
 }

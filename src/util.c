@@ -1,7 +1,7 @@
 /** @file util.c @author Snyo */
 
 #include "util.h"
-#include "snyohash.h"
+#include "shash.h"
 
 #include <stdio.h>
 #include <string.h>

@@ -1,5 +1,5 @@
 /**
- * @file snyohash.h
+ * @file shash.h
  *
  * @brief Custom shash
  * @details (CAUTION) There is no delete function.
@@ -18,8 +18,8 @@
  * The size increases automatically.
  */
 
-#ifndef _snyohash_H_
-#define _snyohash_H_
+#ifndef _shash_H_
+#define _shash_H_
 
 #define INITIAL_SIZE 15
 
@@ -44,10 +44,10 @@ struct _shash_elem {
 	shash_elem_t *next;
 };
 
-shash_t *shash_init();
+shash_t *new_shash();
 void shash_insert(shash_t *shash, const char *key, void *item);
 void *shash_search(shash_t *shash, const char *key);
-void shash_fini(shash_t *shash);
+void delete_shash(shash_t *shash);
 
 int shash_to_json(shash_t *shash, char *json);
 
