@@ -28,7 +28,6 @@ struct _plugin {
 	/* Target info */
 	int        num;
 	const char *name;
-	const char *type;
 	const char *agent_ip;
 	const char *target_ip;
 
@@ -38,6 +37,7 @@ struct _plugin {
 
 	/* Metrics */
 	int stored;
+	int full_count;
 	json_object *metric_names;
 	json_object *values;
 
@@ -50,7 +50,11 @@ struct _plugin {
 	void (*delete)(plugin_t *);
 };
 
-plugin_t *new_plugin(double period);
+extern char license[];
+extern char uuid[];
+extern char os[];
+
+plugin_t *new_plugin(timestamp period);
 void delete_plugin(plugin_t *plugin);
 
 void *plugin_main(void *_plugin);

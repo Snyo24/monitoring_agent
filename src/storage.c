@@ -24,7 +24,7 @@ int storage_init(storage_t *storage) {
 	storage->tag = zlog_get_category("Storage");
 	if(!storage->tag);
 
-	if(!(storage->spec = (squeue_t *)malloc(sizeof(squeue_t)))
+	if(!(storage->spec = malloc(sizeof(squeue_t)))
 		|| squeue_init(storage->spec) < 0)
 		return -1;
 

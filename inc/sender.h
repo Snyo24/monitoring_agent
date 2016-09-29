@@ -23,6 +23,8 @@ typedef struct _sender_spec {
 	timestamp base_period;
 	FILE *unsent_sending_fp;
 	unsigned backoff : BACKOFF_LIMIT;
+	char unsent_json[4096];
+	unsigned unsent_json_loaded : 1;
 } sender_spec_t;
 
 extern sender_t sender;

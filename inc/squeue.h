@@ -9,7 +9,7 @@
 
 #include <pthread.h>
 
-#define SIZE 5
+#define SIZE 3
 
 typedef struct _squeue {
 	int head;

@@ -14,7 +14,7 @@
 
 #include <zlog.h>
 
-#define SCHEDULER_TICK NS_PER_S/3
+#define SCHEDULER_TICK NS_PER_S/4
 
 int scheduler_init(scheduler_t *scheduler) {
 	if(runnable_init(scheduler, SCHEDULER_TICK) < 0) return -1;
@@ -23,7 +23,7 @@ int scheduler_init(scheduler_t *scheduler) {
 	if(!scheduler->tag);
 
 	
-	if(!(scheduler->spec = (shash_t *)malloc(sizeof(shash_t)))
+	if(!(scheduler->spec = malloc(sizeof(shash_t)))
 		|| shash_init(scheduler->spec) < 0)
 		return -1;
 
@@ -45,7 +45,7 @@ void scheduler_main(void *_scheduler) {
 		plugin_t *plugin = (plugin_t *)shash_search(plugins, "os");
 		if(!plugin) continue;
 		zlog_debug(scheduler->tag, "Status of \'%s\' [%c%c%c%c]", \
-		                                plugin->type, \
+		                                plugin->agent_ip, \
 		                                alive(plugin)?'R':'.', \
 		                                outdated(plugin)?'O':'.', \
 		                                busy(plugin)?'B':'.', \
@@ -53,11 +53,11 @@ void scheduler_main(void *_scheduler) {
 		if(alive(plugin)) {
 			if(busy(plugin)) {
 				if(timeup(plugin)) {
-					zlog_fatal(scheduler->tag, "Restarting \'%s\'", plugin->type);
+					zlog_fatal(scheduler->tag, "Restarting \'%s\'", plugin->agent_ip);
 					restart(plugin);
 				}
 			} else if(outdated(plugin)) {
-				zlog_debug(scheduler->tag, "Poking \'%s\'", plugin->type);
+				zlog_debug(scheduler->tag, "Poking \'%s\'", plugin->agent_ip);
 				poke(plugin);
 			}
 		}

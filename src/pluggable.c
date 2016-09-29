@@ -16,7 +16,7 @@
 /**
  * return a pointer for success, NULL for failure
  */
-plugin_t *new_plugin(double period) {
+plugin_t *new_plugin(timestamp period) {
 	if(period <= 0) return NULL;
 	// allocation
 	plugin_t *plugin = (plugin_t *)malloc(sizeof(plugin_t));
@@ -32,7 +32,7 @@ plugin_t *new_plugin(double period) {
 
 	plugin->alive = 0;
 
-	plugin->period = period * NS_PER_S;
+	plugin->period = period;
 
 	plugin->stored = 0;
 	plugin->metric_names = json_object_new_array();
@@ -146,9 +146,9 @@ void pack(plugin_t *plugin) {
 	}
 	*/
 	json_object *payload = json_object_new_object();
-	json_object_object_add(payload, "license", json_object_new_string("license_exem4"));
-	json_object_object_add(payload, "uuid", json_object_new_string("550e8400-e29b-41d4-a716-446655440000"));
-	json_object_object_add(payload, "os", json_object_new_string("linux"));
+	json_object_object_add(payload, "license", json_object_new_string(license));
+	json_object_object_add(payload, "uuid", json_object_new_string(uuid));
+	json_object_object_add(payload, "os", json_object_new_string(os));
 	json_object_object_add(payload, "target_num", json_object_new_int(plugin->num));
 	json_object_object_add(payload, "agent_ip", json_object_new_string(plugin->agent_ip));
 	json_object_object_add(payload, "target_ip", json_object_new_string(plugin->target_ip));

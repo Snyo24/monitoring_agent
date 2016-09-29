@@ -15,6 +15,10 @@ scheduler_t scheduler;
 storage_t   storage;
 sender_t    sender;
 
+char license[] = "license_exem4";
+char uuid[] = "550e8400-e29b-41d4-a716-446655440000";
+char os[100];
+
 int main(int argc, char **argv) {
     if(zlog_init("./zlog.conf")) {
         printf("zlog initiation failed\n");
@@ -26,6 +30,9 @@ int main(int argc, char **argv) {
     storage_init(&storage);
     sender_init(&sender);
     sender_set_reg_uri(&sender);
+    FILE *os_version = popen("uname -mrs", "r");
+    if(!fgets(os, 100, os_version)) exit(1);
+    printf("%s\n", os);
     if(sender_post(&sender, \
     "{\
         \"license\":\"license_exem4\",\
@@ -46,7 +53,7 @@ int main(int argc, char **argv) {
     start_runnable(&storage);
     start_runnable(&sender);
 
-    /* Stop */
+    /* Done */
     pthread_join(scheduler.running_thread, NULL);
     pthread_join(storage.running_thread, NULL);
     pthread_join(sender.running_thread, NULL);

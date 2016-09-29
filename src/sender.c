@@ -24,12 +24,11 @@
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
-size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag);
 int clear_unsent();
-char *unsent_file(int i);
-int sender_post(sender_t *sender, char *payload);
-void drop_unsent_sending(sender_t *sender);
 int load_unsent(sender_t *sender);
+void drop_unsent_sending(sender_t *sender);
+char *unsent_file(int i);
+size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag);
 
 int sender_init(sender_t *sender) {
 	if(runnable_init(sender, SENDER_TICK) < 0) return -1;
@@ -41,7 +40,7 @@ int sender_init(sender_t *sender) {
 	if(clear_unsent() < 0)
 		zlog_warn(sender->tag, "Fail to clear old data");
 
-	sender_spec_t *spec = (sender_spec_t *)malloc(sizeof(sender_spec_t));
+	sender_spec_t *spec = malloc(sizeof(sender_spec_t));
 	if(!spec) return -1;
 
 	zlog_debug(sender->tag, "Initialize cURL");
@@ -58,6 +57,7 @@ int sender_init(sender_t *sender) {
 	spec->base_period = SENDER_TICK;
 	spec->backoff = 1;
 	spec->unsent_sending_fp = NULL;
+	spec->unsent_json_loaded = 0;
 
 	sender->spec = spec;
 	sender->job = sender_main;
@@ -81,7 +81,8 @@ void sender_main(void *_sender) {
 
 	while(!storage_empty(&storage)) {
 		zlog_debug(sender->tag, "Try POST (timeout: 1s)");
-		if(!sender_post(sender, storage_fetch(&storage))) {
+		char *payload = storage_fetch(&storage);
+		if(!sender_post(sender, payload)) {
 			zlog_debug(sender->tag, "POST success");
 			storage_drop(&storage);
 			sender->period = spec->base_period;
@@ -95,15 +96,19 @@ void sender_main(void *_sender) {
 
 			zlog_debug(sender->tag, "POST %d unsent JSON", 3);
 			for(int i=0; i<3; ++i) {
-				char buf[4096];
-				if(!fgets(buf, 4096, spec->unsent_sending_fp)) {
-					zlog_debug(sender->tag, "fgets() fail");
-					drop_unsent_sending(sender);
-					break;
-				} else if(sender_post(sender, buf) < 0) {
+				if(!spec->unsent_json_loaded) {
+					if(!fgets(spec->unsent_json, 4096, spec->unsent_sending_fp)) {
+						zlog_debug(sender->tag, "fgets() fail");
+						drop_unsent_sending(sender);
+						break;
+					}
+				}
+				spec->unsent_json_loaded = 1;
+				if(sender_post(sender, spec->unsent_json) < 0) {
 					zlog_debug(sender->tag, "POST unsent fail");
 					break;
 				}
+				spec->unsent_json_loaded = 0;
 			}
 		} else {
 			zlog_debug(sender->tag, "POST fail");
@@ -126,6 +131,7 @@ void sender_set_met_uri(sender_t *sender) {
 }
 
 int sender_post(sender_t *sender, char *payload) {
+	printf("%s\n", payload);
 	CURL *curl = ((sender_spec_t *)sender->spec)->curl;
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload);
 	CURLcode curl_code = curl_easy_perform(curl);
@@ -179,6 +185,7 @@ void drop_unsent_sending(sender_t *sender) {
 	zlog_debug(sender->tag, "Close and remove unsent_sending");
 	fclose(spec->unsent_sending_fp);
 	spec->unsent_sending_fp = NULL;
+	spec->unsent_json_loaded = 0;
 	remove(UNSENT_SENDING);
 }
 
