@@ -50,7 +50,7 @@ struct _agent {
 	const char **metric_names;
 	
 	/* Inheritance */
-	void *detail;
+	void *spec;
 
 	/* Polymorphism */
 	void (*collect_metrics)(agent_t *);

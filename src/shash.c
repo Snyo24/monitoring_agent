@@ -1,8 +1,6 @@
 /**
  * @file shash.c
- *
  * @brief Custom hash
- *
  */
 
 #include "shash.h"
@@ -18,19 +16,18 @@ void shash_elem_fini_rec(shash_elem_t *elem);
 void double_up(shash_t *shash);
 unsigned long hash_value(const char *str);
 
-shash_t *new_shash() {
-	shash_t *shash = (shash_t *)malloc(sizeof(shash_t));
+int shash_init(shash_t *shash) {
 	if(!shash)
-		return NULL;
+		return -1;
 	shash->table = (shash_elem_t **)malloc(INITIAL_SIZE*sizeof(shash_elem_t *));
 	if(!shash->table) {
 		free(shash);
-		return NULL;
+		return -1;
 	}
 	shash->size = INITIAL_SIZE;
 	shash->chaining = 0;
 	memset(shash->table, 0, INITIAL_SIZE*sizeof(shash_elem_t *));
-	return shash;
+	return 0;
 }
 
 void shash_insert(shash_t *shash, const char *key, void *item) {
@@ -45,8 +42,10 @@ void shash_insert(shash_t *shash, const char *key, void *item) {
 		if(shash->table[idx]) shash->chaining++;
 		elem->next = shash->table[idx];
 		shash->table[idx] = elem;
-	} 
-	elem->item = item;
+		elem->item = item;
+	} else { // Overwriting is not allowed
+		return;
+	}
 
 	if(shash->chaining > (shash->size >> 1)+(shash->size >> 2))
 		double_up(shash);
@@ -59,11 +58,10 @@ void *shash_search(shash_t *shash, const char *key) {
 	return elem->item;
 }
 
-void delete_shash(shash_t *shash) {
+void shash_fini(shash_t *shash) {
 	for(int i=0; i<shash->size; ++i) 
 		shash_elem_fini_rec(shash->table[i]);
 	free(shash->table);
-	free(shash);
 }
 
 /**

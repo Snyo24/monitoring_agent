@@ -5,30 +5,25 @@
 #include "runnable.h"
 #include "util.h"
 
-#include <stdlib.h>
-
 #include <pthread.h>
 
 #include <zlog.h>
 
 /**
- * return a pointer for success, NULL for failure
+ * return 0 for success, -1 for failure
  */
-runnable_t *new_runnable(double period) {
-	if(period <= 0) return NULL;
-
-	runnable_t *app = (runnable_t *)malloc(sizeof(runnable_t));
-	if(!app) return NULL;
+int runnable_init(runnable_t *app, timestamp period) {
+	if(period <= 0) return -1;
+	if(!app) return -1;
 
 	app->alive = 0;
-	app->period = period * NS_PER_S;
+	app->period = period;
 
-	return app;
+	return 0;
 }
 
-void delete_runnable(runnable_t *app) {
-	if(!app) return;
-	free(app);
+void runnable_fini(runnable_t *app) {
+	// Nothing to be done
 }
 
 void start_runnable(runnable_t *app) {

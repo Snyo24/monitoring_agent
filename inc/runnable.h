@@ -1,3 +1,7 @@
+/**
+ * @file runnable.h
+ * @author Snyo
+ */
 #ifndef _RUNNABLE_H_
 #define _RUNNABLE_H_
 
@@ -16,15 +20,15 @@ typedef struct _runnable {
 	timestamp period;
 
 	/* Inheritance */
-	void *detail;
+	void *spec;
 
 	/* Polymorphism */
 	void *tag;
 	void (*job)(void *);
 } runnable_t;
 
-runnable_t *new_runnable(double period);
-void delete_runnable(runnable_t *app);
+int  runnable_init(runnable_t *app, timestamp period);
+void runnable_fini(runnable_t *app);
 
 void *run(void *_app);
 

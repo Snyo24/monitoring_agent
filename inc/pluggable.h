@@ -1,3 +1,7 @@
+/**
+ * @file pluggable.h
+ * @author Snyo
+ */
 #ifndef _PLUGGABLE_H_
 #define _PLUGGABLE_H_
 
@@ -7,7 +11,9 @@
 
 #include <json/json.h>
 
-typedef struct _plugin {
+typedef struct _plugin plugin_t;
+
+struct _plugin {
 	/* Thread variables */
 	pthread_t       running_thread;
 	pthread_mutex_t sync;
@@ -20,28 +26,29 @@ typedef struct _plugin {
 	volatile unsigned working : 1;
 
 	/* Target info */
+	int        num;
 	const char *name;
 	const char *type;
-	int        num;
 	const char *agent_ip;
 	const char *target_ip;
 
 	/* Timing variables */
 	timestamp period;
 	timestamp next_run;
-	timestamp due;
 
 	/* Metrics */
+	int stored;
 	json_object *metric_names;
 	json_object *values;
 
 	/* Inheritance */
-	void *detail;
+	void *spec;
 
 	/* Polymorphism */
-	void *zlog;
-	void (*job)(void *);
-} plugin_t;
+	void *tag;
+	void (*job)(plugin_t *);
+	void (*delete)(plugin_t *);
+};
 
 plugin_t *new_plugin(double period);
 void delete_plugin(plugin_t *plugin);
@@ -52,6 +59,7 @@ void start(plugin_t *plugin);
 void stop(plugin_t *plugin);
 void restart(plugin_t *plugin);
 void poke(plugin_t *plugin);
+void pack(plugin_t *plugin);
 
 int alive(plugin_t *plugin);
 int outdated(plugin_t *plugin);

@@ -19,10 +19,10 @@ plugin_t *new_network_agent(const char *name, const char *conf) {
 	plugin_t *agent = new_agent(name, NETWORK_AGENT_PERIOD);
 	if(!agent) return NULL;
 
-	// network detail setup
-	detail_t *detail = (detail_t *)malloc(sizeof(detail_t));
-	if(!detail) {
-		zlog_error(agent->tag, "Failed to allocate network detail");
+	// network spec setup
+	spec_t *spec = (spec_t *)malloc(sizeof(spec_t));
+	if(!spec) {
+		zlog_error(agent->tag, "Failed to allocate network spec");
 		delete_agent(agent);
 		return NULL;
 	}
@@ -33,7 +33,7 @@ plugin_t *new_network_agent(const char *name, const char *conf) {
 	agent->target_ip = "test";
 
 	// inheritance
-	agent->detail = detail;
+	agent->spec = spec;
 
 	// polymorphism
 	agent->metric_names    = network_metric_names;
@@ -52,6 +52,6 @@ void collect_network_metrics(plugin_t *agent) {
 }
 
 void delete_agent(plugin_t *agent) {
-	free(agent->detail);
+	free(agent->spec);
 	delete_agent(agent);
 }

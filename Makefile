@@ -18,7 +18,7 @@ LIB			:= -L/usr/lib/x86_64-linux-gnu -lpthread -lz -lm -lrt -ldl -lyaml -lzlog -
 INC			:= -I$(INCDIR)
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)
-AGENTS		:= $(wildcard $(SRCDIR)/agents/*.c)
+AGENTS		:= $(wildcard $(SRCDIR)/plugins/*.c)
 
 SOURCES		:= $(CORE) $(AGENTS)
 OBJECTS		:= $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
@@ -27,7 +27,7 @@ all: directories $(TARGET)
 
 directories:
 	@mkdir -p $(TARGETDIR)
-	@mkdir -p $(OBJDIR)/agents
+	@mkdir -p $(OBJDIR)/plugins
 	@mkdir -p $(LOGDIR)
 
 $(TARGET): $(OBJECTS)
