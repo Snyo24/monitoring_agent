@@ -4,15 +4,16 @@
  */
 
 #include "scheduler.h"
-#include "pluggable.h"
-#include "shash.h"
-#include "util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <zlog.h>
+ 
+#include "pluggable.h"
+#include "shash.h"
+#include "util.h"
 
 #define SCHEDULER_TICK NS_PER_S/4
 

@@ -5,11 +5,11 @@
 #ifndef _PLUGGABLE_H_
 #define _PLUGGABLE_H_
 
-#include "util.h"
-
 #include <pthread.h>
 
 #include <json/json.h>
+
+#include "util.h"
 
 typedef struct _plugin plugin_t;
 
@@ -36,7 +36,7 @@ struct _plugin {
 	timestamp next_run;
 
 	/* Metrics */
-	int stored;
+	int holding;
 	int full_count;
 	json_object *metric_names;
 	json_object *values;

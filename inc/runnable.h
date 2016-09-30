@@ -5,9 +5,9 @@
 #ifndef _RUNNABLE_H_
 #define _RUNNABLE_H_
 
-#include "util.h"
-
 #include <pthread.h>
+
+#include "util.h"
 
 typedef struct _runnable {
 	/* Thread variables */

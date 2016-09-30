@@ -4,14 +4,16 @@
  */
 
 #include "sender.h"
-#include "storage.h"
-#include "util.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 
 #include <zlog.h>
 #include <curl/curl.h>
+ 
+#include "storage.h"
+#include "util.h"
 
 #define SENDER_TICK NS_PER_S/2
 
@@ -97,7 +99,7 @@ void sender_main(void *_sender) {
 			zlog_debug(sender->tag, "POST %d unsent JSON", 3);
 			for(int i=0; i<3; ++i) {
 				if(!spec->unsent_json_loaded) {
-					if(!fgets(spec->unsent_json, 4096, spec->unsent_sending_fp)) {
+					if(!fgets(spec->unsent_json, 8192, spec->unsent_sending_fp)) {
 						zlog_debug(sender->tag, "fgets() fail");
 						drop_unsent_sending(sender);
 						break;
@@ -131,7 +133,7 @@ void sender_set_met_uri(sender_t *sender) {
 }
 
 int sender_post(sender_t *sender, char *payload) {
-	printf("%s\n", payload);
+	zlog_debug(sender->tag, "%s (%zu)", payload, strlen(payload));
 	CURL *curl = ((sender_spec_t *)sender->spec)->curl;
 	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, payload);
 	CURLcode curl_code = curl_easy_perform(curl);

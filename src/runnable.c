@@ -3,11 +3,12 @@
  * @author Snyo
  */
 #include "runnable.h"
-#include "util.h"
 
 #include <pthread.h>
 
 #include <zlog.h>
+ 
+#include "util.h"
 
 /**
  * return 0 for success, -1 for failure

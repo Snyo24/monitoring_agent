@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 /** Following functions are private */
 shash_elem_t *get_shash_elem_by_key(shash_t *shash, const char *key);

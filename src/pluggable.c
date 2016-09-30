@@ -3,8 +3,6 @@
  * @author Snyo
  */
 #include "pluggable.h"
-#include "storage.h"
-#include "util.h"
 
 #include <stdlib.h>
 
@@ -12,6 +10,9 @@
 
 #include <zlog.h>
 #include <json/json.h>
+
+#include "storage.h"
+#include "util.h"
 
 /**
  * return a pointer for success, NULL for failure
@@ -34,7 +35,7 @@ plugin_t *new_plugin(timestamp period) {
 
 	plugin->period = period;
 
-	plugin->stored = 0;
+	plugin->holding = 0;
 	plugin->metric_names = json_object_new_array();
 	plugin->values = json_object_new_object();
 
@@ -155,6 +156,11 @@ void pack(plugin_t *plugin) {
 	json_object_object_add(payload, "metrics", plugin->metric_names);
 	json_object_object_add(payload, "values", plugin->values);
 	storage_add(&storage, payload);
+
+	plugin->metric_names = json_object_new_array();
+	plugin->values = json_object_new_object();
+	plugin->holding = 0;
+	*(int *)plugin->spec = 0;
 }
 
 int outdated(plugin_t *plugin) {

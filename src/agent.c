@@ -1,15 +1,17 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <pthread.h>
+#include <dlfcn.h>
+
+#include <zlog.h>
+
 #include "scheduler.h"
 #include "storage.h"
 #include "sender.h"
 #include "shash.h"
 #include "plugins/os.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <pthread.h>
-
-#include <zlog.h>
+#include "pluggable.h"
 
 scheduler_t scheduler;
 storage_t   storage;
@@ -31,8 +33,7 @@ int main(int argc, char **argv) {
     sender_init(&sender);
     sender_set_reg_uri(&sender);
     FILE *os_version = popen("uname -mrs", "r");
-    if(!fgets(os, 100, os_version)) exit(1);
-    printf("%s\n", os);
+    if(fscanf(os_version, "%[^\n]\n", os) != 1) exit(1);
     if(sender_post(&sender, \
     "{\
         \"license\":\"license_exem4\",\
@@ -44,6 +45,13 @@ int main(int argc, char **argv) {
     sender_set_met_uri(&sender);
 
     /* Plugins */
+    void *handle = dlopen("libos.so", RTLD_NOW);
+    plugin_t *(*result)(void) = dlsym(handle, "new_os_plugin");
+    void *error;
+    if ((error = dlerror()) != NULL) {
+        fputs(error, stderr);
+        exit(1);
+    }
     plugin_t *p = new_os_plugin();
     start(p);
     shash_insert(scheduler.spec, "os", p);

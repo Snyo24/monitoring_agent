@@ -7,10 +7,10 @@
 #ifndef _SENDER_H_
 #define _SENDER_H_
 
+#include <curl/curl.h>
+
 #include "runnable.h"
 #include "util.h"
-
-#include <curl/curl.h>
 
 #define BACKOFF_LIMIT 6
 
@@ -23,7 +23,7 @@ typedef struct _sender_spec {
 	timestamp base_period;
 	FILE *unsent_sending_fp;
 	unsigned backoff : BACKOFF_LIMIT;
-	char unsent_json[4096];
+	char unsent_json[8192];
 	unsigned unsent_json_loaded : 1;
 } sender_spec_t;
 
