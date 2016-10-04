@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdarg.h>
 #include <time.h>
-
 #include <sys/stat.h>
 
 #define rtrim(str) 	do { \

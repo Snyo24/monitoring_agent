@@ -8,36 +8,48 @@ TARGET		:= agent
 SRCDIR		:= src
 INCDIR		:= inc
 OBJDIR		:= obj
-TARGETDIR	:= bin
+BINDIR		:= bin
 LOGDIR		:= log
 DOCDIR		:= html
 
 #Flags, Libraries and Includes
 CFLAGS		:= -Wall -O2 -g
-LIB			:= -L/usr/lib/x86_64-linux-gnu -lpthread -lz -lm -lrt -ldl -lyaml -lzlog -lcurl -lmysqlclient -ljson #-luuid
+LDLIBS		:= -L/usr/lib/x86_64-linux-gnu -Lobj/plugins
+LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson -lmysqlclient
 INC			:= -I$(INCDIR)
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)
-AGENTS		:= $(wildcard $(SRCDIR)/plugins/*.c)
+PLUGINS		:= $(wildcard $(SRCDIR)/plugins/*.c)
 
-SOURCES		:= $(CORE) $(AGENTS)
-OBJECTS		:= $(SOURCES:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+OBJECTS		:= $(CORE:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+LDS			:= $(PLUGINS:$(SRCDIR)/plugins/%.c=$(OBJDIR)/plugins/lib%.so)
 
-all: directories $(TARGET)
+#Rules
+all: directories $(TARGET) $(LDS)
 
 directories:
-	@mkdir -p $(TARGETDIR)
+	@mkdir -p $(BINDIR)
 	@mkdir -p $(OBJDIR)/plugins
 	@mkdir -p $(LOGDIR)
 
 $(TARGET): $(OBJECTS)
-	$(CC) -o $@ $^ $(LIB)
+	@echo
+	@echo "######### target #########"
+	$(CC) $(OBJECTS) $(INC) -o $@ $(LDLIBS) $(LDFLAGS)
 
-$(OBJDIR)/%.o : $(SRCDIR)/%.c $(INCDIR)/%.h
-	$(CC) $(CFLAGS) $(INC) -c $< -o $@  
+$(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCDIR)/%.h
+	$(CC) $(CFLAGS) $(INC) -c $< -o $@
+
+$(OBJDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
+	@echo
+	@echo "####### plugin_"$*" #######"
+	$(CC) -shared -o $@ $< 
+
+$(OBJDIR)/plugins/%.o: $(SRCDIR)/plugins/%.c $(INCDIR)/plugins/%.h
+	$(CC) $(CFLAGS) -fPIC $(INC) -c $< -o $@
 
 clean:
-	rm -rf *.o $(TARGET) $(OBJDIR) $(TARGETDIR) $(DOCDIR)
+	rm -rf *.o $(TARGET) $(OBJDIR) $(BINDIR) $(DOCDIR)
 
 doc:
 	@doxygen -s

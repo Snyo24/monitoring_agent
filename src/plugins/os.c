@@ -41,35 +41,27 @@ int collect_memory_metrics(plugin_t *plugin, json_object *values);
 int collect_network_metrics(plugin_t *plugin, json_object *values);
 
 // TODO configuration parsing
-os_plugin_t *new_os_plugin() {
-	os_plugin_t *plugin = new_plugin(OS_PLUGIN_TICK);
-	if(!plugin) return NULL;
+void init_os_plugin(os_plugin_t *plugin) {
+	plugin->spec = malloc(1);
+	if(!plugin->spec) return;
+	*(int *)plugin->spec = 0;
 
-	plugin->tag = zlog_get_category("Agent_os");
-	if(!plugin->tag) return NULL;
-
-	plugin->num   = 1;
+	plugin->num = 1;
 	plugin->agent_ip = "test";
 	plugin->target_ip = "test";
 
-	plugin->holding = 0;
-	plugin->full_count = 5;
+	plugin->period = OS_PLUGIN_TICK;
 
-	// inheritance
-	plugin->spec = malloc(1);
-	if(!plugin->spec) return NULL;
-	*(int *)plugin->spec = 0;
+	plugin->full_count = 5;
 
 	// polymorphism
 	plugin->job = collect_os_metrics;
-	plugin->delete = delete_os_plugin;
-
-	return plugin;
+	plugin->fini = fini_os_plugin;
 }
 
-void delete_os_plugin(os_plugin_t *plugin) {
-	free(plugin->spec);
-	delete_plugin(plugin);
+void fini_os_plugin(os_plugin_t *plugin) {
+	if(plugin->spec)
+		free(plugin->spec);
 }
 
 void collect_os_metrics(os_plugin_t *plugin) {
@@ -90,9 +82,6 @@ void collect_os_metrics(os_plugin_t *plugin) {
 	sprintf(ts, "%lu", plugin->next_run - plugin->period);
 	json_object_object_add(plugin->values, ts, values);
 	++plugin->holding;
-
-	if(plugin->holding == plugin->full_count) 
-		pack(plugin);
 }
 
 int collect_network_metrics(plugin_t *plugin, json_object *values) {

@@ -17,12 +17,12 @@
 #define STORAGE_TICK NS_PER_S/3
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
-                    255,format,##__VA_ARGS__))
+                    24,format,##__VA_ARGS__))
 
 int storage_init(storage_t *storage) {
 	if(runnable_init(storage, STORAGE_TICK) < 0) return -1;
 
-	storage->tag = zlog_get_category("Storage");
+	storage->tag = zlog_get_category("storage");
 	if(!storage->tag);
 
 	if(!(storage->spec = malloc(sizeof(squeue_t)))
@@ -43,14 +43,14 @@ void storage_main(void *_storage) {
 	storage_t *storage = (storage_t *)_storage;
 	squeue_t *packets = (squeue_t *)storage->spec;
 
-	zlog_debug(storage->tag, "Stroage is holding %d/%d JSON", packets->holding, SIZE/2);
+	zlog_debug(storage->tag, "Holding %d/%d", packets->holding, STORAGE_CAPACITY/2);
 	
 	if(storage_full(storage)) {
 		zlog_debug(storage->tag, "Store unsent JSON");
 		squeue_lock(packets);
 		while(!storage_empty(storage)) {
 			void *payload = (void *)sdequeue(packets);
-			zlog_unsent(storage->tag, "%s", json_object_to_json_string(payload));
+			zlog_unsent(storage->tag, "%s\n", json_object_to_json_string(payload));
 			json_object_put(payload);
 		}
 		squeue_unlock(packets);
@@ -59,7 +59,7 @@ void storage_main(void *_storage) {
 
 int storage_full(storage_t *storage) {
 	squeue_t *packets = (squeue_t *)storage->spec;
-	return packets->holding >= SIZE/2;
+	return packets->holding >= STORAGE_CAPACITY;
 }
 
 int storage_empty(storage_t *storage) {

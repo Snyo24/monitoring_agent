@@ -1,8 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <pthread.h>
-#include <dlfcn.h>
 
 #include <zlog.h>
 
@@ -45,14 +43,7 @@ int main(int argc, char **argv) {
     sender_set_met_uri(&sender);
 
     /* Plugins */
-    void *handle = dlopen("libos.so", RTLD_NOW);
-    plugin_t *(*result)(void) = dlsym(handle, "new_os_plugin");
-    void *error;
-    if ((error = dlerror()) != NULL) {
-        fputs(error, stderr);
-        exit(1);
-    }
-    plugin_t *p = new_os_plugin();
+    plugin_t *p = new_plugin("os");
     start(p);
     shash_insert(scheduler.spec, "os", p);
 

@@ -1,0 +1,50 @@
+/**
+ * @file proxy.c
+ * @author Snyo
+ */
+#include "plugins/proxy.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include <zlog.h>
+
+#include "pluggable.h"
+#include "util.h"
+
+#define PROXY_PLUGIN_TICK NS_PER_S/2
+
+proxy_plugin_t *new_proxy_plugin() {
+	proxy_plugin_t *plugin = new_plugin(PROXY_PLUGIN_TICK);
+	if(!plugin) return NULL;
+
+	plugin->tag = zlog_get_category("plugin_proxy");
+	if(!plugin->tag) return NULL;
+
+	plugin->num   = 1;
+	plugin->agent_ip = "test";
+	plugin->target_ip = "test";
+
+	plugin->holding = 0;
+	plugin->full_count = 5;
+
+	// inheritance
+	plugin->spec = NULL;
+
+	// polymorphism
+	plugin->job = collect_proxy_metrics;
+	plugin->delete = delete_proxy_plugin;
+
+	return plugin;
+}
+
+void delete_proxy_plugin(proxy_plugin_t *plugin) {
+	delete_plugin(plugin);
+}
+
+void collect_proxy_metrics(proxy_plugin_t *plugin) {
+	zlog_debug(plugin->tag, "Collecting metrics");
+
+	if(plugin->holding == plugin->full_count)
+		pack(plugin);
+}

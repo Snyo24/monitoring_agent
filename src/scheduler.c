@@ -20,7 +20,7 @@
 int scheduler_init(scheduler_t *scheduler) {
 	if(runnable_init(scheduler, SCHEDULER_TICK) < 0) return -1;
 
-	scheduler->tag = zlog_get_category("Scheduler");
+	scheduler->tag = zlog_get_category("scheduler");
 	if(!scheduler->tag);
 
 	

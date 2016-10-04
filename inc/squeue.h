@@ -9,13 +9,13 @@
 
 #include <pthread.h>
 
-#define SIZE 50
+#define CAPACITY 50
 
 typedef struct _squeue {
 	int head;
 	int tail;
 	int holding;
-	void *data[SIZE];
+	void *data[CAPACITY];
 
 	pthread_mutex_t lock;
 } squeue_t;
@@ -26,8 +26,8 @@ void squeue_fini(squeue_t *squeue);
 void senqueue(squeue_t *squeue, void *data);
 void *sdequeue(squeue_t *squeue);
 
-int squeue_empty(squeue_t *squeue);
-int squeue_full(squeue_t *squeue);
+int  squeue_empty(squeue_t *squeue);
+int  squeue_full(squeue_t *squeue);
 void squeue_lock(squeue_t *squeue);
 void squeue_unlock(squeue_t *squeue);
 

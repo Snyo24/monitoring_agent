@@ -26,8 +26,7 @@ struct _plugin {
 	volatile unsigned working : 1;
 
 	/* Target info */
-	int        num;
-	const char *name;
+	       int num;
 	const char *agent_ip;
 	const char *target_ip;
 
@@ -36,8 +35,8 @@ struct _plugin {
 	timestamp next_run;
 
 	/* Metrics */
-	int holding;
 	int full_count;
+	int holding;
 	json_object *metric_names;
 	json_object *values;
 
@@ -47,14 +46,14 @@ struct _plugin {
 	/* Polymorphism */
 	void *tag;
 	void (*job)(plugin_t *);
-	void (*delete)(plugin_t *);
+	void (*fini)(plugin_t *);
 };
 
 extern char license[];
 extern char uuid[];
 extern char os[];
 
-plugin_t *new_plugin(timestamp period);
+plugin_t *new_plugin(const char *name);
 void delete_plugin(plugin_t *plugin);
 
 void *plugin_main(void *_plugin);
@@ -65,9 +64,9 @@ void restart(plugin_t *plugin);
 void poke(plugin_t *plugin);
 void pack(plugin_t *plugin);
 
-int alive(plugin_t *plugin);
-int outdated(plugin_t *plugin);
-int busy(plugin_t *plugin);
-int timeup(plugin_t *plugin);
+unsigned alive(plugin_t *plugin);
+unsigned busy(plugin_t *plugin);
+unsigned outdated(plugin_t *plugin);
+unsigned timeup(plugin_t *plugin);
 
 #endif

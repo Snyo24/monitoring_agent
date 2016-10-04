@@ -22,7 +22,7 @@
 
 #define UNSENT_SENDING "log/unsent_sending"
 #define UNSENT_BEGIN -1
-#define UNSENT_END 1 // TODO must control with configuration file
+#define UNSENT_END 0 // TODO must control with configuration file
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
@@ -34,9 +34,7 @@ size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag);
 
 int sender_init(sender_t *sender) {
 	if(runnable_init(sender, SENDER_TICK) < 0) return -1;
-
-	sender->tag = zlog_get_category("Sender");
-	if(!sender->tag);
+	if(!(sender->tag = zlog_get_category("sender")));
 
 	zlog_debug(sender->tag, "Clear old data");
 	if(clear_unsent() < 0)

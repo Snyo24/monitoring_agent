@@ -9,6 +9,8 @@
 #include "runnable.h"
 #include "squeue.h"
 
+#define STORAGE_CAPACITY 15
+
 typedef runnable_t storage_t;
 
 extern storage_t storage;

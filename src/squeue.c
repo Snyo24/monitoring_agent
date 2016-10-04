@@ -1,7 +1,6 @@
 #include "squeue.h"
 
 #include <stdio.h>
-
 #include <pthread.h>
 
 int squeue_init(squeue_t *squeue) {
@@ -19,14 +18,14 @@ void squeue_fini(squeue_t *squeue) {
 void senqueue(squeue_t *squeue, void *data) {
 	pthread_mutex_lock(&squeue->lock);
 	squeue->data[squeue->tail++] = data;
-	squeue->tail %= SIZE;
+	squeue->tail %= CAPACITY;
 	squeue->holding++;
 	pthread_mutex_unlock(&squeue->lock);
 }
 
 void *sdequeue(squeue_t *squeue) {
 	void *head_data = squeue->data[squeue->head++];
-	squeue->head %= SIZE;
+	squeue->head %= CAPACITY;
 	squeue->holding--;
 	return head_data;
 }
@@ -44,5 +43,5 @@ int squeue_empty(squeue_t *squeue) {
 }
 
 int squeue_full(squeue_t *squeue) {
-	return squeue->holding >= SIZE;
+	return squeue->holding >= CAPACITY;
 }

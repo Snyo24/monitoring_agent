@@ -4,9 +4,10 @@
  */
 #include "pluggable.h"
 
+#include <string.h>
 #include <stdlib.h>
-
 #include <pthread.h>
+#include <dlfcn.h>
 
 #include <zlog.h>
 #include <json/json.h>
@@ -17,23 +18,41 @@
 /**
  * return a pointer for success, NULL for failure
  */
-plugin_t *new_plugin(timestamp period) {
-	if(period <= 0) return NULL;
-	// allocation
-	plugin_t *plugin = (plugin_t *)malloc(sizeof(plugin_t));
+plugin_t *new_plugin(const char *name) {
+	plugin_t *plugin = malloc(sizeof(plugin_t));
 	if(!plugin) return NULL;
+	memset(plugin, 0, sizeof(plugin_t));
 
-	if(pthread_mutex_init(&plugin->sync, NULL) \
-	  || pthread_cond_init(&plugin->synced, NULL) \
-	  || pthread_mutex_init(&plugin->access, NULL) \
+	char tmp[100];
+	/* Tag */
+	snprintf(tmp, 100, "plugin_%s", name);
+	plugin->tag = zlog_get_category(tmp);
+	if(!plugin->tag);
+
+	/* Thread */
+	if(pthread_mutex_init(&plugin->sync, NULL)
+	  || pthread_cond_init(&plugin->synced, NULL)
+	  || pthread_mutex_init(&plugin->access, NULL)
 	  || pthread_cond_init(&plugin->poked, NULL)) {
 		delete_plugin(plugin);
 		return NULL;
 	}
 
-	plugin->alive = 0;
+	/* Specify plugin */
+	snprintf(tmp, 100, "lib%s.so", name);
+    void *handle = dlopen(tmp, RTLD_LAZY);
+	snprintf(tmp, 100, "init_%s_plugin", name);
+    void (*init_plugin)(plugin_t *) = dlsym(handle, tmp);
+    char *error;
+    if ((error = dlerror()) != NULL) {
+        fprintf(stderr, "%s\n", error);
+        delete_plugin(plugin);
+        return NULL;
+    }
+    init_plugin(plugin);
 
-	plugin->period = period;
+    /* Remain variables */
+	plugin->alive = 0;
 
 	plugin->holding = 0;
 	plugin->metric_names = json_object_new_array();
@@ -53,6 +72,9 @@ void delete_plugin(plugin_t *plugin) {
 
 	json_object_put(plugin->metric_names);
 	json_object_put(plugin->values);
+
+	if(plugin->fini)
+		plugin->fini(plugin);
 
 	free(plugin);
 }
@@ -106,20 +128,22 @@ void *plugin_main(void *_app) {
 
 		// Prevent the scheduler not to do other work before collecting start
 		pthread_mutex_lock(&plugin->sync);
-
 		if(!plugin->next_run) {
 			plugin->next_run = get_timestamp() + plugin->period;
 		} else {
 			plugin->next_run += plugin->period;
 		}
-
 		pthread_cond_signal(&plugin->synced);
 		pthread_mutex_unlock(&plugin->sync);
 
 		plugin->working = 1;
 		zlog_debug(plugin->tag, "Start job");
 		plugin->job(plugin);
-		zlog_debug(plugin->tag, "Finish job");
+		if(plugin->holding == plugin->full_count) {
+			pack(plugin);
+			plugin->metric_names = json_object_new_array();
+		}
+		zlog_debug(plugin->tag, "Finish job (%lums)", (get_timestamp()-plugin->next_run+plugin->period)/1000000);
 		plugin->working = 0;
 	}
 
@@ -127,25 +151,6 @@ void *plugin_main(void *_app) {
 }
 
 void pack(plugin_t *plugin) {
-	/*
-	{
-		"license": "license_exem4",
-		"target_num": 1,
-		"uuid": "550e8400-e29b-41d4-a716-446655440000",
-		"agent_ip": "test",
-		"target_ip": "test",
-		"metrics": [
-			"net_stat\/name",
-			"net_stat\/byte_in",
-			"net_stat\/byte_out",
-			"net_stat\/packet_in"
-		],
-		"values": {
-			"1475131143438891656": ["enp0s3", 12412125, 14020, 1059726, 5528 ],
-			"1475131144438891656": [ "enp0s3", 12412125, 14020, 1059726, 5528 ]
-		}
-	}
-	*/
 	json_object *payload = json_object_new_object();
 	json_object_object_add(payload, "license", json_object_new_string(license));
 	json_object_object_add(payload, "uuid", json_object_new_string(uuid));
@@ -157,24 +162,23 @@ void pack(plugin_t *plugin) {
 	json_object_object_add(payload, "values", plugin->values);
 	storage_add(&storage, payload);
 
-	plugin->metric_names = json_object_new_array();
 	plugin->values = json_object_new_object();
 	plugin->holding = 0;
 	*(int *)plugin->spec = 0;
 }
 
-int outdated(plugin_t *plugin) {
-	return plugin->next_run <= get_timestamp();
+unsigned alive(plugin_t *plugin) {
+	return plugin->alive;
 }
 
-int busy(plugin_t *plugin) {
+unsigned busy(plugin_t *plugin) {
 	return plugin->working;
 }
 
-int timeup(plugin_t *plugin) {
-	return plugin->next_run < get_timestamp();
+unsigned outdated(plugin_t *plugin) {
+	return plugin->next_run <= get_timestamp();
 }
 
-int alive(plugin_t *plugin) {
-	return plugin->alive;
+unsigned timeup(plugin_t *plugin) {
+	return plugin->next_run < get_timestamp();
 }
