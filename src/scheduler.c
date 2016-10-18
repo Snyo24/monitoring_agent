@@ -15,7 +15,7 @@
 #include "shash.h"
 #include "util.h"
 
-#define SCHEDULER_TICK NS_PER_S/4
+#define SCHEDULER_TICK NS_PER_S/1
 
 int scheduler_init(scheduler_t *scheduler) {
 	if(runnable_init(scheduler, SCHEDULER_TICK) < 0) return -1;
@@ -28,7 +28,7 @@ int scheduler_init(scheduler_t *scheduler) {
 		|| shash_init(scheduler->spec) < 0)
 		return -1;
 
-	scheduler->job = scheduler_main;
+	scheduler->collect = scheduler_main;
 
 	return 0;
 }
@@ -43,7 +43,7 @@ void scheduler_main(void *_scheduler) {
 	shash_t *plugins = scheduler->spec;
 
 	for(int i=0; i<1; ++i) {
-		plugin_t *plugin = (plugin_t *)shash_search(plugins, "os");
+		plugin_t *plugin = (plugin_t *)shash_fetch(plugins, "os");
 		if(!plugin) continue;
 		zlog_debug(scheduler->tag, "Status of \'%s\' [%c%c%c%c]", \
 		                                plugin->agent_ip, \

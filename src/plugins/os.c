@@ -7,18 +7,18 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <zlog.h>
-
 #include "pluggable.h"
 #include "util.h"
 
 #define OS_PLUGIN_TICK NS_PER_S/2
 
 const char *network_metric_names[] = {
-	"net_stat/byte_in",
-	"net_stat/byte_out",
-	"net_stat/packet_in",
-	"net_stat/packet_out"
+	"net_stat/recv_byte",
+	"net_stat/recv_packet",
+	"net_stat/recv_error",
+	"net_stat/send_byte",
+	"net_stat/send_packet",
+	"net_stat/send_error"
 };
 
 const char *disk_metric_names[] = {
@@ -27,7 +27,6 @@ const char *disk_metric_names[] = {
 	"disk_stat/await",
 	"disk_stat/service_time"
 };
-
 const char *proc_metric_names[] = {
 	"proc_stat/user",
 	"proc_stat/cpu_usage",
@@ -55,7 +54,7 @@ void init_os_plugin(os_plugin_t *plugin) {
 	plugin->full_count = 5;
 
 	// polymorphism
-	plugin->job = collect_os_metrics;
+	plugin->collect = collect_os_metrics;
 	plugin->fini = fini_os_plugin;
 }
 
@@ -65,7 +64,6 @@ void fini_os_plugin(os_plugin_t *plugin) {
 }
 
 void collect_os_metrics(os_plugin_t *plugin) {
-	zlog_debug(plugin->tag, "Collecting metrics");
 	json_object *values = json_object_new_array();
 
 	int metric_number = 0;
@@ -85,16 +83,17 @@ void collect_os_metrics(os_plugin_t *plugin) {
 }
 
 int collect_network_metrics(plugin_t *plugin, json_object *values) {
-	FILE *net_fp = popen("cat /proc/net/dev | grep : | awk \'{sub(\":\", \"\", $1); print $1, $2, $3, $10, $11}\'", "r");
+	FILE *net_fp = popen("cat /proc/net/dev | grep : | awk \'{sub(\":\", \"\", $1); print $1, $2, $3, $4, $10, $11, $12}\'", "r");
 	if(!net_fp) return 0;
 
 	char net_name[50];
-	int byte_in, byte_out;
-	int pckt_in, pckt_out;
+	int number = 0;
+	int recv_byte, recv_pckt, recv_err;
+	int send_byte, send_pckt, send_err;
 
 	int collected = 0;
 	while(fscanf(net_fp, "%s", net_name) == 1) {
-		if(fscanf(net_fp, "%d%d%d%d", &byte_in, &byte_out, &pckt_in, &pckt_out) == 4) {
+		if(fscanf(net_fp, "%d%d%d%d%d%d", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
 			if(!*(int *)plugin->spec) {
 				for(int i=0; i<sizeof(network_metric_names)/sizeof(char *); ++i) {
 					char new_metric[150];
@@ -103,14 +102,16 @@ int collect_network_metrics(plugin_t *plugin, json_object *values) {
 					collected++;
 				}
 			}
-			// bytes in and out
-			json_object_array_add(values, json_object_new_int(byte_in));
-			json_object_array_add(values, json_object_new_int(byte_out));
-			// packets in and out
-			json_object_array_add(values, json_object_new_int(pckt_in));
-			json_object_array_add(values, json_object_new_int(pckt_out));
+			number++;
+			json_object_array_add(values, json_object_new_int(recv_byte));
+			json_object_array_add(values, json_object_new_int(recv_pckt));
+			json_object_array_add(values, json_object_new_int(recv_err));
+			json_object_array_add(values, json_object_new_int(send_byte));
+			json_object_array_add(values, json_object_new_int(send_pckt));
+			json_object_array_add(values, json_object_new_int(send_err));
 		} else break;
 	}
+	json_object_array_add(values, json_object_new_int(number));
 	pclose(net_fp);
 
 	return collected;
@@ -123,20 +124,37 @@ int collect_cpu_metrics(plugin_t *plugin, json_object *values) {
 	int cpu_num;
 
 	int collected = 0;
-	while(fscanf(pipe, "%d", &cpu_num) == 1) {
-		if(!*(int *)plugin->spec) {
-			json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/num"));
-			collected ++;
-		}
-		json_object_array_add(values, json_object_new_int(cpu_num));
+	if(fscanf(pipe, "%d", &cpu_num) != 1)
+		return collected;
+	if(!*(int *)plugin->spec) {
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/num"));
+		collected ++;
 	}
+	json_object_array_add(values, json_object_new_int(cpu_num));
 	pclose(pipe);
+
+	pipe = popen("iostat -xc | grep -A 1 avg-cpu: | awk '{print $1, $3, $6}'", "r");
+	if(fscanf(pipe, "%*[^\n]\n") != 0)
+		return collected;
+
+	float cpu_user, cpu_sys, cpu_idle;
+	if(fscanf(pipe, "%f%f%f", &cpu_user, &cpu_sys, &cpu_idle) != 3)
+		return collected;
+	if(!*(int *)plugin->spec) {
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/user_usage"));
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/sys_usage"));
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/idle_usage"));
+		collected++;
+	}
+	json_object_array_add(values, json_object_new_double(cpu_user));
+	json_object_array_add(values, json_object_new_double(cpu_sys));
+	json_object_array_add(values, json_object_new_double(cpu_idle));
 
 	return collected;
 }
 
 int collect_disk_metrics(plugin_t *plugin, json_object *values) {
-	FILE *pipe = popen("df -T -P | grep ext | awk \'{sub(\"%%\", \"\", $6); print $1, $6}\'", "r");
+	FILE *pipe = popen("df -T -P | grep ext | awk '{sub(\"%%\", \"\", $6); print $1, $6}'", "r");
 	if(!pipe) return 0;
 
 	char disk_name[100];
@@ -156,7 +174,7 @@ int collect_disk_metrics(plugin_t *plugin, json_object *values) {
 	}
 	pclose(pipe);
 
-	pipe = popen("iostat -xc | grep -A 20 Device: | awk '{print $1, $4, $5, $9, $10, $13}'", "r");
+	pipe = popen("iostat -xc | grep -A 5 Device: | awk '{print $1, $4, $5, $9, $10, $13}'", "r");
 	float rps, wps, avgqu, await, svctm;
 	if(fscanf(pipe, "%*[^\n]\n") != 0)
 		return collected;
@@ -176,7 +194,6 @@ int collect_disk_metrics(plugin_t *plugin, json_object *values) {
 			json_object_array_add(values, json_object_new_double(svctm));
 		} else break;
 	}
-
 	pclose(pipe);
 
 	return collected;

@@ -27,8 +27,6 @@ typedef struct _sender_spec {
 	unsigned unsent_json_loaded : 1;
 } sender_spec_t;
 
-extern sender_t sender;
-
 int  sender_init(sender_t *sender);
 void sender_fini(sender_t *sender);
 

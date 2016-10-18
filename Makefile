@@ -15,7 +15,7 @@ DOCDIR		:= html
 #Flags, Libraries and Includes
 CFLAGS		:= -Wall -O2 -g
 LDLIBS		:= -L/usr/lib/x86_64-linux-gnu -Lobj/plugins
-LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson -lmysqlclient
+LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson 
 INC			:= -I$(INCDIR)
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)

@@ -14,7 +14,7 @@
 
 #include "util.h"
 
-#define STORAGE_TICK NS_PER_S/3
+#define STORAGE_TICK NS_PER_S/2
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     24,format,##__VA_ARGS__))
@@ -29,7 +29,7 @@ int storage_init(storage_t *storage) {
 		|| squeue_init(storage->spec) < 0)
 		return -1;
 
-	storage->job = storage_main;
+	storage->collect = storage_main;
 
 	return 0;
 }
@@ -43,7 +43,7 @@ void storage_main(void *_storage) {
 	storage_t *storage = (storage_t *)_storage;
 	squeue_t *packets = (squeue_t *)storage->spec;
 
-	zlog_debug(storage->tag, "Holding %d/%d", packets->holding, STORAGE_CAPACITY/2);
+	zlog_debug(storage->tag, "Holding %d/%d", packets->holding, STORAGE_CAPACITY);
 	
 	if(storage_full(storage)) {
 		zlog_debug(storage->tag, "Store unsent JSON");

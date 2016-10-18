@@ -45,7 +45,7 @@ struct _plugin {
 
 	/* Polymorphism */
 	void *tag;
-	void (*job)(plugin_t *);
+	void (*collect)(plugin_t *);
 	void (*fini)(plugin_t *);
 };
 

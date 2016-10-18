@@ -17,8 +17,8 @@
 
 #define SENDER_TICK NS_PER_S/2
 
-#define REG_URI "http://52.78.162.142/v1/agents"
-#define METRIC_URI "http://52.78.162.142/v1/metrics"
+#define REG_URI "http://52.78.182.209:8080/v1/agents"
+#define METRIC_URI "http://52.78.182.209:8080/v1/metrics"
 
 #define UNSENT_SENDING "log/unsent_sending"
 #define UNSENT_BEGIN -1
@@ -26,11 +26,11 @@
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
-int clear_unsent();
-int load_unsent(sender_t *sender);
-void drop_unsent_sending(sender_t *sender);
-char *unsent_file(int i);
-size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag);
+static int clear_unsent();
+static int load_unsent(sender_t *sender);
+static void drop_unsent_sending(sender_t *sender);
+static char *unsent_file(int i);
+static size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag);
 
 int sender_init(sender_t *sender) {
 	if(runnable_init(sender, SENDER_TICK) < 0) return -1;
@@ -60,7 +60,7 @@ int sender_init(sender_t *sender) {
 	spec->unsent_json_loaded = 0;
 
 	sender->spec = spec;
-	sender->job = sender_main;
+	sender->collect = sender_main;
 
 	return 0;
 }
@@ -145,7 +145,6 @@ int sender_post(sender_t *sender, char *payload) {
 	return (curl_code == CURLE_OK && status_code == 202) - 1;
 }
 
-///////////////////////util
 size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag) {
 	zlog_debug(tag, "%.*s\n", (int)size*(int)nmemb, ptr);
 	return nmemb;

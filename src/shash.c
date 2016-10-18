@@ -9,11 +9,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-/** Following functions are private */
-shash_elem_t *get_shash_elem_by_key(shash_t *shash, const char *key);
-void shash_elem_fini_rec(shash_elem_t *elem);
-void double_up(shash_t *shash);
-unsigned long hash_value(const char *str);
+static void shash_elem_fini_rec(shash_elem_t *elem);
+static void double_up(shash_t *shash);
+static shash_elem_t *_shash_search(shash_t *shash, const char *key);
+static unsigned long hash_value(const char *str);
 
 int shash_init(shash_t *shash) {
 	if(!shash)
@@ -30,7 +29,7 @@ int shash_init(shash_t *shash) {
 }
 
 void shash_insert(shash_t *shash, const char *key, void *item) {
-	shash_elem_t *elem = get_shash_elem_by_key(shash, key);
+	shash_elem_t *elem = _shash_search(shash, key);
 	if(!elem) { // If not exist, create it.
 		elem = (shash_elem_t *)malloc(sizeof(shash_elem_t));
 		if(!elem) return;
@@ -50,8 +49,8 @@ void shash_insert(shash_t *shash, const char *key, void *item) {
 		double_up(shash);
 }
 
-void *shash_search(shash_t *shash, const char *key) {
-	shash_elem_t *elem = get_shash_elem_by_key(shash, key);
+void *shash_fetch(shash_t *shash, const char *key) {
+	shash_elem_t *elem = _shash_search(shash, key);
 	if(!elem)
 		return NULL;
 	return elem->item;
@@ -84,17 +83,15 @@ void double_up(shash_t *shash) {
 
 	for(int i=0; i<old_size; ++i) {
 		shash_elem_t *prev = NULL;
-		for(shash_elem_t *e=old_table[i]; e; prev=e, e=e->next) {
+		shash_elem_t *curr = old_table[i];
+		for(;;) {
 			if(prev) {
 				int idx = prev->hash_value%new_size;
 				prev->next = new_table[idx];
 				new_table[idx] = prev;
 			}
-		}
-		if(prev) {
-			int idx = prev->hash_value%new_size;
-			prev->next = new_table[idx];
-			new_table[idx] = prev;
+			prev = curr;
+			if(!(curr=curr->next)) break;
 		}
 	}
 	free(old_table);
@@ -111,7 +108,7 @@ void shash_elem_fini_rec(shash_elem_t *elem) {
 	shash_elem_fini_rec(elem->next);
 }
 
-shash_elem_t *get_shash_elem_by_key(shash_t *shash, const char *key) {
+shash_elem_t *_shash_search(shash_t *shash, const char *key) {
 	if(!key)
 		return NULL;
 	unsigned long hV = hash_value(key);

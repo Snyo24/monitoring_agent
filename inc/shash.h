@@ -1,21 +1,8 @@
 /**
  * @file shash.h
  *
- * @brief Custom shash
- * @details (CAUTION) There is no delete function.
+ * @brief Hash structure for storing plugins
  * @author Snyo
- *
- * #### History
- * - 160714
- *  + first written
- * - 160725
- *  + modified to work well with the agent structure
- *  + add auto sizing
- *  + description changed
- *
- * @def INITIAL_SIZE
- * The initial size of shash.
- * The size increases automatically.
  */
 
 #ifndef _shash_H_
@@ -46,7 +33,7 @@ struct _shash_elem {
 
 int shash_init(shash_t *shash);
 void shash_insert(shash_t *shash, const char *key, void *item);
-void *shash_search(shash_t *shash, const char *key);
+void *shash_fetch(shash_t *shash, const char *key);
 void shash_fini(shash_t *shash);
 
 int shash_to_json(shash_t *shash, char *json);

@@ -32,14 +32,15 @@ int main(int argc, char **argv) {
     sender_set_reg_uri(&sender);
     FILE *os_version = popen("uname -mrs", "r");
     if(fscanf(os_version, "%[^\n]\n", os) != 1) exit(1);
+	printf("%s\n", os);
     if(sender_post(&sender, \
     "{\
-        \"license\":\"license_exem4\",\
-        \"uuid\":\"550e8400-e29b-41d4-a716-446655440000\",\
-        \"agent_type\":\"linux_1.0\",\
-        \"target_type\":[\"linux_linux_1.0\",\"linux_linux_1.0\"],\
-        \"target_num\":[1, 2]\
-    }") < 0) exit(1);
+\"license\":\"license_exem4\",\
+\"uuid\":\"550e8400-e29b-41d4-a716-446655440000\",\
+\"agent_type\":\"linux_1.0\",\
+\"target_type\":[\"linux_linux_1.0\",\"linux_linux_1.0\"],\
+\"target_num\":[1, 2]\
+}") < 0) exit(1);
     sender_set_met_uri(&sender);
 
     /* Plugins */

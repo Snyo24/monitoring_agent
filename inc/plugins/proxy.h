@@ -9,8 +9,8 @@
 
 typedef plugin_t proxy_plugin_t;
 
-proxy_plugin_t *new_proxy_plugin();
+void init_proxy_plugin(proxy_plugin_t *plugin);
+void fini_proxy_plugin(proxy_plugin_t *plugin);
 void collect_proxy_metrics(proxy_plugin_t *plugin);
-void delete_proxy_plugin(proxy_plugin_t *plugin);
 
 #endif
