@@ -41,7 +41,7 @@ plugin_t *new_plugin(const char *name) {
 	char tmp[100];
 	snprintf(tmp, 100, "lib%s.so", name);
     void *handle = dlopen(tmp, RTLD_LAZY);
-	snprintf(tmp, 100, "init_%s_plugin", name);
+	snprintf(tmp, 100, "%s_plugin_init", name);
     void (*init_plugin)(plugin_t *) = dlsym(handle, tmp);
     if (dlerror()) {
 		zlog_error(plugin->tag, "Init plugin failed %s", name);

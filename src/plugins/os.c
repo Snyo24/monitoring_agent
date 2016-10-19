@@ -5,7 +5,6 @@
 #include "plugins/os.h"
 
 #include <stdio.h>
-#include <string.h>
 
 #include "pluggable.h"
 #include "util.h"
@@ -39,14 +38,12 @@ int collect_proc_metrics(plugin_t *plugin, json_object *values);
 int collect_memory_metrics(plugin_t *plugin, json_object *values);
 int collect_network_metrics(plugin_t *plugin, json_object *values);
 
-// TODO configuration parsing
-void init_os_plugin(os_plugin_t *plugin) {
-	plugin->spec = malloc(1);
+void os_plugin_init(os_plugin_t *plugin) {
+	plugin->spec = malloc(sizeof(int));
 	if(!plugin->spec) return;
 	*(int *)plugin->spec = 0;
 
 	plugin->num = 1;
-	plugin->agent_ip = "test";
 	plugin->target_ip = "test";
 
 	plugin->period = OS_PLUGIN_TICK;
@@ -55,10 +52,13 @@ void init_os_plugin(os_plugin_t *plugin) {
 
 	// polymorphism
 	plugin->collect = collect_os_metrics;
-	plugin->fini = fini_os_plugin;
+	plugin->fini = os_plugin_fini;
 }
 
-void fini_os_plugin(os_plugin_t *plugin) {
+void os_plugin_fini(os_plugin_t *plugin) {
+	if(!plugin)
+		return;
+	
 	if(plugin->spec)
 		free(plugin->spec);
 }
@@ -83,8 +83,8 @@ void collect_os_metrics(os_plugin_t *plugin) {
 }
 
 int collect_network_metrics(plugin_t *plugin, json_object *values) {
-	FILE *net_fp = popen("cat /proc/net/dev | grep : | awk \'{sub(\":\", \"\", $1); print $1, $2, $3, $4, $10, $11, $12}\'", "r");
-	if(!net_fp) return 0;
+	FILE *pipe = popen("cat /proc/net/dev | grep : | awk \'{sub(\":\", \"\", $1); print $1, $2, $3, $4, $10, $11, $12}\'", "r");
+	if(!pipe) return 0;
 
 	char net_name[50];
 	int number = 0;
@@ -92,8 +92,8 @@ int collect_network_metrics(plugin_t *plugin, json_object *values) {
 	int send_byte, send_pckt, send_err;
 
 	int collected = 0;
-	while(fscanf(net_fp, "%s", net_name) == 1) {
-		if(fscanf(net_fp, "%d%d%d%d%d%d", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
+	while(fscanf(pipe, "%s", net_name) == 1) {
+		if(fscanf(pipe, "%d%d%d%d%d%d", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
 			if(!*(int *)plugin->spec) {
 				for(int i=0; i<sizeof(network_metric_names)/sizeof(char *); ++i) {
 					char new_metric[150];
@@ -112,40 +112,29 @@ int collect_network_metrics(plugin_t *plugin, json_object *values) {
 		} else break;
 	}
 	json_object_array_add(values, json_object_new_int(number));
-	pclose(net_fp);
+	pclose(pipe);
 
 	return collected;
 }
 
 int collect_cpu_metrics(plugin_t *plugin, json_object *values) {
-	FILE *pipe = popen("lscpu | grep \'^CPU(s):\' | awk \'{print $2}\'", "r");
-	if(!pipe) return 0;
-
-	int cpu_num;
-
+	FILE *pipe;
 	int collected = 0;
-	if(fscanf(pipe, "%d", &cpu_num) != 1)
-		return collected;
-	if(!*(int *)plugin->spec) {
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/num"));
-		collected ++;
-	}
-	json_object_array_add(values, json_object_new_int(cpu_num));
-	pclose(pipe);
 
-	pipe = popen("iostat -xc | grep -A 1 avg-cpu: | awk '{print $1, $3, $6}'", "r");
-	if(fscanf(pipe, "%*[^\n]\n") != 0)
-		return collected;
+	pipe = popen("iostat | grep -A 1 avg-cpu: | tail -n 1 | awk '{print $1, $3, $6}'", "r");
+	if(!pipe) return 0;
 
 	float cpu_user, cpu_sys, cpu_idle;
 	if(fscanf(pipe, "%f%f%f", &cpu_user, &cpu_sys, &cpu_idle) != 3)
 		return collected;
 	if(!*(int *)plugin->spec) {
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/user_usage"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/sys_usage"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/idle_usage"));
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/total"));
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/user"));
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/sys"));
+		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat/idle"));
 		collected++;
 	}
+	json_object_array_add(values, json_object_new_double(100-cpu_idle));
 	json_object_array_add(values, json_object_new_double(cpu_user));
 	json_object_array_add(values, json_object_new_double(cpu_sys));
 	json_object_array_add(values, json_object_new_double(cpu_idle));
@@ -175,6 +164,7 @@ int collect_disk_metrics(plugin_t *plugin, json_object *values) {
 	pclose(pipe);
 
 	pipe = popen("iostat -xc | grep -A 5 Device: | awk '{print $1, $4, $5, $9, $10, $13}'", "r");
+	if(!pipe) return 0;
 	float rps, wps, avgqu, await, svctm;
 	if(fscanf(pipe, "%*[^\n]\n") != 0)
 		return collected;
@@ -200,20 +190,15 @@ int collect_disk_metrics(plugin_t *plugin, json_object *values) {
 }
 
 int collect_proc_metrics(plugin_t *plugin, json_object *values) {
-	FILE *pipe = popen("top -n 1 | grep -A 3 PID | awk \'{print $3, $10, $11, $13}\'", "r");
+	FILE *pipe = popen("top -n 1 | grep -A 3 PID | tail -n 3 | awk \'{print $3, $10, $11, $13}\'", "r");
 	if(!pipe) return 0;
-
-	char tmp[100];
-	// fscanf(pipe, "%*[^\n]\n");
 
 	int collected = 0;
 
-	if(fgets(tmp, 100, pipe)) {
-		char user[100], name[100];
-		double cpu, mem;
-		while(fscanf(pipe, "%s%lf%lf%s", user, &cpu, &mem, name) == 4) {
-			printf("%s %lf %lf %s\n", user, cpu, mem, name);
-		}
+	char user[100], name[100];
+	double cpu, mem;
+	while(fscanf(pipe, "%s%lf%lf%s", user, &cpu, &mem, name) == 4) {
+		printf("%s %lf %lf %s\n", user, cpu, mem, name);
 	}
 	pclose(pipe);
 

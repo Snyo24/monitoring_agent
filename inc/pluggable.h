@@ -27,7 +27,6 @@ struct _plugin {
 
 	/* Target info */
 	       int num;
-	const char *agent_ip;
 	const char *target_ip;
 
 	/* Timing variables */

@@ -45,8 +45,8 @@ void scheduler_main(void *_scheduler) {
 	for(int i=0; i<1; ++i) {
 		plugin_t *plugin = (plugin_t *)shash_fetch(plugins, "os");
 		if(!plugin) continue;
-		zlog_debug(scheduler->tag, "Status of \'%s\' [%c%c%c%c]", \
-		                                plugin->agent_ip, \
+		zlog_debug(scheduler->tag, "Status of \'%d\' [%c%c%c%c]", \
+		                                plugin->num, \
 		                                alive(plugin)?'R':'.', \
 		                                outdated(plugin)?'O':'.', \
 		                                busy(plugin)?'B':'.', \
@@ -54,11 +54,11 @@ void scheduler_main(void *_scheduler) {
 		if(alive(plugin)) {
 			if(busy(plugin)) {
 				if(timeup(plugin)) {
-					zlog_fatal(scheduler->tag, "Restarting \'%s\'", plugin->agent_ip);
+					zlog_fatal(scheduler->tag, "Restarting \'%d\'", plugin->num);
 					restart(plugin);
 				}
 			} else if(outdated(plugin)) {
-				zlog_debug(scheduler->tag, "Poking \'%s\'", plugin->agent_ip);
+				zlog_debug(scheduler->tag, "Poking \'%d\'", plugin->num);
 				poke(plugin);
 			}
 		}
