@@ -9,7 +9,7 @@
 
 typedef plugin_t proxy_plugin_t;
 
-void proxy_plugin_init(proxy_plugin_t *plugin);
+int  proxy_plugin_init(proxy_plugin_t *plugin);
 void proxy_plugin_fini(proxy_plugin_t *plugin);
 
 void collect_proxy_metrics(proxy_plugin_t *plugin);

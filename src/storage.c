@@ -17,7 +17,7 @@
 #define STORAGE_TICK NS_PER_S/2
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
-                    24,format,##__VA_ARGS__))
+                    19,format,##__VA_ARGS__))
 
 int storage_init(storage_t *storage) {
 	if(runnable_init(storage, STORAGE_TICK) < 0) return -1;
@@ -29,7 +29,7 @@ int storage_init(storage_t *storage) {
 		|| squeue_init(storage->spec) < 0)
 		return -1;
 
-	storage->collect = storage_main;
+	storage->job = storage_main;
 
 	return 0;
 }

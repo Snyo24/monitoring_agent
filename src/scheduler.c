@@ -12,41 +12,51 @@
 #include <zlog.h>
  
 #include "pluggable.h"
-#include "shash.h"
 #include "util.h"
 
-#define SCHEDULER_TICK NS_PER_S/1
+#define SCHEDULER_TICK NS_PER_S/2
+#define MAX_PLUGIN 10
 
 int scheduler_init(scheduler_t *scheduler) {
-	if(runnable_init(scheduler, SCHEDULER_TICK) < 0) return -1;
+	if(runnable_init(scheduler, SCHEDULER_TICK) < 0)
+		return -1;
 
 	scheduler->tag = zlog_get_category("scheduler");
 	if(!scheduler->tag);
-
 	
-	if(!(scheduler->spec = malloc(sizeof(shash_t)))
-		|| shash_init(scheduler->spec) < 0)
+	if(!(scheduler->spec = malloc(sizeof(plugin_t *)*MAX_PLUGIN)))
 		return -1;
+	memset(scheduler->spec, 0, sizeof(plugin_t *)*MAX_PLUGIN);
 
-	scheduler->collect = scheduler_main;
+	scheduler->job = scheduler_main;
+
+	plugin_t *plugin = malloc(sizeof(plugin_t));
+	if(plugin_init(plugin, "proxy") != -1) {
+		start(plugin);
+		((plugin_t **)scheduler->spec)[plugin->index] = plugin;
+	}
+	plugin = malloc(sizeof(plugin_t));
+	//if(plugin_init(plugin, "proxy") != -1) {
+	//	start(plugin);
+	//	((plugin_t **)scheduler->spec)[plugin->index] = plugin;
+//	}
 
 	return 0;
 }
 
 void scheduler_fini(scheduler_t *scheduler) {
-	shash_fini(scheduler->spec);
 	free(scheduler->spec);
 }
 
 void scheduler_main(void *_scheduler) {
 	scheduler_t *scheduler = (scheduler_t *)_scheduler;
-	shash_t *plugins = scheduler->spec;
+	plugin_t **plugins = (plugin_t **)scheduler->spec;
 
-	for(int i=0; i<1; ++i) {
-		plugin_t *plugin = (plugin_t *)shash_fetch(plugins, "os");
+	for(int i=0; i<MAX_PLUGIN; ++i) {
+		plugin_t *plugin = plugins[i];
 		if(!plugin) continue;
-		zlog_debug(scheduler->tag, "Status of \'%d\' [%c%c%c%c]", \
-		                                plugin->num, \
+		zlog_debug(scheduler->tag, "Status of %d [%c%c%c%c]", \
+		                                plugin->index, \
 		                                alive(plugin)?'R':'.', \
 		                                outdated(plugin)?'O':'.', \
 		                                busy(plugin)?'B':'.', \
@@ -54,11 +64,11 @@ void scheduler_main(void *_scheduler) {
 		if(alive(plugin)) {
 			if(busy(plugin)) {
 				if(timeup(plugin)) {
-					zlog_fatal(scheduler->tag, "Restarting \'%d\'", plugin->num);
-					restart(plugin);
+					zlog_fatal(scheduler->tag, "Timeup");
+					//restart(plugin);
 				}
 			} else if(outdated(plugin)) {
-				zlog_debug(scheduler->tag, "Poking \'%d\'", plugin->num);
+				zlog_debug(scheduler->tag, "Time to collect");
 				poke(plugin);
 			}
 		}

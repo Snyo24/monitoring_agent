@@ -12,20 +12,7 @@
 #include "runnable.h"
 #include "util.h"
 
-#define BACKOFF_LIMIT 6
-
 typedef runnable_t sender_t;
-typedef struct _sender_spec {
-	CURL *curl;
-	struct curl_slist *headers;
-	char response[1000];
-
-	timestamp base_period;
-	FILE *unsent_sending_fp;
-	unsigned backoff : BACKOFF_LIMIT;
-	char unsent_json[8192];
-	unsigned unsent_json_loaded : 1;
-} sender_spec_t;
 
 int  sender_init(sender_t *sender);
 void sender_fini(sender_t *sender);

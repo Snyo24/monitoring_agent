@@ -15,16 +15,31 @@
 #include "storage.h"
 #include "util.h"
 
-#define SENDER_TICK NS_PER_S/2
+#define SENDER_TICK NS_PER_S
 
-#define REG_URI "http://52.78.182.209:8080/v1/agents"
-#define METRIC_URI "http://52.78.182.209:8080/v1/metrics"
+#define REG_URI "http://gate.maxgauge.com/v1/agents"
+#define METRIC_URI "http://gate.maxgauge.com/v1/metrics"
 
 #define UNSENT_SENDING "log/unsent_sending"
 #define UNSENT_BEGIN -1
 #define UNSENT_END 0 // TODO must control with configuration file
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
+
+#define BACKOFF_LIMIT 6
+
+typedef struct _sender_spec {
+	timestamp base_period;
+
+	CURL              *curl;
+	struct curl_slist *headers;
+
+	FILE *unsent_sending_fp;
+	char unsent_json[8192];
+	unsigned unsent_json_loaded : 1;
+
+	unsigned backoff : BACKOFF_LIMIT;
+} sender_spec_t;
 
 static int clear_unsent();
 static int load_unsent(sender_t *sender);
@@ -44,12 +59,14 @@ int sender_init(sender_t *sender) {
 	if(!spec) return -1;
 
 	zlog_debug(sender->tag, "Initialize cURL");
-	if(!(spec->curl = curl_easy_init())
+	if(curl_global_init(CURL_GLOBAL_SSL) != CURLE_OK 
+		|| !(spec->curl = curl_easy_init())
 		|| !(spec->headers = curl_slist_append(spec->headers, CONTENT_TYPE))
-		|| curl_easy_setopt(spec->curl, CURLOPT_HTTPHEADER, spec->headers) > 0
-		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEFUNCTION, post_callback) > 0
-		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEDATA, sender->tag) > 0
-		|| curl_easy_setopt(spec->curl, CURLOPT_TIMEOUT, 1) > 0) {
+		|| curl_easy_setopt(spec->curl, CURLOPT_NOSIGNAL, 1) != CURLE_OK
+		|| curl_easy_setopt(spec->curl, CURLOPT_HTTPHEADER, spec->headers) != CURLE_OK
+		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK
+		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEDATA, sender->tag) != CURLE_OK
+		|| curl_easy_setopt(spec->curl, CURLOPT_TIMEOUT, 1) != CURLE_OK) {
 		zlog_error(sender->tag, "Fail to setup cURL");
 		sender_fini(sender);
 		return -1;
@@ -60,7 +77,7 @@ int sender_init(sender_t *sender) {
 	spec->unsent_json_loaded = 0;
 
 	sender->spec = spec;
-	sender->collect = sender_main;
+	sender->job = sender_main;
 
 	return 0;
 }
@@ -140,7 +157,7 @@ int sender_post(sender_t *sender, char *payload) {
 	zlog_debug(sender->tag, "POST returns curl code(%d) and http_status(%ld)", curl_code, status_code);
 	if(status_code == 403) {
 		zlog_error(sender->tag, "Check your license");
-		exit(1);
+		//exit(1);
 	}
 	return (curl_code == CURLE_OK && status_code == 202) - 1;
 }

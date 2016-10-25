@@ -24,7 +24,7 @@ typedef struct _runnable {
 
 	/* Polymorphism */
 	void *tag;
-	void (*collect)(void *);
+	void (*job)(void *);
 } runnable_t;
 
 int  runnable_init(runnable_t *app, timestamp period);

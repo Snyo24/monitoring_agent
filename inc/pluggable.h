@@ -14,11 +14,13 @@
 typedef struct _plugin plugin_t;
 
 struct _plugin {
+	int index;
+	
 	/* Thread variables */
 	pthread_t       running_thread;
 	pthread_mutex_t sync;
-	pthread_cond_t  synced;
-	pthread_mutex_t access;
+	pthread_mutex_t pole;
+	pthread_cond_t  syncd;
 	pthread_cond_t  poked;
 
 	/* Status variables */
@@ -26,8 +28,7 @@ struct _plugin {
 	volatile unsigned working : 1;
 
 	/* Target info */
-	       int num;
-	const char *target_ip;
+	char *target_ip;
 
 	/* Timing variables */
 	timestamp period;
@@ -48,12 +49,20 @@ struct _plugin {
 	void (*fini)(plugin_t *);
 };
 
-extern char license[];
-extern char uuid[];
-extern char os[];
+struct _target {
+	int num;
 
-plugin_t *new_plugin(const char *name);
-void delete_plugin(plugin_t *plugin);
+	timestamp period;
+
+	int full_count;
+	int holding;
+
+	void *spec;
+	void *tag;
+};
+
+int plugin_init(plugin_t *plugin, const char *type);
+int plugin_fini(plugin_t *plugin);
 
 void *plugin_main(void *_plugin);
 

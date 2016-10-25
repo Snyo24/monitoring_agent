@@ -4,23 +4,19 @@
 
 #include <zlog.h>
 
+#include "metadata.h"
 #include "scheduler.h"
 #include "storage.h"
 #include "sender.h"
 #include "shash.h"
-#include "plugins/os.h"
 #include "pluggable.h"
 
 scheduler_t scheduler;
 storage_t   storage;
 sender_t    sender;
 
-char license[] = "license_exem4";
-char uuid[] = "550e8400-e29b-41d4-a716-446655440000";
-char os[100];
-
 int main(int argc, char **argv) {
-    if(zlog_init("./zlog.conf")) {
+    if(zlog_init("res/zlog.conf")) {
         printf("zlog initiation failed\n");
         exit(1);
     }
@@ -29,26 +25,23 @@ int main(int argc, char **argv) {
     scheduler_init(&scheduler);
     storage_init(&storage);
     sender_init(&sender);
+
+	/* Metadata register */
+	if(metadata_init() < 0)
+		exit(1);
     sender_set_reg_uri(&sender);
-    FILE *os_version = popen("uname -mrs", "r");
-    if(fscanf(os_version, "%[^\n]\n", os) != 1) exit(1);
-	printf("%s\n", os);
-    if(sender_post(&sender, \
-    "{\
-\"license\":\"license_exem4\",\
-\"uuid\":\"550e8400-e29b-41d4-a716-446655440000\",\
+	char reg_str[1000];
+	snprintf(reg_str, 1000, "{\
+\"license\":\"%s\",\
+\"uuid\":\"%s\",\
 \"agent_type\":\"linux_1.0\",\
 \"target_type\":[\"linux_linux_1.0\",\"linux_linux_1.0\"],\
-\"target_num\":[1, 2]\
-}") < 0) exit(1);
-    sender_set_met_uri(&sender);
-
-    /* Plugins */
-    plugin_t *p = new_plugin("os");
-    start(p);
-    shash_insert(scheduler.spec, "os", p);
+\"target_num\":[0, 1]\
+}", license, uuid);
+    if(sender_post(&sender, reg_str) < 0);// exit(1);
 
 	/* Run */
+    sender_set_met_uri(&sender);
     start_runnable(&scheduler);
     start_runnable(&storage);
     start_runnable(&sender);

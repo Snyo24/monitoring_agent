@@ -34,7 +34,7 @@ directories:
 
 $(TARGET): $(OBJECTS)
 	@echo
-	@echo "######### target #########"
+	@echo "[ Target ]"
 	$(CC) $(OBJECTS) $(INC) -o $@ $(LDLIBS) $(LDFLAGS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCDIR)/%.h
@@ -42,7 +42,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCDIR)/%.h
 
 $(OBJDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
 	@echo
-	@echo "####### plugin_"$*" #######"
+	@echo "[ Plugin "$*" ]"
 	$(CC) -shared -o $@ $< 
 
 $(OBJDIR)/plugins/%.o: $(SRCDIR)/plugins/%.c $(INCDIR)/plugins/%.h

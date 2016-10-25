@@ -9,9 +9,9 @@
 
 typedef plugin_t os_plugin_t;
 
-void os_plugin_init(os_plugin_t *plugin);
-void os_plugin_fini(os_plugin_t *plugin);
+int  os_plugin_init(plugin_t *plugin);
+void os_plugin_fini(plugin_t *plugin);
 
-void collect_os_metrics(os_plugin_t *plugin);
+void collect_os_metrics(plugin_t *plugin);
 
 #endif

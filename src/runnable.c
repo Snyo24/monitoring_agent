@@ -36,7 +36,7 @@ void *run(void *_app) {
 	runnable_t *app = (runnable_t *)_app;
 
 	while(app->alive) {
-		app->collect(app);
+		app->job(app);
 		snyo_sleep(app->period);
 	}
 

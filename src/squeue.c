@@ -43,5 +43,5 @@ int squeue_empty(squeue_t *squeue) {
 }
 
 int squeue_full(squeue_t *squeue) {
-	return squeue->holding >= CAPACITY;
+	return squeue->holding == CAPACITY;
 }

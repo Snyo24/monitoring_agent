@@ -8,11 +8,10 @@
 #define _SCHEDULER_H_
 
 #include "runnable.h"
-#include "shash.h"
 
 typedef runnable_t scheduler_t;
 
-extern scheduler_t storage;
+extern scheduler_t scheduler;
 
 int  scheduler_init(scheduler_t *scheduler);
 void scheduler_fini(scheduler_t *scheduler);

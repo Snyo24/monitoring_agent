@@ -9,7 +9,7 @@
 
 #include <pthread.h>
 
-#define CAPACITY 50
+#define CAPACITY 30
 
 typedef struct _squeue {
 	int head;
