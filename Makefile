@@ -13,7 +13,7 @@ LOGDIR		:= log
 DOCDIR		:= html
 
 #Flags, Libraries and Includes
-CFLAGS		:= -Wall -O2 -g
+CFLAGS		:= -std=gnu99 -Wall -O2 -g
 LDLIBS		:= -L/usr/lib/x86_64-linux-gnu -Lobj/plugins
 LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson 
 INC			:= -I$(INCDIR)

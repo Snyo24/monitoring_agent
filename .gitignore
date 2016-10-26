@@ -2,4 +2,4 @@ agent
 log
 html
 obj
-res
+res/**

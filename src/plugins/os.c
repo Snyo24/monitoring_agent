@@ -192,8 +192,8 @@ void collect_disk_metrics(plugin_t *plugin, json_object *values) {
 			}
 			if(!*(unsigned *)plugin->spec) {
 				json_object_array_add(plugin->metric_names, json_object_new_string("disk_stat_total_iops"));
-				json_object_array_add(values, json_object_new_double(total_iops));
 			}
+			json_object_array_add(values, json_object_new_double(total_iops));
 			pclose(iostat_fd);
 		}
 	}
@@ -208,7 +208,7 @@ void collect_proc_metrics(plugin_t *plugin, json_object *values) {
 	char name[100];
 	double stat;
 	for(int i=0; i<5; ++i) {
-		if(fscanf(pipe, "%s%lf\n", name, &stat) == 2) {
+		if(fscanf(pipe, "%lf%s\n", &stat, name) == 2) {
 			if(!*(unsigned *)plugin->spec) {
 				char metric_name[50];
 				snprintf(metric_name, 50, "proc_stat_cpu_top%d", i+1);
@@ -222,7 +222,7 @@ void collect_proc_metrics(plugin_t *plugin, json_object *values) {
 	pipe = popen("ps -eo pmem,comm --sort=-pmem,-pcpu --no-headers | head -n 5", "r");
 	if(!pipe) return;
 	for(int i=0; i<5; ++i) {
-		if(fscanf(pipe, "%s%lf\n", name, &stat) == 2) {
+		if(fscanf(pipe, "%lf%s\n", &stat, name) == 2) {
 			if(!*(unsigned *)plugin->spec) {
 				char metric_name[50];
 				snprintf(metric_name, 50, "proc_stat_mem_top%d", i+1);
@@ -238,8 +238,8 @@ void collect_memory_metrics(plugin_t *plugin, json_object *values) {
 	FILE *pipe = popen("cat /proc/meminfo | awk '/Mem|^Cached|Active:|Inactive:|Vmalloc[TU]/{print $2}'", "r");
 	if(!pipe) return;
 
-	int total, free, available, cached, active, inactive, v_total, v_used;
-	if(fscanf(pipe, "%d%d%d%d%d%d%d%d", &total, &free, &available, &cached, &active, &inactive, &v_total, &v_used) != 8)
+	unsigned long total, free, available, cached, active, inactive, v_total, v_used;
+	if(fscanf(pipe, "%lu%lu%lu%lu%lu%lu%lu%lu", &total, &free, &available, &cached, &active, &inactive, &v_total, &v_used) != 8)
 		return;
 
 	if(!*(unsigned *)plugin->spec) {
@@ -257,7 +257,7 @@ void collect_memory_metrics(plugin_t *plugin, json_object *values) {
 	json_object_array_add(values, json_object_new_int(cached));
 	json_object_array_add(values, json_object_new_int((active+inactive)));
 	json_object_array_add(values, json_object_new_int((total-free-active-inactive)));
-	json_object_array_add(values, json_object_new_int((double)v_used/(double)v_total));
+	json_object_array_add(values, json_object_new_double((double)v_used/(double)v_total));
 
 	pclose(pipe);
 }
