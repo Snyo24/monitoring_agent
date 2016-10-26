@@ -11,10 +11,9 @@
 
 typedef runnable_t scheduler_t;
 
-extern scheduler_t scheduler;
-
 int  scheduler_init(scheduler_t *scheduler);
 void scheduler_fini(scheduler_t *scheduler);
+void start_plugins(scheduler_t *scheduler);
 
 void scheduler_main(void *_scheduler);
 

@@ -19,7 +19,7 @@ struct _plugin {
 	/* Thread variables */
 	pthread_t       running_thread;
 	pthread_mutex_t sync;
-	pthread_mutex_t pole;
+	pthread_mutex_t fork;
 	pthread_cond_t  syncd;
 	pthread_cond_t  poked;
 
@@ -47,18 +47,6 @@ struct _plugin {
 	void *tag;
 	void (*collect)(plugin_t *);
 	void (*fini)(plugin_t *);
-};
-
-struct _target {
-	int num;
-
-	timestamp period;
-
-	int full_count;
-	int holding;
-
-	void *spec;
-	void *tag;
 };
 
 int plugin_init(plugin_t *plugin, const char *type);

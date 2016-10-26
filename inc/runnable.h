@@ -20,7 +20,7 @@ typedef struct _runnable {
 	timestamp period;
 
 	/* Inheritance */
-	void *spec;
+	void *spec; 
 
 	/* Polymorphism */
 	void *tag;

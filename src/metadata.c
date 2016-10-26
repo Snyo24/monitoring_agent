@@ -27,6 +27,7 @@ int get_os() {
 	if(!(os_pipe = popen("uname -mrs", "r"))
 	|| fscanf(os_pipe, "%[^\n]\n", os) != 1)
 		return -1;
+	pclose(os_pipe);
 	return 0;
 }
 
@@ -38,6 +39,7 @@ int get_license() {
 		printf("Cannot load license file\n");
 		return -1;
 	}
+	fclose(license_fd);
 	return 0;
 }
 
@@ -53,5 +55,6 @@ int get_pid() {
 	if(!(pid_fd = fopen("res/pid", "w+")))
 		return -1;
 	fprintf(pid_fd, "%d\n", pid);
+	fclose(pid_fd);
 	return 0;
 }

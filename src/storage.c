@@ -14,7 +14,7 @@
 
 #include "util.h"
 
-#define STORAGE_TICK NS_PER_S/2
+#define STORAGE_TICK NS_PER_S*5
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     19,format,##__VA_ARGS__))
@@ -25,6 +25,7 @@ int storage_init(storage_t *storage) {
 	storage->tag = zlog_get_category("storage");
 	if(!storage->tag);
 
+	zlog_debug(storage->tag, "Initialize queue");
 	if(!(storage->spec = malloc(sizeof(squeue_t)))
 		|| squeue_init(storage->spec) < 0)
 		return -1;

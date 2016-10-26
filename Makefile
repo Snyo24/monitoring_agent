@@ -25,14 +25,15 @@ OBJECTS		:= $(CORE:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 LDS			:= $(PLUGINS:$(SRCDIR)/plugins/%.c=$(OBJDIR)/plugins/lib%.so)
 
 #Rules
-all: directories $(TARGET) $(LDS)
+all: directories $(BINDIR)/$(TARGET) $(LDS)
+	$(shell sudo cp $(LDS) /usr/lib)
 
 directories:
 	@mkdir -p $(BINDIR)
 	@mkdir -p $(OBJDIR)/plugins
 	@mkdir -p $(LOGDIR)
 
-$(TARGET): $(OBJECTS)
+$(BINDIR)/$(TARGET): $(OBJECTS)
 	@echo
 	@echo "[ Target ]"
 	$(CC) $(OBJECTS) $(INC) -o $@ $(LDLIBS) $(LDFLAGS)

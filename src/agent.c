@@ -43,6 +43,7 @@ int main(int argc, char **argv) {
 	/* Run */
     sender_set_met_uri(&sender);
     start_runnable(&scheduler);
+	start_plugins(&scheduler);
     start_runnable(&storage);
     start_runnable(&sender);
 

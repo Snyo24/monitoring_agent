@@ -15,7 +15,7 @@
 #include "storage.h"
 #include "util.h"
 
-#define SENDER_TICK NS_PER_S
+#define SENDER_TICK NS_PER_S*3
 
 #define REG_URI "http://gate.maxgauge.com/v1/agents"
 #define METRIC_URI "http://gate.maxgauge.com/v1/metrics"
@@ -59,14 +59,13 @@ int sender_init(sender_t *sender) {
 	if(!spec) return -1;
 
 	zlog_debug(sender->tag, "Initialize cURL");
-	if(curl_global_init(CURL_GLOBAL_SSL) != CURLE_OK 
-		|| !(spec->curl = curl_easy_init())
+	if(!(spec->curl = curl_easy_init())
 		|| !(spec->headers = curl_slist_append(spec->headers, CONTENT_TYPE))
 		|| curl_easy_setopt(spec->curl, CURLOPT_NOSIGNAL, 1) != CURLE_OK
 		|| curl_easy_setopt(spec->curl, CURLOPT_HTTPHEADER, spec->headers) != CURLE_OK
 		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK
 		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEDATA, sender->tag) != CURLE_OK
-		|| curl_easy_setopt(spec->curl, CURLOPT_TIMEOUT, 1) != CURLE_OK) {
+		|| curl_easy_setopt(spec->curl, CURLOPT_TIMEOUT, 10) != CURLE_OK) {
 		zlog_error(sender->tag, "Fail to setup cURL");
 		sender_fini(sender);
 		return -1;
@@ -157,7 +156,7 @@ int sender_post(sender_t *sender, char *payload) {
 	zlog_debug(sender->tag, "POST returns curl code(%d) and http_status(%ld)", curl_code, status_code);
 	if(status_code == 403) {
 		zlog_error(sender->tag, "Check your license");
-		//exit(1);
+		exit(1);
 	}
 	return (curl_code == CURLE_OK && status_code == 202) - 1;
 }
