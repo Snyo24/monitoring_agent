@@ -82,13 +82,13 @@ void collect_network_metrics(plugin_t *plugin, json_object *values) {
 	if(!pipe) return;
 
 	char net_name[50];
-	int recv_byte, recv_pckt, recv_err;
-	int send_byte, send_pckt, send_err;
+	unsigned int recv_byte, recv_pckt, recv_err;
+	unsigned int send_byte, send_pckt, send_err;
 
-	int total_recv_byte = 0;
-	int total_send_byte = 0;
+	unsigned int total_recv_byte = 0;
+	unsigned int total_send_byte = 0;
 	while(fscanf(pipe, "%s", net_name) == 1) {
-		if(fscanf(pipe, "%d%d%d%d%d%d", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
+		if(fscanf(pipe, "%u%u%u%u%u%u", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
 			if(!*(unsigned *)plugin->spec) {
 				for(int i=0; i<sizeof(network_metric_names)/sizeof(char *); ++i) {
 					char new_metric[100];
