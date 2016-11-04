@@ -15,7 +15,7 @@
 #include "storage.h"
 #include "util.h"
 
-#define SENDER_TICK NS_PER_S*3
+#define SENDER_TICK MS_PER_S*3
 
 #define REG_URI "http://gate.maxgauge.com/v1/agents"
 #define METRIC_URI "http://gate.maxgauge.com/v1/metrics"
@@ -35,7 +35,7 @@ typedef struct _sender_spec {
 	struct curl_slist *headers;
 
 	FILE *unsent_sending_fp;
-	char unsent_json[8192];
+	char unsent_json[81920];
 	unsigned unsent_json_loaded : 1;
 
 	unsigned backoff : BACKOFF_LIMIT;
@@ -59,13 +59,15 @@ int sender_init(sender_t *sender) {
 	if(!spec) return -1;
 
 	zlog_debug(sender->tag, "Initialize cURL");
+	spec->curl = curl_easy_init();
+	spec->headers = 0;
 	if(!(spec->curl = curl_easy_init())
 		|| !(spec->headers = curl_slist_append(spec->headers, CONTENT_TYPE))
 		|| curl_easy_setopt(spec->curl, CURLOPT_NOSIGNAL, 1) != CURLE_OK
 		|| curl_easy_setopt(spec->curl, CURLOPT_HTTPHEADER, spec->headers) != CURLE_OK
 		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK
 		|| curl_easy_setopt(spec->curl, CURLOPT_WRITEDATA, sender->tag) != CURLE_OK
-		|| curl_easy_setopt(spec->curl, CURLOPT_TIMEOUT, 10) != CURLE_OK) {
+		|| curl_easy_setopt(spec->curl, CURLOPT_TIMEOUT, 30) != CURLE_OK) {
 		zlog_error(sender->tag, "Fail to setup cURL");
 		sender_fini(sender);
 		return -1;
@@ -163,6 +165,7 @@ int sender_post(sender_t *sender, char *payload) {
 
 size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag) {
 	zlog_debug(tag, "%.*s\n", (int)size*(int)nmemb, ptr);
+	printf("%.*s\n", (int)size*(int)nmemb, ptr);
 	return nmemb;
 }
 

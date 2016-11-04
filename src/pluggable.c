@@ -150,7 +150,6 @@ void *plugin_main(void *_plugin) {
 		timestamp curr = get_timestamp();
 		zlog_debug(plugin->tag, "Start collecting");
 		plugin->collect(plugin);
-		plugin->holding++;
 		if(plugin->holding == plugin->full_count) {
 			pack(plugin);
 			plugin->metric_names = json_object_new_array();
@@ -167,7 +166,6 @@ void pack(plugin_t *plugin) {
 	json_object *payload = json_object_new_object();
 	json_object_object_add(payload, "license", json_object_new_string(license));
 	json_object_object_add(payload, "uuid", json_object_new_string(uuid));
-	json_object_object_add(payload, "os", json_object_new_string(os));
 	json_object_object_add(payload, "target_num", json_object_new_int(plugin->index));
 	json_object_object_add(payload, "metrics", plugin->metric_names);
 	json_object_object_add(payload, "values", plugin->values);

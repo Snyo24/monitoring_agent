@@ -28,6 +28,7 @@ struct _plugin {
 	volatile unsigned working : 1;
 
 	/* Target info */
+	char *target_type;
 	char *target_ip;
 
 	/* Timing variables */

@@ -14,7 +14,7 @@
 #include "pluggable.h"
 #include "util.h"
 
-#define SCHEDULER_TICK NS_PER_S/2
+#define SCHEDULER_TICK MS_PER_S/2
 #define MAX_PLUGIN 10
 
 int scheduler_init(scheduler_t *scheduler) {
@@ -35,6 +35,11 @@ int scheduler_init(scheduler_t *scheduler) {
 	zlog_debug(scheduler->tag, "Initiate plugins");
 	plugin_t *plugin = malloc(sizeof(plugin_t));
 	if(plugin_init(plugin, "os") != -1) {
+		((plugin_t **)scheduler->spec)[plugin->index] = plugin;
+	}
+	printf("%x\n", plugin->collect);
+	plugin = malloc(sizeof(plugin_t));
+	if(plugin_init(plugin, "mysql") != -1) {
 		((plugin_t **)scheduler->spec)[plugin->index] = plugin;
 	}
 	return 0;

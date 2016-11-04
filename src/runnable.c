@@ -14,7 +14,6 @@
  * return 0 for success, -1 for failure
  */
 int runnable_init(runnable_t *app, timestamp period) {
-	if(period <= 0) return -1;
 	if(!app) return -1;
 
 	app->alive = 0;

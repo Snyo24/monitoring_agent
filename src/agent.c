@@ -8,7 +8,6 @@
 #include "scheduler.h"
 #include "storage.h"
 #include "sender.h"
-#include "shash.h"
 #include "pluggable.h"
 
 scheduler_t scheduler;
@@ -16,7 +15,7 @@ storage_t   storage;
 sender_t    sender;
 
 int main(int argc, char **argv) {
-    if(zlog_init("res/zlog.conf")) {
+    if(zlog_init("conf/zlog.conf")) {
         printf("zlog initiation failed\n");
         exit(1);
     }
@@ -31,14 +30,28 @@ int main(int argc, char **argv) {
 		exit(1);
     sender_set_reg_uri(&sender);
 	char reg_str[1000];
-	snprintf(reg_str, 1000, "{\
+	int n = 0;
+	n += snprintf(reg_str, 1000, "{\
+\"os\":\"%s\",\
+\"hostname\":\"%s\",\
 \"license\":\"%s\",\
 \"uuid\":\"%s\",\
-\"agent_type\":\"linux_1.0\",\
-\"target_type\":[\"linux_linux_1.0\",\"linux_linux_1.0\"],\
-\"target_num\":[0, 1]\
-}", license, uuid);
-    if(sender_post(&sender, reg_str) < 0);// exit(1);
+\"agent_ip\":\"%s\",\
+\"agent_type\":\"%s\",\
+\"target_type\":[", os, hostname, license, uuid, agent_ip, agent_type);
+	int sw = 0;
+	for(int i=0; i<10; ++i) {
+		if(((plugin_t **)scheduler.spec)[i])
+			n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", ((plugin_t **)scheduler.spec)[i]->target_type);
+	}
+	n += snprintf(reg_str+n, 1000-n, "],\"target_num\":[");
+	sw = 0;
+	for(int i=0; i<10; ++i) {
+		if(((plugin_t **)scheduler.spec)[i])
+			n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", ((plugin_t **)scheduler.spec)[i]->index);
+	}
+	n += snprintf(reg_str+n, 1000-n, "]}");
+	if(sender_post(&sender, reg_str) < 0);// exit(1);
 
 	/* Run */
     sender_set_met_uri(&sender);

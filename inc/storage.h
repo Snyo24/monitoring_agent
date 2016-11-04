@@ -9,7 +9,7 @@
 #include "runnable.h"
 #include "squeue.h"
 
-#define STORAGE_CAPACITY 3
+#define STORAGE_CAPACITY 10
 
 typedef runnable_t storage_t;
 

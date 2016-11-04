@@ -1,0 +1,86 @@
+appService@com.exem.weave.servlet.XmAPPService
+ejbService@com.exem.weave.servlet.XmEJBService
+httpCall@com.exem.weave.io.XmHttpCall
+httpRequest@com.exem.weave.io.XmHttpRequest
+xCall@com.exem.weave.io.XmXCall
+xOutbound@com.exem.weave.io.XmXOutbound
+xReply@com.exem.weave.io.XmXReply
+xInbound@com.exem.weave.io.XmXInbound
+
+#temp=weblogic/jdbc/sqlserverbase/BaseConnection.unlock(Ljava/lang/String;)Z
+
+########## APPLICATION ##########
+appService=com/sample/Throwable.run()V
+appService=Demo.run()V
+appService=Demo.run(ILjava/lang/String;ILjava/lang/String;)V
+appService=DemoA.run()V
+appService=Demo31.run()V
+appService=Jdbc.run()V
+appService=Audit.run()V
+appService=ThreadDemo.run()V
+appService=TestPooled.main([Ljava/lang/String;)V
+appService=JdbcPooled.oracle()V
+appService=JdbcPooled.oracle1()V
+appService=JdbcPooled.db2()V
+appService=JdbcPooled.tibero()V
+appService=ScanDB2.main([Ljava/lang/String;)V
+appService=ScanDB2Old.main([Ljava/lang/String;)V
+appService=Test.main([Ljava/lang/String;)V
+appService=OZ.main([Ljava/lang/String;)V
+appService=sample/Weaving.run()V
+appService=sample/DataClient.run()V
+appService=sample/DataServerThread.dataProc()V
+appService=client/ClientSession.runSession()V:readFully
+appService=client/ClientSession.runSession(I)V:readFully;2
+appService=examples/ejb/ejb20/basic/beanManaged/Client.example()V
+appService=rmi/HttpClient.run(Ljava/lang/String;)V
+appService=rmi/Apache3_1.run(Ljava/lang/String;)V
+appService=rmi/Apache4_3.run(Ljava/lang/String;)V
+appService=com/jcg/example/RestTemp.run(Ljava/lang/String;)V
+appService=rmi/Sap.run()V
+appService=rmi/Tmax.run()V
+appService=sizeof/OfsTest.main([Ljava/lang/String;)V
+appService=com/mocomsys/interfacesdk/service/EAIService.run()V
+appService=com/mococo/mi/adapter/OutputTerminal.perform(Lcom/mococo/mi/adapter/Message;)Lcom/mococo/mi/adapter/Message;
+appService=tibrvlisten.execute(Lcom/tibco/tibrv/TibrvMsg;)V
+
+########## X ##########
+xCall=com/mocomsys/interfacesdk/service/EAIService.call(Ljava/util/Map;I)Ljava/util/List;
+xOutbound=com/mococo/ILinkAPI/jms/ILMessage.toByteArray()[B
+xCall=sample/DataClient.dataProc(Ljava/lang/String;I)V
+
+########## HTTP ##########
+httpCall=weblogic/net/http/HttpClient.parseHTTP(Lweblogic/net/http/MessageHeader;)V
+httpRequest=weblogic/net/http/HttpURLConnection.writeRequests()V
+httpCall=org/apache/commons/httpclient/HttpClient.executeMethod(Lorg/apache/commons/httpclient/HostConfiguration;Lorg/apache/commons/httpclient/HttpMethod;Lorg/apache/commons/httpclient/HttpState;)I
+httpCall=org/apache/http/impl/client/InternalHttpClient.doExecute(Lorg/apache/http/HttpHost;Lorg/apache/http/HttpRequest;Lorg/apache/http/protocol/HttpContext;)Lorg/apache/http/client/methods/CloseableHttpResponse;
+httpCall=org/apache/http/impl/client/MinimalHttpClient.doExecute(Lorg/apache/http/HttpHost;Lorg/apache/http/HttpRequest;Lorg/apache/http/protocol/HttpContext;)Lorg/apache/http/client/methods/CloseableHttpResponse;
+
+########## TMAX ##########
+xCall=tmax/webt/WebtRemoteService.tpcall(Ljava/lang/String;Ltmax/webt/WebtBuffer;Ltmax/webt/WebtAttribute;)Ltmax/webt/WebtBuffer;
+xCall=tmax/webt/WebtRemoteService.tpacall(Ljava/lang/String;Ltmax/webt/WebtBuffer;Ltmax/webt/WebtAttribute;Ltmax/webt/WebtMessageHandler;)I
+#xOutbound=tmax/webt/io/WebtOutputStream.getSerializedPacket(Ltmax/webt/WebtBuffer;)[B
+#xReply=tmax/webt/WebtRemoteService.tpgetrply(ILtmax/webt/WebtAttribute;)Ltmax/webt/WebtBuffer;
+
+########## TUXEDO ##########
+xCall=weblogic/wtc/gwt/TuxedoConnection.tpcall(Ljava/lang/String;Lweblogic/wtc/jatmi/TypedBuffer;I)Lweblogic/wtc/jatmi/Reply;
+xCall=weblogic/wtc/gwt/TuxedoConnection.tpacall(Ljava/lang/String;Lweblogic/wtc/jatmi/TypedBuffer;ILweblogic/wtc/jatmi/TpacallAsyncReply;)Lweblogic/wtc/jatmi/CallDescriptor;
+#xOutbound=weblogic/wtc/jatmi/TuxedoArrayOutputStream.getByteArrayReference()[B
+#xReply=weblogic/wtc/gwt/TuxedoConnection.tpgetrply(Lweblogic/wtc/jatmi/CallDescriptor;I)Lweblogic/wtc/jatmi/Reply;
+
+########## SAP ##########
+xCall=com/sap/conn/jco/rt/AbapFunction.execute(Lcom/sap/conn/jco/JCoDestination;)V
+xCall=com/sap/conn/jco/rt/AbapFunction.execute(Lcom/sap/conn/jco/JCoDestination;Ljava/lang/String;)V
+xCall=com/sap/conn/jco/rt/AbapFunction.execute(Lcom/sap/conn/jco/JCoDestination;Ljava/lang/String;Ljava/lang/String;)V
+#xOutbound=com/sap/conn/rfc/driver/CpicDriver.write([BIZ)I
+#xReply=com/sap/conn/rfc/engine/RfcIoOpenCntl.RfcReceive([Lcom/sap/conn/rfc/api/IRfcParameter;[Lcom/sap/conn/rfc/api/IRfcParameter;[Lcom/sap/conn/rfc/api/IRfcTable;Lcom/sap/conn/jco/JCoRepository;)V
+
+xCall=rmi/Sap.execute(Lcom/sap/conn/jco/JCoDestination;)V
+xOutbound=rmi/Sap.call(Ljava/lang/String;)V
+xReply=rmi/Sap.RfcReceive([Lcom/sap/conn/rfc/api/IRfcParameter;[Lcom/sap/conn/rfc/api/IRfcParameter;[Lcom/sap/conn/rfc/api/IRfcTable;Lcom/sap/conn/jco/JCoRepository;)V
+
+########## Tibco Rendezvous ##########
+appService=com/tibco/tibrv/TibrvTransport.send(Lcom/tibco/tibrv/TibrvMsg;)V
+appService=tibrvlisten.onMsg(Lcom/tibco/tibrv/TibrvListener;Lcom/tibco/tibrv/TibrvMsg;)V
+appService=tibrvserver.onMsg(Lcom/tibco/tibrv/TibrvListener;Lcom/tibco/tibrv/TibrvMsg;)V
+appService=M.doGet(Ljavax/servlet/http/HttpServletRequest;Ljavax/servlet/http/HttpServletResponse;)V

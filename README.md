@@ -5,12 +5,11 @@
 - Language: C
 
 ## Libraries need
+- zlog (https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz)
+- libcurl (https://curl.haxx.se/download/curl-7.50.3.tar.gz)
+- json-c (sudo apt-get install libjson0-dev)
+- openssl-dev
 - libmysqlclient-dev
-- yaml (http://pyyaml.org/wiki/LibYAML)
-- zlog (https://hardysimpson.github.io/zlog/UsersGuide-EN.html)
-- libcurl (https://curl.haxx.se/docs/install.html)
-- json-c (https://linuxprograms.wordpress.com/2010/05/20/install-json-c-in-linux/)
-- sysstat
 
 ## Compile
 	$ make

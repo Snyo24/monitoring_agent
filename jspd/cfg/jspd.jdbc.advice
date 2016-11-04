@@ -1,0 +1,16 @@
+poolClose@com.exem.weave.sql.XmPoolClose
+ibatisClose@com.exem.weave.sql.XmIbatisClose
+#jdbc@com.exem.weave.sql.XmJdbc
+
+########## POOL ##########
+
+poolClose=weblogic/jdbc/rmi/SerialConnection.close()V
+poolClose=weblogic/jdbc/wrapper/JTAConnection.close()V
+poolClose=weblogic/jdbc/wrapper/JTSConnection.close()V
+poolClose=weblogic/jdbc/wrapper/PoolConnection.close()V
+
+ibatisClose=com/ibatis/common/jdbc/SimpleDataSource.pushConnection(Lcom/ibatis/common/jdbc/SimpleDataSource$SimplePooledConnection;)V
+
+########## JDBC ##########
+
+#jdbc=DRIVER:com/ibm/db2/jcc/DB2Driver,POOLDATASOURCE:com/ibm/db2/jcc/DB2ConnectionPoolDataSource,CONNECTION:com/ibm/db2/jcc/conn,CALLABLE:com/ibm/db2/jcc/cstmt,PREPARE:com/ibm/db2/jcc/pstmt,STATEMENT:com/ibm/db2/jcc/stmt,RESULTSET:com/ibm/db2/jcc/resultset

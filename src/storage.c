@@ -14,7 +14,7 @@
 
 #include "util.h"
 
-#define STORAGE_TICK NS_PER_S*5
+#define STORAGE_TICK MS_PER_S*3
 #define zlog_unsent(cat, format, ...) \
                    (zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, \
                     19,format,##__VA_ARGS__))
