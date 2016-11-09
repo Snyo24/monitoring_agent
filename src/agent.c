@@ -8,7 +8,7 @@
 #include "scheduler.h"
 #include "storage.h"
 #include "sender.h"
-#include "pluggable.h"
+#include "plugin.h"
 
 scheduler_t scheduler;
 storage_t   storage;
@@ -41,29 +41,24 @@ int main(int argc, char **argv) {
 \"target_type\":[", os, hostname, license, uuid, agent_ip, agent_type);
 	int sw = 0;
 	for(int i=0; i<10; ++i) {
-		if(((plugin_t **)scheduler.spec)[i])
-			n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", ((plugin_t **)scheduler.spec)[i]->target_type);
+		if(scheduler.plugins[i])
+			n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", scheduler.plugins[i]->target_type);
 	}
 	n += snprintf(reg_str+n, 1000-n, "],\"target_num\":[");
 	sw = 0;
 	for(int i=0; i<10; ++i) {
-		if(((plugin_t **)scheduler.spec)[i])
-			n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", ((plugin_t **)scheduler.spec)[i]->index);
+		if(scheduler.plugins[i])
+			n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", scheduler.plugins[i]->index);
 	}
 	n += snprintf(reg_str+n, 1000-n, "]}");
-	if(sender_post(&sender, reg_str) < 0);// exit(1);
+	if(sender_post(&sender, reg_str) < 0) exit(1);
 
 	/* Run */
     sender_set_met_uri(&sender);
-    start_runnable(&scheduler);
+    start_runnable((runnable_t *)&scheduler);
+    start_runnable((runnable_t *)&storage);
+    start_runnable((runnable_t *)&sender);
 	start_plugins(&scheduler);
-    start_runnable(&storage);
-    start_runnable(&sender);
-
-    /* Done */
-    pthread_join(scheduler.running_thread, NULL);
-    pthread_join(storage.running_thread, NULL);
-    pthread_join(sender.running_thread, NULL);
 
     /* Finalize */
     scheduler_fini(&scheduler);

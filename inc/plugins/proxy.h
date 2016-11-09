@@ -5,7 +5,7 @@
 #ifndef _PROXY_H_
 #define _PROXY_H_
 
-#include "pluggable.h"
+#include "plugin.h"
 
 typedef plugin_t proxy_plugin_t;
 

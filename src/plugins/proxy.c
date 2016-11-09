@@ -12,7 +12,10 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <time.h>
-#include "pluggable.h"
+
+#include "plugin.h"
+#include "metadata.h"
+#include "sender.h"
 
 #define PROXY_PLUGIN_TICK MS_PER_S*1
 #define PROXY_PLUGIN_FULL 1
@@ -57,7 +60,7 @@ int proxy_spec_init(proxy_spec_t *spec) {
 	memset(&proxy_addr, 0, sizeof(proxy_addr));
 	proxy_addr.sin_family      = AF_INET;
 	proxy_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	proxy_addr.sin_port        = htons(8081);
+	proxy_addr.sin_port        = htons(8084);
 
 	if(bind(spec->proxy_sock, (struct sockaddr *)&proxy_addr, sizeof(proxy_addr)) < 0
 	|| listen(spec->proxy_sock, MAX_CONNECTION) < 0) {
@@ -91,6 +94,7 @@ void collect_proxy_metrics(proxy_plugin_t *plugin) {
 	struct epoll_event events[MAX_CONNECTION];
 
 	int event_count = epoll_wait(spec->epoll_fd, events, MAX_CONNECTION, 0);
+	char oob[1000];
 	if(event_count < 0)
 		return;
 	for(int i=0; i<event_count; ++i) {
@@ -104,12 +108,16 @@ void collect_proxy_metrics(proxy_plugin_t *plugin) {
 			init_event.events = EPOLLIN | EPOLLRDHUP | EPOLLERR; 
 			init_event.data.fd = client_fd;
 			epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, client_fd, &init_event);
+			snprintf(oob, 1000, "{\"license\":\"%s\",\"target_num\":%d,\"uuid\":\"%s\",\"status\":true}", license, plugin->index, uuid);
+			alert_post(oob);
 		}
 		else {
 			char buf[1024];
 			if(ev & (EPOLLRDHUP | EPOLLERR)) {
 				close(fd);
 				epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, NULL);
+				snprintf(oob, 1000, "{\"license\":\"%s\",\"target_num\":%d,\"uuid\":\"%s\",\"status\":false}", license, plugin->index, uuid);
+				alert_post(oob);
 				break;
 			} else if(ev & EPOLLIN) {
 				if(read(fd, buf, 1024) <= 0) break;

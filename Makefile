@@ -36,7 +36,7 @@ directories:
 $(BINDIR)/$(TARGET): $(OBJECTS)
 	@echo
 	@echo "[ Target ]"
-	$(CC) $(OBJECTS) $(INC) -o $@ $(LDLIBS) $(LDFLAGS)
+	$(CC) $(OBJECTS) $(INC) -Wl,--export-dynamic -o $@ $(LDLIBS) $(LDFLAGS)
 
 $(OBJDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
 	@echo

@@ -9,7 +9,7 @@
 
 #include <mysql/mysql.h>
 
-#include "pluggable.h"
+#include "plugin.h"
 #include "util.h"
 
 #define MYSQL_PLUGIN_TICK MS_PER_S*3
@@ -70,7 +70,7 @@ void collect_mysql_metrics(plugin_t *plugin) {
 	mysql_free_result(res);
 
 	char ts[20];
-	snprintf(ts, 20, "%lu", plugin->next_run - plugin->period);
+	snprintf(ts, 20, "%llu", plugin->next_run - plugin->period);
 	json_object_object_add(plugin->values, ts, values);
 	plugin->holding ++;
 }

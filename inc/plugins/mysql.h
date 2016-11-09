@@ -5,7 +5,7 @@
 #ifndef _MYSQL_H_
 #define _MYSQL_H_
 
-#include "pluggable.h"
+#include "plugin.h"
 
 typedef plugin_t mysql_plugin_t;
 

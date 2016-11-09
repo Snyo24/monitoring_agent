@@ -9,25 +9,18 @@
 
 #include "util.h"
 
-typedef struct _runnable {
-	/* Thread variables */
+typedef struct runnable_t {
 	pthread_t running_thread;
 
-	/* Status variables */
 	volatile unsigned alive : 1; 
 
-	/* Timing variables */
-	timestamp period;
+	unsigned long period;
 
-	/* Inheritance */
-	void *spec; 
-
-	/* Polymorphism */
 	void *tag;
 	void (*job)(void *);
 } runnable_t;
 
-int  runnable_init(runnable_t *app, timestamp period);
+int  runnable_init(runnable_t *app);
 void runnable_fini(runnable_t *app);
 
 void *run(void *_app);

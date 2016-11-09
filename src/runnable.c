@@ -6,24 +6,21 @@
 
 #include <pthread.h>
 
-#include <zlog.h>
- 
 #include "util.h"
 
 /**
  * return 0 for success, -1 for failure
  */
-int runnable_init(runnable_t *app, timestamp period) {
+int runnable_init(runnable_t *app) {
 	if(!app) return -1;
 
 	app->alive = 0;
-	app->period = period;
 
 	return 0;
 }
 
 void runnable_fini(runnable_t *app) {
-	// Nothing to be done
+	pthread_join(app->running_thread, NULL);
 }
 
 void start_runnable(runnable_t *app) {

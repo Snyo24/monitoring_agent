@@ -88,7 +88,7 @@ int get_uuid() {
 	char md_str[100];
 	if(get_mac_addr(md_str) < 0) return -1;
 	int n = 12;
-	n += snprintf(md_str, 100-n, "%lu", get_timestamp());
+	n += snprintf(md_str, 100-n, "%llu", get_timestamp());
 
 	unsigned char md_hash[MD5_DIGEST_LENGTH];
 	MD5((unsigned char *)&md_str, strlen(md_str), (unsigned char *)&md_hash);

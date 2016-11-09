@@ -13,13 +13,13 @@
 timestamp get_timestamp() {
 	struct timespec now;
 	clock_gettime(CLOCK_REALTIME, &now);
-	return now.tv_sec * MS_PER_S + now.tv_nsec/1000;
+	return now.tv_sec * MS_PER_S + now.tv_nsec/1000000;
 }
 
 void snyo_sleep(timestamp ms) {
 	struct timespec timeout = {
 		ms/MS_PER_S,
-		ms%MS_PER_S*1000
+		ms%MS_PER_S*1000000
 	};
 	nanosleep(&timeout, NULL);
 }

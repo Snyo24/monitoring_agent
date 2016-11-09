@@ -1,8 +1,8 @@
 /**
- * @file pluggable.c
+ * @file plugin.c
  * @author Snyo
  */
-#include "pluggable.h"
+#include "plugin.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -15,15 +15,6 @@
 #include "metadata.h"
 #include "storage.h"
 #include "util.h"
-
-typedef struct _plugin_set {
-	unsigned up;
-} plugin_set_t;
-
-static plugin_set_t plugin_set = {0};
-
-static int  _indexing();
-static void _deindexing();
 
 // return 0 for success, -1 for failure
 int plugin_init(plugin_t *plugin, const char *type) {
@@ -56,21 +47,12 @@ int plugin_init(plugin_t *plugin, const char *type) {
         return -1;
     }
 
-	/* Numbering */
-	if((plugin->index = _indexing(&plugin_set)) < 0) {
-		zlog_error(plugin->tag, "Cannot add more plugin");
-		plugin_fini(plugin);
-		return -1;
-	}
-
 	return 0;
 }
 
 int plugin_fini(plugin_t *plugin) {
 	zlog_info(plugin->tag, "Finishing");
 	if(!plugin) return -1;
-
-	_deindexing(&plugin_set, plugin->index);
 
 	if(plugin->fini)
 		plugin->fini(plugin);
@@ -154,7 +136,7 @@ void *plugin_main(void *_plugin) {
 			pack(plugin);
 			plugin->metric_names = json_object_new_array();
 		}
-		zlog_debug(plugin->tag, "Done in %lums", (get_timestamp()-curr)/1000000);
+		zlog_debug(plugin->tag, "Done in %llums", (get_timestamp()-curr)/1000000);
 		plugin->working = 0;
 	}
 
@@ -189,17 +171,4 @@ unsigned outdated(plugin_t *plugin) {
 
 unsigned timeup(plugin_t *plugin) {
 	return plugin->working && plugin->next_run < get_timestamp();
-}
-
-int _indexing(plugin_set_t *plugin_set) {
-	if(!~plugin_set->up)
-		return -1;
-	int c;
-	for(c=0; (plugin_set->up >> c) & 0x1; c = (c+1)%(8*sizeof(unsigned)));
-	plugin_set->up |= 0x1 << c ;
-	return c;
-}
-
-void _deindexing(plugin_set_t *plugin_set, int c) {
-	plugin_set->up &= 0 - (1<<c) - 1;
 }

@@ -1,9 +1,9 @@
 /**
- * @file pluggable.h
+ * @file plugin.h
  * @author Snyo
  */
-#ifndef _PLUGGABLE_H_
-#define _PLUGGABLE_H_
+#ifndef _PLUGIN_H_
+#define _PLUGIN_H_
 
 #include <pthread.h>
 
@@ -32,7 +32,7 @@ struct _plugin {
 	char *target_ip;
 
 	/* Timing variables */
-	timestamp period;
+	unsigned long period;
 	timestamp next_run;
 
 	/* Metrics */
@@ -65,5 +65,7 @@ unsigned alive(plugin_t *plugin);
 unsigned busy(plugin_t *plugin);
 unsigned outdated(plugin_t *plugin);
 unsigned timeup(plugin_t *plugin);
+
+void alert(plugin_t *plugin);
 
 #endif

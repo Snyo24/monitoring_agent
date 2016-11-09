@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "pluggable.h"
+#include "plugin.h"
 
 #define OS_PLUGIN_TICK MS_PER_S*3
 #define OS_PLUGIN_FULL 20
@@ -28,6 +28,8 @@ const char *network_metric_names[] = {
 };
 
 const char *disk_metric_names[] = {
+	"disk_stat_io",
+	"disk_stat_iotime",
 	"disk_stat_reads",
 	"disk_stat_read_sector",
 	"disk_stat_read_time",
@@ -55,7 +57,6 @@ int os_plugin_init(plugin_t *plugin) {
 	plugin->full_count = OS_PLUGIN_FULL;
 
 	plugin->collect    = collect_os_metrics;
-	printf("%x\n", plugin->collect);
 	plugin->fini       = os_plugin_fini;
 
 	return 0;
@@ -83,7 +84,7 @@ void collect_os_metrics(plugin_t *plugin) {
 		*(unsigned *)plugin->spec = 0;
 
 	char ts[20];
-	snprintf(ts, 20, "%lu", plugin->next_run - plugin->period);
+	snprintf(ts, 20, "%llu", plugin->next_run - plugin->period);
 	json_object_object_add(plugin->values, ts, values);
 }
 
@@ -180,6 +181,7 @@ void collect_disk_metrics(plugin_t *plugin, json_object *values) {
 
 	char part_name[10];
 	char part_mount[30];
+	unsigned io = 0;
 	while(fscanf(pipe, "%s%s\n", part_name, part_mount) == 2) {
 		/* Disk usage with df */
 		char cmd[100];
@@ -217,7 +219,6 @@ void collect_disk_metrics(plugin_t *plugin, json_object *values) {
 
 		snprintf(cmd, 100, "awk '$3~/^%s$/{print $4,$6,$7,$8,$10,$11,$14}' /proc/diskstats", part_name);
 		subpipe = popen(cmd, "r");
-		double io = 0;
 		if(subpipe) {
 			unsigned int r, rsec, rt, w, wsec, wt, weight;
 			if(fscanf(subpipe, "%u%u%u%u%u%u%u", &r, &rsec, &rt, &w, &wsec, &wt, &weight) == 7) {
@@ -229,17 +230,23 @@ void collect_disk_metrics(plugin_t *plugin, json_object *values) {
 					}
 				}
 				io += r+w;
+				json_object_array_add(values, json_object_new_int(r+w));
+				json_object_array_add(values, json_object_new_int(rt+wt));
 				json_object_array_add(values, json_object_new_int(r));
-				json_object_array_add(values, json_object_new_int(rsec*sector_size));
+				json_object_array_add(values, json_object_new_double((double)rsec*(double)sector_size));
 				json_object_array_add(values, json_object_new_int(rt));
 				json_object_array_add(values, json_object_new_int(w));
-				json_object_array_add(values, json_object_new_int(wsec*sector_size));
+				json_object_array_add(values, json_object_new_double((double)wsec*(double)sector_size));
 				json_object_array_add(values, json_object_new_int(wt));
 				json_object_array_add(values, json_object_new_int(weight));
 			}
 			pclose(subpipe);
 		}
 	}
+	if(!*(unsigned *)plugin->spec) {
+		json_object_array_add(plugin->metric_names, json_object_new_string("disk_stat_total"));
+	}
+	json_object_array_add(values, json_object_new_int(io));
 	pclose(pipe);
 }
 
