@@ -66,6 +66,4 @@ unsigned busy(plugin_t *plugin);
 unsigned outdated(plugin_t *plugin);
 unsigned timeup(plugin_t *plugin);
 
-void alert(plugin_t *plugin);
-
 #endif

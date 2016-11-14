@@ -6,7 +6,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
+#include <json/json.h>
 #include <mysql/mysql.h>
 
 #include "plugin.h"
@@ -19,6 +21,13 @@ typedef struct _mysql_spec {
 	MYSQL *mysql;
 } mysql_spec_t;
 
+static void collect_mysql(plugin_t *plugin);
+
+static void _collect_crud(plugin_t *plugin, json_object *values);
+static void _collect_innodb(plugin_t *plugin, json_object *values);
+static void _collect_query(plugin_t *plugin, json_object *values);
+static void _collect_threads(plugin_t *plugin, json_object *values);
+static void _collect_replica(plugin_t *plugin, json_object *values);
 static MYSQL_RES *query_result(MYSQL *mysql, const char *query);
 
 int mysql_plugin_init(plugin_t *plugin) {
@@ -43,7 +52,7 @@ int mysql_plugin_init(plugin_t *plugin) {
 	plugin->period     = MYSQL_PLUGIN_TICK;
 	plugin->full_count = MYSQL_PLUGIN_FULL;
 
-	plugin->collect    = collect_mysql_metrics;
+	plugin->collect    = collect_mysql;
 	plugin->fini       = mysql_plugin_fini;
 
 	return 0;
@@ -59,20 +68,122 @@ void mysql_plugin_fini(plugin_t *plugin) {
 	}
 }
 
-void collect_mysql_metrics(plugin_t *plugin) {
+void collect_mysql(plugin_t *plugin) {
 	json_object *values = json_object_new_array();
-	MYSQL_RES *res = query_result(((mysql_spec_t *)plugin->spec)->mysql, "show global status where variable_name in ('Queries');");
 
-	MYSQL_ROW row;
-	while((row = mysql_fetch_row(res)))
-		printf("%s %s\n", row[0], row[1]);
-
-	mysql_free_result(res);
+	_collect_crud(plugin, values);
+	_collect_innodb(plugin, values);
+	_collect_query(plugin, values);
+	_collect_threads(plugin, values);
 
 	char ts[20];
-	snprintf(ts, 20, "%llu", plugin->next_run - plugin->period);
+	snprintf(ts, 20, "%llu", get_timestamp());
 	json_object_object_add(plugin->values, ts, values);
 	plugin->holding ++;
+}
+
+void _collect_crud(plugin_t *plugin, json_object *values) {
+	MYSQL_RES *res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show global status where variable_name in ('com_select','com_insert','com_update','com_delete');");
+
+	MYSQL_ROW row;
+	while((row = mysql_fetch_row(res))) {
+		json_object_array_add(plugin->metric_names, json_object_new_string(row[0]));
+		json_object_array_add(values, json_object_new_int(atoi(row[1])));
+	}
+	mysql_free_result(res);
+}
+
+void _collect_innodb(plugin_t *plugin, json_object *values) {
+	MYSQL_RES *res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show global variables where variable_name in (\
+			    'innodb_buffer_pool_size'\
+			);");
+	MYSQL_ROW row;
+	while((row = mysql_fetch_row(res))) {
+		json_object_array_add(plugin->metric_names, json_object_new_string(row[0]));
+		json_object_array_add(values, json_object_new_int(atoi(row[1])));
+	}
+	mysql_free_result(res);
+	res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show global status where variable_name in (\
+				'innodb_buffer_pool_pages_total',\
+			    'innodb_buffer_pool_pages_free',\
+				'innodb_buffer_pool_pages_data',\
+			    'innodb_buffer_pool_read_requests',\
+			    'innodb_buffer_pool_reads',\
+			    'innodb_buffer_pool_write_requests',\
+			    'innodb_pages_created',\
+			    'innodb_pages_read',\
+			    'innodb_pages_written'\
+			);");
+
+	while((row = mysql_fetch_row(res))) {
+		json_object_array_add(plugin->metric_names, json_object_new_string(row[0]));
+		json_object_array_add(values, json_object_new_int(atoi(row[1])));
+	}
+	mysql_free_result(res);
+}
+
+void _collect_query(plugin_t *plugin, json_object *values) {
+	MYSQL_RES *res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show global status where variable_name in (\
+			    'slow_queries'\
+			);");
+	MYSQL_ROW row;
+	while((row = mysql_fetch_row(res))) {
+		json_object_array_add(plugin->metric_names, json_object_new_string(row[0]));
+		json_object_array_add(values, json_object_new_int(atoi(row[1])));
+	}
+	mysql_free_result(res);
+	res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show global variables where variable_name in (\
+			    'slow_query_log',\
+			    'slow_query_log_file'\
+			);");
+	int slow_query_log = 0;
+	char slow_query_log_file[100];
+	while((row = mysql_fetch_row(res))) {
+		if(strncmp("slow_query_log_file", row[0], 19) == 0) {
+			strncpy(slow_query_log_file, row[1], 100);
+		} else if(strncmp("slow_query_log", row[0], 14) == 0) {
+			slow_query_log = strncmp("ON", row[1], 2)==0;
+		}
+	}
+	if(slow_query_log) {
+		FILE *log = fopen(slow_query_log_file, "r");
+		fclose(log);
+	}
+	
+	mysql_free_result(res);
+	res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show count(*) errors;");
+}
+
+void _collect_threads(plugin_t *plugin, json_object *values) {
+	MYSQL_RES *res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"show global status where variable_name in (\
+			    'connections',\
+			    'threads_connected',\
+				'threads_running'\
+			);");
+	MYSQL_ROW row;
+	while((row = mysql_fetch_row(res))) {
+		json_object_array_add(plugin->metric_names, json_object_new_string(row[0]));
+		json_object_array_add(values, json_object_new_int(atoi(row[1])));
+	}
+	/*mysql_free_result(res);
+	res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
+			"select * from performance_schema.threads);");
+	while((row = mysql_fetch_row(res))) {
+		json_object_array_add(plugin->metric_names, json_object_new_string(row[0]));
+		json_object_array_add(values, json_object_new_int(atoi(row[1])));
+	}
+	mysql_free_result(res);
+	*/
+}
+
+void _collect_replica(plugin_t *plugin, json_object *values) {
 }
 
 MYSQL_RES *query_result(MYSQL *mysql, const char *query) {

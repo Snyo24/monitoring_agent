@@ -39,12 +39,13 @@ const char *disk_metric_names[] = {
 	"disk_stat_weight"
 };
 
-static void collect_cpu_metrics(plugin_t *plugin, json_object *values);
-static void collect_disk_metrics(plugin_t *plugin, json_object *values);
-static void collect_proc_metrics(plugin_t *plugin, json_object *values);
-static void collect_memory_metrics(plugin_t *plugin, json_object *values);
-static void collect_network_metrics(plugin_t *plugin, json_object *values);
-static void collect_os_metrics(plugin_t *plugin);
+static void _collect_cpu(plugin_t *plugin, json_object *values);
+static void _collect_disk(plugin_t *plugin, json_object *values);
+static void _collect_proc(plugin_t *plugin, json_object *values);
+static void _collect_memory(plugin_t *plugin, json_object *values);
+static void _collect_network(plugin_t *plugin, json_object *values);
+
+static void collect_os(plugin_t *plugin);
 
 int os_plugin_init(plugin_t *plugin) {
 	plugin->spec = malloc(sizeof(1));
@@ -56,7 +57,7 @@ int os_plugin_init(plugin_t *plugin) {
 	plugin->period     = OS_PLUGIN_TICK;
 	plugin->full_count = OS_PLUGIN_FULL;
 
-	plugin->collect    = collect_os_metrics;
+	plugin->collect    = collect_os;
 	plugin->fini       = os_plugin_fini;
 
 	return 0;
@@ -70,14 +71,14 @@ void os_plugin_fini(plugin_t *plugin) {
 		free(plugin->spec);
 }
 
-void collect_os_metrics(plugin_t *plugin) {
+void collect_os(plugin_t *plugin) {
 	json_object *values = json_object_new_array();
 
-	collect_network_metrics(plugin, values);
-	collect_cpu_metrics(plugin, values);
-	collect_disk_metrics(plugin, values);
-	collect_proc_metrics(plugin, values);
-	collect_memory_metrics(plugin, values);
+	_collect_cpu(plugin, values);
+	_collect_disk(plugin, values);
+	_collect_proc(plugin, values);
+	_collect_memory(plugin, values);
+	_collect_network(plugin, values);
 	*(unsigned *)plugin->spec = 1;
 
 	if(++plugin->holding == plugin->full_count)
@@ -99,7 +100,7 @@ void collect_os_metrics(plugin_t *plugin) {
  *
  * (network name, bytes, packets, errors received/transmitted)
  */
-void collect_network_metrics(plugin_t *plugin, json_object *values) {
+void _collect_network(plugin_t *plugin, json_object *values) {
 	FILE *pipe = popen("awk '{gsub(\":\",\"\",$1);print $1,$2,$3,$4,$10,$11,$12}' /proc/net/dev\
 			          | tail -n -2", "r");
 	if(!pipe) return;
@@ -148,7 +149,7 @@ void collect_network_metrics(plugin_t *plugin, json_object *values) {
  *
  * (CPU usage of user, system, and idle)
  */
-void collect_cpu_metrics(plugin_t *plugin, json_object *values) {
+void _collect_cpu(plugin_t *plugin, json_object *values) {
 	FILE *pipe;
 	pipe = popen("awk '$1~/^cpu$/{tot=$2+$3+$4+$5;print $2/tot,$4/tot,$5/tot}' /proc/stat", "r");
 	if(!pipe) return;
@@ -174,7 +175,7 @@ void collect_cpu_metrics(plugin_t *plugin, json_object *values) {
  * Disk metrics
  * This function extracts disk metrics.
  */
-void collect_disk_metrics(plugin_t *plugin, json_object *values) {
+void _collect_disk(plugin_t *plugin, json_object *values) {
 	FILE *pipe;
 	pipe = popen("awk '$1~\"/dev/\"{gsub(\"/dev/\",\"\",$1);print $1,$2}' /proc/mounts", "r");
 	if(!pipe) return;
@@ -264,7 +265,7 @@ void collect_disk_metrics(plugin_t *plugin, json_object *values) {
  *
  * (a command to execute the process, cpu(or memory) percentage that the process is using)
  */
-void collect_proc_metrics(plugin_t *plugin, json_object *values) {
+void _collect_proc(plugin_t *plugin, json_object *values) {
 	/* CPU */
 	FILE *pipe = popen("ps -eo comm,pcpu --sort=-pcpu,-pmem --no-headers\
 			          | head -n 10", "r");
@@ -354,7 +355,7 @@ void collect_proc_metrics(plugin_t *plugin, json_object *values) {
  *
  * (total, free, cached, active, inactive, total virtual, and using virtual memory)
  */
-void collect_memory_metrics(plugin_t *plugin, json_object *values) {
+void _collect_memory(plugin_t *plugin, json_object *values) {
 	FILE *pipe = popen("awk '/^Mem[TF]|^Cached|Active:|Inactive:|Vmalloc[TU]/{print $2}' /proc/meminfo", "r");
 	if(!pipe) return;
 
