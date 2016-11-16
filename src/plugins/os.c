@@ -109,8 +109,8 @@ void _collect_network(plugin_t *plugin, json_object *values) {
 	unsigned int recv_byte, recv_pckt, recv_err;
 	unsigned int send_byte, send_pckt, send_err;
 
-	unsigned int total_recv_byte = 0;
-	unsigned int total_send_byte = 0;
+	unsigned long long total_recv_byte = 0;
+	unsigned long long total_send_byte = 0;
 	while(fscanf(pipe, "%s", net_name) == 1) {
 		if(fscanf(pipe, "%u%u%u%u%u%u", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
 			if(!*(unsigned *)plugin->spec) {
@@ -122,20 +122,20 @@ void _collect_network(plugin_t *plugin, json_object *values) {
 			}
 			total_recv_byte += recv_byte;
 			total_send_byte += send_byte;
-			json_object_array_add(values, json_object_new_int(recv_byte));
-			json_object_array_add(values, json_object_new_int(recv_pckt));
-			json_object_array_add(values, json_object_new_int(recv_err));
-			json_object_array_add(values, json_object_new_int(send_byte));
-			json_object_array_add(values, json_object_new_int(send_pckt));
-			json_object_array_add(values, json_object_new_int(send_err));
+			json_object_array_add(values, json_object_new_int64(recv_byte));
+			json_object_array_add(values, json_object_new_int64(recv_pckt));
+			json_object_array_add(values, json_object_new_int64(recv_err));
+			json_object_array_add(values, json_object_new_int64(send_byte));
+			json_object_array_add(values, json_object_new_int64(send_pckt));
+			json_object_array_add(values, json_object_new_int64(send_err));
 		} else break;
 	}
 	if(!*(unsigned *)plugin->spec) {
 		json_object_array_add(plugin->metric, json_object_new_string("net_stat_total_recv_byte"));
 		json_object_array_add(plugin->metric, json_object_new_string("net_stat_total_send_byte"));
 	}
-	json_object_array_add(values, json_object_new_int(total_recv_byte));
-	json_object_array_add(values, json_object_new_int(total_send_byte));
+	json_object_array_add(values, json_object_new_int64(total_recv_byte));
+	json_object_array_add(values, json_object_new_int64(total_send_byte));
 	pclose(pipe);
 }
 
@@ -200,9 +200,9 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 					snprintf(metric_name, 50, "disk_stat_part_avail|%s(%s)", part_name, part_mount);
 					json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 				}
-				json_object_array_add(values, json_object_new_int(part_total));
-				json_object_array_add(values, json_object_new_int(part_used));
-				json_object_array_add(values, json_object_new_int(part_total-part_used));
+				json_object_array_add(values, json_object_new_int64(part_total));
+				json_object_array_add(values, json_object_new_int64(part_used));
+				json_object_array_add(values, json_object_new_int64(part_total-part_used));
 			}
 			pclose(subpipe);
 		}
@@ -231,15 +231,15 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 					}
 				}
 				io += r+w;
-				json_object_array_add(values, json_object_new_int(r+w));
-				json_object_array_add(values, json_object_new_int(rt+wt));
-				json_object_array_add(values, json_object_new_int(r));
+				json_object_array_add(values, json_object_new_int64(r+w));
+				json_object_array_add(values, json_object_new_int64(rt+wt));
+				json_object_array_add(values, json_object_new_int64(r));
 				json_object_array_add(values, json_object_new_double((double)rsec*(double)sector_size));
-				json_object_array_add(values, json_object_new_int(rt));
-				json_object_array_add(values, json_object_new_int(w));
+				json_object_array_add(values, json_object_new_int64(rt));
+				json_object_array_add(values, json_object_new_int64(w));
 				json_object_array_add(values, json_object_new_double((double)wsec*(double)sector_size));
-				json_object_array_add(values, json_object_new_int(wt));
-				json_object_array_add(values, json_object_new_int(weight));
+				json_object_array_add(values, json_object_new_int64(wt));
+				json_object_array_add(values, json_object_new_int64(weight));
 			}
 			pclose(subpipe);
 		}
@@ -247,7 +247,7 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 	if(!*(unsigned *)plugin->spec) {
 		json_object_array_add(plugin->metric, json_object_new_string("disk_stat_total"));
 	}
-	json_object_array_add(values, json_object_new_int(io));
+	json_object_array_add(values, json_object_new_int64(io));
 	pclose(pipe);
 }
 
@@ -332,7 +332,7 @@ void _collect_proc(plugin_t *plugin, json_object *values) {
 		}
 		json_object_array_add(values, json_object_new_string(user));
 		json_object_array_add(values, json_object_new_string(process));
-		json_object_array_add(values, json_object_new_int(count));
+		json_object_array_add(values, json_object_new_int64(count));
 		json_object_array_add(values, json_object_new_double(cpu));
 		json_object_array_add(values, json_object_new_double(mem));
 	}
@@ -373,11 +373,11 @@ void _collect_memory(plugin_t *plugin, json_object *values) {
 		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_sys"));
 		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_virtual_usage"));
 	}
-	json_object_array_add(values, json_object_new_int(total));
-	json_object_array_add(values, json_object_new_int(free));
-	json_object_array_add(values, json_object_new_int(cached));
-	json_object_array_add(values, json_object_new_int((active+inactive)));
-	json_object_array_add(values, json_object_new_int((total-free-active-inactive)));
+	json_object_array_add(values, json_object_new_int64(total));
+	json_object_array_add(values, json_object_new_int64(free));
+	json_object_array_add(values, json_object_new_int64(cached));
+	json_object_array_add(values, json_object_new_int64((active+inactive)));
+	json_object_array_add(values, json_object_new_int64((total-free-active-inactive)));
 	json_object_array_add(values, json_object_new_double((double)v_used/(double)v_total));
 
 	pclose(pipe);
