@@ -45,14 +45,14 @@ int sender_init(sender_t *sender) {
 	if(runnable_init((runnable_t *)sender) < 0) return -1;
 	if(!(sender->tag = zlog_get_category("sender")));
 
-	zlog_debug(sender->tag, "Clear old data");
+	DEBUG(zlog_debug(sender->tag, "Clear old data"));
 	if(clear_unsent() < 0)
 		zlog_warn(sender->tag, "Fail to clear old data");
 
 	snprintf(unsent_end, 50, "%s/unsent.%d", unsent_path, UNSENT_END);
 	snprintf(unsent_sending, 50, "%s/unsent_sending", unsent_path);
 
-	zlog_debug(sender->tag, "Initialize cURL");
+	DEBUG(zlog_debug(sender->tag, "Initialize cURL"));
 	sender->header = 0;
 	if(!(sender->curl = curl_easy_init())
 			|| !(sender->header = curl_slist_append(sender->header, CONTENT_TYPE))
@@ -102,15 +102,15 @@ void sender_main(void *_sender) {
 
 	while(!storage_empty(&storage)) {
 		char *payload = storage_fetch(&storage);
-		zlog_debug(sender->tag, "Try POST for 30sec");
+		DEBUG(zlog_debug(sender->tag, "Try POST for 30sec"));
 		if(sender_post(sender, payload) < 0) {
-			zlog_debug(sender->tag, "POST fail");
+			zlog_error(sender->tag, "POST fail");
 			sender->backoff <<= 1;
 			sender->backoff |= !sender->backoff;
 			sender->period = SENDER_TICK * sender->backoff;
 			break;
 		} else {
-			zlog_debug(sender->tag, "POST success");
+			DEBUG(zlog_debug(sender->tag, "POST success"));
 			storage_drop(&storage);
 			sender->period = SENDER_TICK;
 			sender->backoff = 1;
@@ -122,17 +122,17 @@ void sender_main(void *_sender) {
 				if(load_unsent(sender) < 0) continue;
 			}
 
-			zlog_debug(sender->tag, "POST unsent JSON");
+			DEBUG(zlog_debug(sender->tag, "POST unsent JSON"));
 			while(sender->unsent_json_loaded 
 					|| fgets(sender->unsent_json, 41960, sender->unsent_sending_fp)) {
 				sender->unsent_json_loaded = 1;
 				if(sender_post(sender, sender->unsent_json) < 0) {
-					zlog_debug(sender->tag, "POST unsent fail");
+					zlog_error(sender->tag, "POST unsent fail");
 					return;
 				}
 				sender->unsent_json_loaded = 0;
 			}
-			zlog_debug(sender->tag, "Fail to get unsent JSON");
+			zlog_error(sender->tag, "Fail to get unsent JSON");
 			drop_unsent_sending(sender);
 		}
 	}
@@ -163,7 +163,7 @@ int sender_post(sender_t *sender, char *payload) {
 	CURLcode curl_code = curl_easy_perform(sender->curl);
 	long status_code;
 	curl_easy_getinfo(sender->curl, CURLINFO_RESPONSE_CODE, &status_code);
-	zlog_debug(sender->tag, "POST returns curl code(%d) and http_status(%ld)", curl_code, status_code);
+	DEBUG(zlog_debug(sender->tag, "POST returns curl code(%d) and http_status(%ld)", curl_code, status_code));
 	if(status_code == 403) {
 		zlog_error(sender->tag, "Check your license");
 		exit(1);
@@ -173,7 +173,6 @@ int sender_post(sender_t *sender, char *payload) {
 
 size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag) {
 	zlog_debug(tag, "%.*s\n", (int)size*(int)nmemb, ptr);
-	printf("%.*s\n", (int)size*(int)nmemb, ptr);
 	return nmemb;
 }
 
@@ -206,7 +205,7 @@ int load_unsent(sender_t *sender) {
 }
 
 void drop_unsent_sending(sender_t *sender) {
-	zlog_debug(sender->tag, "Close and remove unsent_sending");
+	DEBUG(zlog_debug(sender->tag, "Close and remove unsent_sending"));
 	fclose(sender->unsent_sending_fp);
 	sender->unsent_sending_fp = NULL;
 	sender->unsent_json_loaded = 0;

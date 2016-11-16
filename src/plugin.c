@@ -52,7 +52,7 @@ int plugin_init(plugin_t *plugin, const char *type) {
 
 int plugin_fini(plugin_t *plugin) {
 	if(!plugin) return -1;
-	zlog_info(plugin->tag, "Finishing");
+	DEBUG(zlog_info(plugin->tag, "Finishing"));
 
 	if(plugin->fini)
 		plugin->fini(plugin);
@@ -70,7 +70,7 @@ int plugin_fini(plugin_t *plugin) {
  * returns 0 for success, -1 for failure
  */
 int start(plugin_t *plugin) {
-	zlog_info(plugin->tag, "Starting");
+	DEBUG(zlog_info(plugin->tag, "Starting"));
 
 	plugin->alive   = 1;
 	plugin->holding = 0;
@@ -86,7 +86,7 @@ int start(plugin_t *plugin) {
 }
 
 void stop(plugin_t *plugin) {
-	zlog_info(plugin->tag, "Stopping");
+	DEBUG(zlog_info(plugin->tag, "Stopping"));
 	plugin->alive = 0;
 
 	pthread_cancel(plugin->running_thread);
@@ -98,7 +98,7 @@ void stop(plugin_t *plugin) {
 }
 
 void restart(plugin_t *plugin) {
-	zlog_info(plugin->tag, "Restarting");
+	DEBUG(zlog_info(plugin->tag, "Restarting"));
 	stop(plugin);
 	start(plugin);
 }
@@ -121,9 +121,9 @@ void *plugin_main(void *_plugin) {
 	pthread_mutex_unlock(&plugin->sync);
 
 	while(plugin->alive) {
-		zlog_debug(plugin->tag, "Waiting to be poked");
+		DEBUG(zlog_debug(plugin->tag, "Waiting to be poked"));
 		pthread_cond_wait(&plugin->poked, &plugin->pike);
-		zlog_debug(plugin->tag, "Poked");
+		DEBUG(zlog_debug(plugin->tag, "Poked"));
 
 		pthread_mutex_lock(&plugin->sync);
 		plugin->next_run += plugin->period;
@@ -131,20 +131,20 @@ void *plugin_main(void *_plugin) {
 		pthread_mutex_unlock(&plugin->sync);
 
 		epoch_t begin = epoch_time();
-		zlog_debug(plugin->tag, "Start collecting");
+		DEBUG(zlog_debug(plugin->tag, "Start collecting"));
 		plugin->collect(plugin);
 		if(plugin->holding == plugin->capacity) {
 			pack(plugin);
 			plugin->metric = json_object_new_array();
 		}
-		zlog_debug(plugin->tag, "Done in %llums", epoch_time()-begin);
+		DEBUG(zlog_debug(plugin->tag, "Done in %llums", epoch_time()-begin));
 	}
 
 	return NULL;
 }
 
 void pack(plugin_t *plugin) {
-	zlog_debug(plugin->tag, "Packing data");
+	DEBUG(zlog_debug(plugin->tag, "Packing data"));
 	json_object *payload = json_object_new_object();
 	json_object_object_add(payload, "license", json_object_new_string(license));
 	json_object_object_add(payload, "uuid", json_object_new_string(uuid));

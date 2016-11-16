@@ -27,7 +27,7 @@ int storage_init(storage_t *storage) {
 	storage->tag = zlog_get_category("storage");
 	if(!storage->tag);
 
-	zlog_debug(storage->tag, "Initializing");
+	DEBUG(zlog_debug(storage->tag, "Initializing"));
 
 	storage->period = STORAGE_TICK;
 	storage->job    = storage_main;
@@ -37,7 +37,7 @@ int storage_init(storage_t *storage) {
 	storage->holding = 0;
 	pthread_mutex_init(&storage->lock, NULL);
 
-	zlog_debug(storage->tag, "Done");
+	DEBUG(zlog_debug(storage->tag, "Done"));
 
 	return 0;
 }
@@ -50,7 +50,7 @@ void storage_fini(storage_t *storage) {
 void storage_main(void *_storage) {
 	storage_t *storage = (storage_t *)_storage;
 
-	zlog_debug(storage->tag, "Holding %d/%d", storage->holding, CAPACITY);
+	DEBUG(zlog_debug(storage->tag, "Holding %d/%d", storage->holding, CAPACITY));
 
 	if(storage_full(storage)) {
 		zlog_warn(storage->tag, "Full storage, store unsent JSON");
