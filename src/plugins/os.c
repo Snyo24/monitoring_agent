@@ -106,13 +106,13 @@ void _collect_network(plugin_t *plugin, json_object *values) {
 	if(!pipe) return;
 
 	char net_name[50];
-	unsigned int recv_byte, recv_pckt, recv_err;
-	unsigned int send_byte, send_pckt, send_err;
+	unsigned long long recv_byte, recv_pckt, recv_err;
+	unsigned long long send_byte, send_pckt, send_err;
 
 	unsigned long long total_recv_byte = 0;
 	unsigned long long total_send_byte = 0;
 	while(fscanf(pipe, "%s", net_name) == 1) {
-		if(fscanf(pipe, "%u%u%u%u%u%u", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
+		if(fscanf(pipe, "%llu%llu%llu%llu%llu%llu", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
 			if(!*(unsigned *)plugin->spec) {
 				for(int i=0; i<sizeof(network_metric)/sizeof(char *); ++i) {
 					char new_metric[100];
@@ -182,15 +182,15 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 
 	char part_name[10];
 	char part_mount[30];
-	unsigned io = 0;
+	unsigned long long io = 0;
 	while(fscanf(pipe, "%s%s\n", part_name, part_mount) == 2) {
 		/* Disk usage with df */
 		char cmd[100];
 		snprintf(cmd, 100, "df | awk '$1~\"%s\"{print $2,$3}'", part_name);
 		FILE *subpipe = popen(cmd, "r");
 		if(subpipe) {
-			unsigned int part_total, part_used;
-			if(fscanf(subpipe, "%u%u", &part_total, &part_used) == 2) {
+			unsigned long long part_total, part_used;
+			if(fscanf(subpipe, "%llu%llu", &part_total, &part_used) == 2) {
 				if(!*(unsigned *)plugin->spec) {
 					char metric_name[50];
 					snprintf(metric_name, 50, "disk_stat_part_total|%s(%s)", part_name, part_mount);
@@ -221,8 +221,8 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 		snprintf(cmd, 100, "awk '$3~/^%s$/{print $4,$6,$7,$8,$10,$11,$14}' /proc/diskstats", part_name);
 		subpipe = popen(cmd, "r");
 		if(subpipe) {
-			unsigned int r, rsec, rt, w, wsec, wt, weight;
-			if(fscanf(subpipe, "%u%u%u%u%u%u%u", &r, &rsec, &rt, &w, &wsec, &wt, &weight) == 7) {
+			unsigned long long r, rsec, rt, w, wsec, wt, weight;
+			if(fscanf(subpipe, "%llu%llu%llu%llu%llu%llu%llu", &r, &rsec, &rt, &w, &wsec, &wt, &weight) == 7) {
 				if(!*(unsigned *)plugin->spec) {
 					for(int i=0; i<sizeof(disk_metric)/sizeof(char *); ++i) {
 						char metric_name[50];
@@ -313,10 +313,10 @@ void _collect_proc(plugin_t *plugin, json_object *values) {
 			| sort -rk 4", "r");
 	if(!pipe) return;
 	char user[100], process[100];
-	int count;
-	float cpu, mem;
+	unsigned long count;
+	double cpu, mem;
 	int i=0;
-	while(i++<5 && fscanf(pipe, "%s%s%d%f%f", user, process, &count, &cpu, &mem) == 5) {
+	while(i++<5 && fscanf(pipe, "%s%s%lu%lf%lf", user, process, &count, &cpu, &mem) == 5) {
 		if(!*(unsigned *)plugin->spec) {
 			char metric_name[50];
 			snprintf(metric_name, 50, "proc_stat_proc%d_user", i);
@@ -359,8 +359,8 @@ void _collect_memory(plugin_t *plugin, json_object *values) {
 	FILE *pipe = popen("awk '/^Mem[TF]|^Cached|Active:|Inactive:|Vmalloc[TU]/{print $2}' /proc/meminfo", "r");
 	if(!pipe) return;
 
-	unsigned long total, free, cached, active, inactive, v_total, v_used;
-	if(fscanf(pipe, "%lu%lu%lu%lu%lu%lu%lu", &total, &free, &cached, &active, &inactive, &v_total, &v_used) != 7) {
+	unsigned long long total, free, cached, active, inactive, v_total, v_used;
+	if(fscanf(pipe, "%llu%llu%llu%llu%llu%llu%llu", &total, &free, &cached, &active, &inactive, &v_total, &v_used) != 7) {
 		pclose(pipe);
 		return;
 	}
