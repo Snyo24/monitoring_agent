@@ -30,10 +30,10 @@ static int get_mac_addr();
 
 int metadata_init() {
 	return get_hostname()!= -1
-	    && get_os()      != -1
+		&& get_os()      != -1
 		&& get_license() != -1
 		&& get_uuid()    != -1
-	    && get_agent_ip()!= -1
+		&& get_agent_ip()!= -1
 		&& get_agent_type()!=-1
 		&& get_pid()     != -1;
 }
@@ -70,7 +70,7 @@ int get_agent_type() {
 }
 
 int get_license() {
-	FILE *license_fd = fopen("res/license", "r");
+	FILE *license_fd = fopen("cfg/license", "r");
 	if(!license_fd) return -1;
 	int success = fscanf(license_fd, "%s", license) == 1;
 	fclose(license_fd);
@@ -88,7 +88,7 @@ int get_uuid() {
 	char md_str[100];
 	if(get_mac_addr(md_str) < 0) return -1;
 	int n = 12;
-	n += snprintf(md_str, 100-n, "%llu", get_timestamp());
+	n += snprintf(md_str, 100-n, "%llu", epoch_time());
 
 	unsigned char md_hash[MD5_DIGEST_LENGTH];
 	MD5((unsigned char *)&md_str, strlen(md_str), (unsigned char *)&md_hash);
@@ -112,24 +112,24 @@ int get_pid() {
 }
 
 int get_mac_addr(char *mac) {
-    FILE *fd = popen("ls /sys/class/net", "r");
-    if(fd < 0) return -1;
-    char net_name[100];
-    int loaded = 0;
-    while(fscanf(fd, "%100s", net_name) == 1)
-       if(strncmp(net_name, "lo", 2) != 0) {
-            loaded = 1;
-            break;
-        }
-    pclose(fd);
-    if(!loaded) return -1;
-    char addr[100];
-    snprintf(addr, 100, "/sys/class/net/%s/address", net_name);
-    if((fd = fopen(addr, "r")) < 0)
-        return -1;
-    loaded = fscanf(fd, "%2s:%2s:%2s:%2s:%2s:%2s", &mac[0], &mac[2], &mac[4],\
-	                                               &mac[6], &mac[8], &mac[10]) == 6;
-    fclose(fd);
-    if(!loaded) return -1;
-    return 0;
+	FILE *fd = popen("ls /sys/class/net", "r");
+	if(fd < 0) return -1;
+	char net_name[100];
+	int loaded = 0;
+	while(fscanf(fd, "%100s", net_name) == 1)
+		if(strncmp(net_name, "lo", 2) != 0) {
+			loaded = 1;
+			break;
+		}
+	pclose(fd);
+	if(!loaded) return -1;
+	char addr[100];
+	snprintf(addr, 100, "/sys/class/net/%s/address", net_name);
+	if((fd = fopen(addr, "r")) < 0)
+		return -1;
+	loaded = fscanf(fd, "%2s:%2s:%2s:%2s:%2s:%2s", &mac[0], &mac[2], &mac[4],\
+			&mac[6], &mac[8], &mac[10]) == 6;
+	fclose(fd);
+	if(!loaded) return -1;
+	return 0;
 }

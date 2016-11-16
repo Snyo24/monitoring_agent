@@ -3,12 +3,24 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
-#define MS_PER_S (1000ULL)
+#include <pthread.h>
 
-typedef unsigned long long timestamp;
+#define MSPS (1000ULL)
+#define NSPMS (1000000ULL)
 
-timestamp get_timestamp();
-void snyo_sleep(timestamp ms);
+#ifdef VERBOSE
+#define DEBUG(x) x
+#else
+#define DEBUG(x) do{} while(0)
+#endif
+
+typedef unsigned long long epoch_t;
+
+epoch_t epoch_time();
+void snyo_sleep(epoch_t ms);
+int pthread_sync(pthread_cond_t *syncd,\
+		         pthread_mutex_t *sync,\
+				 unsigned long timelimit);
 int file_exist(char *filename);
 
 #endif

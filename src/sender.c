@@ -11,11 +11,11 @@
 
 #include <zlog.h>
 #include <curl/curl.h>
- 
+
 #include "storage.h"
 #include "util.h"
 
-#define SENDER_TICK MS_PER_S*3
+#define SENDER_TICK MSPS*3
 
 #define REG_URI    "http://gate.maxgauge.com/v1/agents"
 #define METRIC_URI "http://gate.maxgauge.com/v1/metrics"
@@ -55,12 +55,12 @@ int sender_init(sender_t *sender) {
 	zlog_debug(sender->tag, "Initialize cURL");
 	sender->header = 0;
 	if(!(sender->curl = curl_easy_init())
-		|| !(sender->header = curl_slist_append(sender->header, CONTENT_TYPE))
-		|| curl_easy_setopt(sender->curl, CURLOPT_TIMEOUT,       30)            != CURLE_OK
-		|| curl_easy_setopt(sender->curl, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
-		|| curl_easy_setopt(sender->curl, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
-		|| curl_easy_setopt(sender->curl, CURLOPT_HTTPHEADER,    sender->header)!= CURLE_OK
-		|| curl_easy_setopt(sender->curl, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
+			|| !(sender->header = curl_slist_append(sender->header, CONTENT_TYPE))
+			|| curl_easy_setopt(sender->curl, CURLOPT_TIMEOUT,       30)            != CURLE_OK
+			|| curl_easy_setopt(sender->curl, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
+			|| curl_easy_setopt(sender->curl, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
+			|| curl_easy_setopt(sender->curl, CURLOPT_HTTPHEADER,    sender->header)!= CURLE_OK
+			|| curl_easy_setopt(sender->curl, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
 		zlog_error(sender->tag, "Fail to setup cURL");
 		sender_fini(sender);
 		return -1;
@@ -68,13 +68,13 @@ int sender_init(sender_t *sender) {
 
 	header = 0;
 	if(!(curl_alert = curl_easy_init())
-		|| !(header = curl_slist_append(header, CONTENT_TYPE))
-		|| curl_easy_setopt(curl_alert, CURLOPT_TIMEOUT,       30)            != CURLE_OK
-		|| curl_easy_setopt(curl_alert, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
-		|| curl_easy_setopt(curl_alert, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
-		|| curl_easy_setopt(curl_alert, CURLOPT_URL, ALERT_URI) != CURLE_OK
-		|| curl_easy_setopt(curl_alert, CURLOPT_HTTPHEADER,    header)        != CURLE_OK
-		|| curl_easy_setopt(curl_alert, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
+			|| !(header = curl_slist_append(header, CONTENT_TYPE))
+			|| curl_easy_setopt(curl_alert, CURLOPT_TIMEOUT,       30)            != CURLE_OK
+			|| curl_easy_setopt(curl_alert, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
+			|| curl_easy_setopt(curl_alert, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
+			|| curl_easy_setopt(curl_alert, CURLOPT_URL, ALERT_URI) != CURLE_OK
+			|| curl_easy_setopt(curl_alert, CURLOPT_HTTPHEADER,    header)        != CURLE_OK
+			|| curl_easy_setopt(curl_alert, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
 		zlog_error(sender->tag, "Fail to setup cURL");
 		sender_fini(sender);
 		return -1;
@@ -124,7 +124,7 @@ void sender_main(void *_sender) {
 
 			zlog_debug(sender->tag, "POST unsent JSON");
 			while(sender->unsent_json_loaded 
-			   || fgets(sender->unsent_json, 41960, sender->unsent_sending_fp)) {
+					|| fgets(sender->unsent_json, 41960, sender->unsent_sending_fp)) {
 				sender->unsent_json_loaded = 1;
 				if(sender_post(sender, sender->unsent_json) < 0) {
 					zlog_debug(sender->tag, "POST unsent fail");

@@ -17,8 +17,8 @@
 #include "metadata.h"
 #include "sender.h"
 
-#define PROXY_PLUGIN_TICK MS_PER_S*1
-#define PROXY_PLUGIN_FULL 1
+#define PROXY_PLUGIN_TICK MSPS*1
+#define PROXY_PLUGIN_CAPACITY 1
 #define MAX_CONNECTION 3
 
 typedef struct _proxy_spec {
@@ -38,13 +38,13 @@ int proxy_plugin_init(proxy_plugin_t *plugin) {
 		return -1;
 	}
 
-	plugin->target_type = "jvm_linux_1.0";
-	plugin->target_ip  = 0;
-	plugin->period     = PROXY_PLUGIN_TICK;
-	plugin->full_count = PROXY_PLUGIN_FULL;
+	plugin->type     = "jvm_linux_1.0";
+	plugin->ip       = 0;
+	plugin->period   = PROXY_PLUGIN_TICK;
+	plugin->capacity = PROXY_PLUGIN_CAPACITY;
 
-	plugin->collect    = collect_proxy_metrics;
-	plugin->fini       = proxy_plugin_fini;
+	plugin->collect  = collect_proxy_metrics;
+	plugin->fini     = proxy_plugin_fini;
 
 	return 0;
 }
@@ -63,16 +63,16 @@ int proxy_spec_init(proxy_spec_t *spec) {
 	proxy_addr.sin_port        = htons(8084);
 
 	if(bind(spec->proxy_sock, (struct sockaddr *)&proxy_addr, sizeof(proxy_addr)) < 0
-	|| listen(spec->proxy_sock, MAX_CONNECTION) < 0) {
+			|| listen(spec->proxy_sock, MAX_CONNECTION) < 0) {
 		close(spec->proxy_sock);
 		return -1;
 	}
-	
+
 	struct epoll_event init_event;
 	init_event.events = EPOLLIN;
 	init_event.data.fd = spec->proxy_sock;
 	if((spec->epoll_fd = epoll_create(MAX_CONNECTION * 2)) < 0
-	|| epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, spec->proxy_sock, &init_event) < 0) {
+			|| epoll_ctl(spec->epoll_fd, EPOLL_CTL_ADD, spec->proxy_sock, &init_event) < 0) {
 		close(spec->proxy_sock);
 		return -1;
 	}
@@ -123,9 +123,9 @@ void collect_proxy_metrics(proxy_plugin_t *plugin) {
 				if(read(fd, buf, 1024) <= 0) break;
 				json_object *obj = json_tokener_parse(buf);
 				if(!obj) break;
-				json_object_put(plugin->metric_names);
+				json_object_put(plugin->metric);
 				json_object_put(plugin->values);
-				plugin->metric_names = json_object_object_get(obj, "metrics");
+				plugin->metric = json_object_object_get(obj, "metrics");
 				plugin->values = json_object_object_get(obj, "values");
 				plugin->holding++;
 			}

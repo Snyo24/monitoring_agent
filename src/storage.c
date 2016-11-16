@@ -13,7 +13,7 @@
 
 #include "runnable.h"
 
-#define STORAGE_TICK MS_PER_S*3
+#define STORAGE_TICK MSPS*3
 #define zlog_unsent(cat, fmt, ...) zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, 19,fmt,##__VA_ARGS__)
 
 struct packet_t {
@@ -51,7 +51,7 @@ void storage_main(void *_storage) {
 	storage_t *storage = (storage_t *)_storage;
 
 	zlog_debug(storage->tag, "Holding %d/%d", storage->holding, CAPACITY);
-	
+
 	if(storage_full(storage)) {
 		zlog_warn(storage->tag, "Full storage, store unsent JSON");
 		storage_lock(storage);

@@ -10,11 +10,11 @@
 #include <string.h>
 
 #include <zlog.h>
- 
+
 #include "plugin.h"
 #include "util.h"
 
-#define SCHEDULER_TICK MS_PER_S/2
+#define SCHEDULER_TICK MSPS/2
 
 typedef struct plugin_set_t {
 	unsigned up;
@@ -31,27 +31,22 @@ int scheduler_init(scheduler_t *scheduler) {
 
 	scheduler->tag = zlog_get_category("scheduler");
 	if(!scheduler->tag);
-	
+
 	zlog_debug(scheduler->tag, "Initailize a plugin table");
 	memset(scheduler->plugins, 0, sizeof(plugin_t *)*MAX_PLUGIN);
 
 	scheduler->period = SCHEDULER_TICK;
 	scheduler->job    = scheduler_main;
 
-	zlog_debug(scheduler->tag, "Initialize plugins");
-	plugin_t *plugin = malloc(sizeof(plugin_t));
-	if(plugin_init(plugin, "os") != -1) {
-		plugin->index = 0;
-		scheduler->plugins[plugin->index] = plugin;
-	}
-
-	FILE *plugin_conf = fopen("conf/conf", "r");
+	FILE *plugin_conf = fopen("cfg/plugins", "r");
 	if(!plugin_conf) {
 		zlog_error(scheduler->tag, "Fail to open conf");
 		return -1;
 	}
 
+	zlog_debug(scheduler->tag, "Initialize plugins");
 	char line[1000];
+	plugin_t *plugin;
 	while(fgets(line, 1000, plugin_conf)) {
 		char type[100], option[900];
 		if(sscanf(line, "%100[^(,\n)],%900[^\n]\n", type, option) != 2)
@@ -59,7 +54,9 @@ int scheduler_init(scheduler_t *scheduler) {
 		plugin = malloc(sizeof(plugin_t));
 
 		if(plugin_init(plugin, type) != -1) {
-			if(strncmp(type, "proxy", 5) == 0)
+			if(strncmp(type, "os", 2) == 0)
+				plugin->index = 0;
+			else if(strncmp(type, "proxy", 5) == 0)
 				plugin->index = 1;
 			else if(strncmp(type, "mysql", 5) == 0)
 				plugin->index = 2;
@@ -77,7 +74,11 @@ void start_plugins(scheduler_t *scheduler) {
 	zlog_debug(scheduler->tag, "Start plugins");
 	plugin_t **plugins = scheduler->plugins;
 	for(int i=0; i<MAX_PLUGIN; ++i) {
-		if(plugins[i]) start(plugins[i]);
+		if(plugins[i]) 
+			if(start(plugins[i]) < 0) {
+				plugin_fini(plugins[i]);
+				plugins[i] = NULL;
+			}
 	}
 }
 
@@ -87,19 +88,18 @@ void scheduler_main(void *_scheduler) {
 	for(int i=0; i<MAX_PLUGIN; ++i) {
 		plugin_t *plugin = scheduler->plugins[i];
 		if(!plugin) continue;
-		zlog_debug(scheduler->tag, "Status of %d [%c%c%c%c]", \
-		                                plugin->index, \
-		                                alive(plugin)   ?'R':'.', \
-		                                outdated(plugin)?'O':'.', \
-		                                busy(plugin)    ?'B':'.', \
-		                                timeup(plugin)  ?'T':'.');
-		if(alive(plugin)) {
-			if(timeup(plugin)) {
-				zlog_error(scheduler->tag, "Timeup");
+		zlog_debug(scheduler->tag, "Plugin_%d [%c%c] (%d/%d)", \
+				plugin->index, \
+				alive(plugin)   ?'A':'.', \
+				outdated(plugin)?'O':'.', \
+				plugin->holding,\
+				plugin->capacity);
+
+		if(alive(plugin) && outdated(plugin)) {
+			zlog_debug(scheduler->tag, "Poking");
+			if(poke(plugin) < 0) {
+				zlog_error(scheduler->tag, "Cannot poke the agent");
 				restart(plugin);
-			} else if(outdated(plugin)) {
-				zlog_debug(scheduler->tag, "Poking");
-				poke(plugin);
 			}
 		}
 	}

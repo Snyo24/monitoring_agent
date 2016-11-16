@@ -27,9 +27,9 @@ int plugin_init(plugin_t *plugin, const char *type) {
 
 	/* Thread variables */
 	if(pthread_mutex_init(&plugin->sync, NULL) < 0
-	|| pthread_mutex_init(&plugin->fork, NULL) < 0
-	|| pthread_cond_init(&plugin->syncd, NULL) < 0
-	|| pthread_cond_init(&plugin->poked, NULL) < 0) {
+			|| pthread_mutex_init(&plugin->pike, NULL) < 0
+			|| pthread_cond_init(&plugin->syncd, NULL) < 0
+			|| pthread_cond_init(&plugin->poked, NULL) < 0) {
 		zlog_error(plugin->tag, "Fail to initialize thread variables");
 		plugin_fini(plugin);
 		return -1;
@@ -39,48 +39,50 @@ int plugin_init(plugin_t *plugin, const char *type) {
 	char dlname[20], smname[30];
 	snprintf(dlname, 20, "lib%s.so", type);
 	snprintf(smname, 30, "%s_plugin_init", type);
-    void *dl = dlopen(dlname, RTLD_LAZY);
-    int (*dynamic_plugin_init)(plugin_t *) = dlsym(dl, smname);
-    if(dlerror() || dynamic_plugin_init(plugin) < 0) {
+	void *dl = dlopen(dlname, RTLD_LAZY);
+	int (*dynamic_plugin_init)(plugin_t *) = dlsym(dl, smname);
+	if(dlerror() || dynamic_plugin_init(plugin) < 0) {
 		zlog_error(plugin->tag, "Fail to load %s", smname);
-        plugin_fini(plugin);
-        return -1;
-    }
+		plugin_fini(plugin);
+		return -1;
+	}
 
 	return 0;
 }
 
 int plugin_fini(plugin_t *plugin) {
-	zlog_info(plugin->tag, "Finishing");
 	if(!plugin) return -1;
+	zlog_info(plugin->tag, "Finishing");
 
 	if(plugin->fini)
 		plugin->fini(plugin);
 
 	if(pthread_mutex_destroy(&plugin->sync) < 0
-	|| pthread_mutex_destroy(&plugin->fork) < 0
-	|| pthread_cond_destroy(&plugin->syncd) < 0
-	|| pthread_cond_destroy(&plugin->poked) < 0)
+			|| pthread_mutex_destroy(&plugin->pike) < 0
+			|| pthread_cond_destroy(&plugin->syncd) < 0
+			|| pthread_cond_destroy(&plugin->poked) < 0)
 		return -1;
-	
+
 	return 0;
 }
 
-void start(plugin_t *plugin) {
+/**
+ * returns 0 for success, -1 for failure
+ */
+int start(plugin_t *plugin) {
 	zlog_info(plugin->tag, "Starting");
-	plugin->alive        = 1;
-	plugin->working      = 0;
 
-	plugin->holding      = 0;
-	plugin->metric_names = json_object_new_array();
-	plugin->values       = json_object_new_object();
+	plugin->alive   = 1;
+	plugin->holding = 0;
+	plugin->metric  = json_object_new_array();
+	plugin->values  = json_object_new_object();
 
-	plugin->next_run     = get_timestamp() + plugin->period;
+	plugin->next_run = epoch_time() + plugin->period;
 
 	pthread_mutex_lock(&plugin->sync);
 	pthread_create(&plugin->running_thread, NULL, plugin_main, plugin);
 
-	pthread_cond_wait(&plugin->syncd, &plugin->sync);
+	return pthread_sync(&plugin->syncd, &plugin->sync, 1);
 }
 
 void stop(plugin_t *plugin) {
@@ -89,9 +91,9 @@ void stop(plugin_t *plugin) {
 
 	pthread_cancel(plugin->running_thread);
 	pthread_mutex_unlock(&plugin->sync);
-	pthread_mutex_unlock(&plugin->fork);
+	pthread_mutex_unlock(&plugin->pike);
 
-	json_object_put(plugin->metric_names);
+	json_object_put(plugin->metric);
 	json_object_put(plugin->values);
 }
 
@@ -101,43 +103,41 @@ void restart(plugin_t *plugin) {
 	start(plugin);
 }
 
-void poke(plugin_t *plugin) {
-	pthread_mutex_lock(&plugin->fork);
+int poke(plugin_t *plugin) {
+	pthread_mutex_lock(&plugin->pike);
 	pthread_cond_signal(&plugin->poked);
-	pthread_mutex_unlock(&plugin->fork);
+	pthread_mutex_unlock(&plugin->pike);
 
 	// confirm the plugin starts collecting
-	pthread_cond_wait(&plugin->syncd, &plugin->sync);
+	return pthread_sync(&plugin->syncd, &plugin->sync, 1);
 }
 
 void *plugin_main(void *_plugin) {
 	plugin_t *plugin = (plugin_t *)_plugin;
 
 	pthread_mutex_lock(&plugin->sync);
-	pthread_mutex_lock(&plugin->fork);
+	pthread_mutex_lock(&plugin->pike);
 	pthread_cond_signal(&plugin->syncd);
 	pthread_mutex_unlock(&plugin->sync);
 
 	while(plugin->alive) {
 		zlog_debug(plugin->tag, "Waiting to be poked");
-		pthread_cond_wait(&plugin->poked, &plugin->fork);
+		pthread_cond_wait(&plugin->poked, &plugin->pike);
 		zlog_debug(plugin->tag, "Poked");
 
 		pthread_mutex_lock(&plugin->sync);
+		plugin->next_run += plugin->period;
 		pthread_cond_signal(&plugin->syncd);
 		pthread_mutex_unlock(&plugin->sync);
 
-		plugin->working = 1;
-		plugin->next_run += plugin->period;
-		timestamp curr = get_timestamp();
+		epoch_t begin = epoch_time();
 		zlog_debug(plugin->tag, "Start collecting");
 		plugin->collect(plugin);
-		if(plugin->holding == plugin->full_count) {
+		if(plugin->holding == plugin->capacity) {
 			pack(plugin);
-			plugin->metric_names = json_object_new_array();
+			plugin->metric = json_object_new_array();
 		}
-		zlog_debug(plugin->tag, "Done in %llums", (get_timestamp()-curr)/1000000);
-		plugin->working = 0;
+		zlog_debug(plugin->tag, "Done in %llums", epoch_time()-begin);
 	}
 
 	return NULL;
@@ -149,7 +149,7 @@ void pack(plugin_t *plugin) {
 	json_object_object_add(payload, "license", json_object_new_string(license));
 	json_object_object_add(payload, "uuid", json_object_new_string(uuid));
 	json_object_object_add(payload, "target_num", json_object_new_int(plugin->index));
-	json_object_object_add(payload, "metrics", plugin->metric_names);
+	json_object_object_add(payload, "metrics", plugin->metric);
 	json_object_object_add(payload, "values", plugin->values);
 	storage_add(&storage, payload);
 
@@ -161,14 +161,6 @@ unsigned alive(plugin_t *plugin) {
 	return plugin->alive;
 }
 
-unsigned busy(plugin_t *plugin) {
-	return plugin->working;
-}
-
 unsigned outdated(plugin_t *plugin) {
-	return !plugin->working && plugin->next_run <= get_timestamp();
-}
-
-unsigned timeup(plugin_t *plugin) {
-	return plugin->working && plugin->next_run < get_timestamp();
+	return plugin->next_run <= epoch_time();
 }

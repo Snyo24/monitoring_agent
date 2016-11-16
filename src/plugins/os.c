@@ -9,8 +9,8 @@
 
 #include "plugin.h"
 
-#define OS_PLUGIN_TICK MS_PER_S*3
-#define OS_PLUGIN_FULL 20
+#define OS_PLUGIN_TICK MSPS*3
+#define OS_PLUGIN_CAPACITY 10
 
 typedef struct _os_plugin {
 	plugin_t;
@@ -18,7 +18,7 @@ typedef struct _os_plugin {
 	unsigned gathered : 1;
 } os_plugin_t;
 
-const char *network_metric_names[] = {
+const char *network_metric[] = {
 	"net_stat_recv_byte",
 	"net_stat_recv_packet",
 	"net_stat_recv_error",
@@ -27,7 +27,7 @@ const char *network_metric_names[] = {
 	"net_stat_send_error"
 };
 
-const char *disk_metric_names[] = {
+const char *disk_metric[] = {
 	"disk_stat_io",
 	"disk_stat_iotime",
 	"disk_stat_reads",
@@ -52,13 +52,13 @@ int os_plugin_init(plugin_t *plugin) {
 	if(!plugin->spec) return -1;
 	*(unsigned *)plugin->spec = 0;
 
-	plugin->target_type = "linux_linux_1.0";
-	plugin->target_ip  = 0;
-	plugin->period     = OS_PLUGIN_TICK;
-	plugin->full_count = OS_PLUGIN_FULL;
+	plugin->type     = "linux_linux_1.0";
+	plugin->ip       = 0;
+	plugin->period   = OS_PLUGIN_TICK;
+	plugin->capacity = OS_PLUGIN_CAPACITY;
 
-	plugin->collect    = collect_os;
-	plugin->fini       = os_plugin_fini;
+	plugin->collect  = collect_os;
+	plugin->fini     = os_plugin_fini;
 
 	return 0;
 }
@@ -66,7 +66,7 @@ int os_plugin_init(plugin_t *plugin) {
 void os_plugin_fini(plugin_t *plugin) {
 	if(!plugin)
 		return;
-	
+
 	if(plugin->spec)
 		free(plugin->spec);
 }
@@ -81,7 +81,7 @@ void collect_os(plugin_t *plugin) {
 	_collect_network(plugin, values);
 	*(unsigned *)plugin->spec = 1;
 
-	if(++plugin->holding == plugin->full_count)
+	if(++plugin->holding == plugin->capacity)
 		*(unsigned *)plugin->spec = 0;
 
 	char ts[20];
@@ -102,7 +102,7 @@ void collect_os(plugin_t *plugin) {
  */
 void _collect_network(plugin_t *plugin, json_object *values) {
 	FILE *pipe = popen("awk '{gsub(\":\",\"\",$1);print $1,$2,$3,$4,$10,$11,$12}' /proc/net/dev\
-			          | tail -n -2", "r");
+			| tail -n -2", "r");
 	if(!pipe) return;
 
 	char net_name[50];
@@ -114,10 +114,10 @@ void _collect_network(plugin_t *plugin, json_object *values) {
 	while(fscanf(pipe, "%s", net_name) == 1) {
 		if(fscanf(pipe, "%u%u%u%u%u%u", &recv_byte, &recv_pckt, &recv_err, &send_byte, &send_pckt, &send_err) == 6) {
 			if(!*(unsigned *)plugin->spec) {
-				for(int i=0; i<sizeof(network_metric_names)/sizeof(char *); ++i) {
+				for(int i=0; i<sizeof(network_metric)/sizeof(char *); ++i) {
 					char new_metric[100];
-					snprintf(new_metric, 100, "%s|%s", network_metric_names[i], net_name);
-					json_object_array_add(plugin->metric_names, json_object_new_string(new_metric));
+					snprintf(new_metric, 100, "%s|%s", network_metric[i], net_name);
+					json_object_array_add(plugin->metric, json_object_new_string(new_metric));
 				}
 			}
 			total_recv_byte += recv_byte;
@@ -131,8 +131,8 @@ void _collect_network(plugin_t *plugin, json_object *values) {
 		} else break;
 	}
 	if(!*(unsigned *)plugin->spec) {
-		json_object_array_add(plugin->metric_names, json_object_new_string("net_stat_total_recv_byte"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("net_stat_total_send_byte"));
+		json_object_array_add(plugin->metric, json_object_new_string("net_stat_total_recv_byte"));
+		json_object_array_add(plugin->metric, json_object_new_string("net_stat_total_send_byte"));
 	}
 	json_object_array_add(values, json_object_new_int(total_recv_byte));
 	json_object_array_add(values, json_object_new_int(total_send_byte));
@@ -160,9 +160,9 @@ void _collect_cpu(plugin_t *plugin, json_object *values) {
 		return;
 	}
 	if(!*(unsigned *)plugin->spec) {
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat_user"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat_sys"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("cpu_stat_idle"));
+		json_object_array_add(plugin->metric, json_object_new_string("cpu_stat_user"));
+		json_object_array_add(plugin->metric, json_object_new_string("cpu_stat_sys"));
+		json_object_array_add(plugin->metric, json_object_new_string("cpu_stat_idle"));
 	}
 	json_object_array_add(values, json_object_new_double(cpu_user));
 	json_object_array_add(values, json_object_new_double(cpu_sys));
@@ -194,11 +194,11 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 				if(!*(unsigned *)plugin->spec) {
 					char metric_name[50];
 					snprintf(metric_name, 50, "disk_stat_part_total|%s(%s)", part_name, part_mount);
-					json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+					json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 					snprintf(metric_name, 50, "disk_stat_part_used|%s(%s)", part_name, part_mount);
-					json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+					json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 					snprintf(metric_name, 50, "disk_stat_part_avail|%s(%s)", part_name, part_mount);
-					json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+					json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 				}
 				json_object_array_add(values, json_object_new_int(part_total));
 				json_object_array_add(values, json_object_new_int(part_used));
@@ -224,10 +224,10 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 			unsigned int r, rsec, rt, w, wsec, wt, weight;
 			if(fscanf(subpipe, "%u%u%u%u%u%u%u", &r, &rsec, &rt, &w, &wsec, &wt, &weight) == 7) {
 				if(!*(unsigned *)plugin->spec) {
-					for(int i=0; i<sizeof(disk_metric_names)/sizeof(char *); ++i) {
+					for(int i=0; i<sizeof(disk_metric)/sizeof(char *); ++i) {
 						char metric_name[50];
-						snprintf(metric_name, 50, "%s|%s(%s)", disk_metric_names[i], part_name, part_mount);
-						json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+						snprintf(metric_name, 50, "%s|%s(%s)", disk_metric[i], part_name, part_mount);
+						json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 					}
 				}
 				io += r+w;
@@ -245,7 +245,7 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 		}
 	}
 	if(!*(unsigned *)plugin->spec) {
-		json_object_array_add(plugin->metric_names, json_object_new_string("disk_stat_total"));
+		json_object_array_add(plugin->metric, json_object_new_string("disk_stat_total"));
 	}
 	json_object_array_add(values, json_object_new_int(io));
 	pclose(pipe);
@@ -268,7 +268,7 @@ void _collect_disk(plugin_t *plugin, json_object *values) {
 void _collect_proc(plugin_t *plugin, json_object *values) {
 	/* CPU */
 	FILE *pipe = popen("ps -eo comm,pcpu --sort=-pcpu,-pmem --no-headers\
-			          | head -n 10", "r");
+			| head -n 10", "r");
 	if(!pipe) return;
 
 	char name[100];
@@ -278,9 +278,9 @@ void _collect_proc(plugin_t *plugin, json_object *values) {
 			if(!*(unsigned *)plugin->spec) {
 				char metric_name[50];
 				snprintf(metric_name, 50, "proc_stat_cpu_top%d_name", i+1);
-				json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+				json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 				snprintf(metric_name, 50, "proc_stat_cpu_top%d_cpu", i+1);
-				json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+				json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 			}
 			json_object_array_add(values, json_object_new_string(name));
 			json_object_array_add(values, json_object_new_double(stat));
@@ -290,16 +290,16 @@ void _collect_proc(plugin_t *plugin, json_object *values) {
 
 	/* Memory */
 	pipe = popen("ps -eo comm,pmem --sort=-pmem,-pcpu --no-headers\
-			    | head -n 10", "r");
+			| head -n 10", "r");
 	if(!pipe) return;
 	for(int i=0; i<10; ++i) {
 		if(fscanf(pipe, "%s%lf\n", name, &stat) == 2) {
 			if(!*(unsigned *)plugin->spec) {
 				char metric_name[50];
 				snprintf(metric_name, 50, "proc_stat_mem_top%d_name", i+1);
-				json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+				json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 				snprintf(metric_name, 50, "proc_stat_mem_top%d_mem", i+1);
-				json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+				json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 			}
 			json_object_array_add(values, json_object_new_string(name));
 			json_object_array_add(values, json_object_new_double(stat));
@@ -308,9 +308,9 @@ void _collect_proc(plugin_t *plugin, json_object *values) {
 	pclose(pipe);
 
 	pipe = popen("ps -eo user,comm,pcpu,pmem --no-headers\
-			    | awk '{c[$1\" \"$2]+=1;cpu[$1\" \"$2]+=$3;mem[$1\" \"$2]+=$4}\
-				       END{for(i in c)if(cpu[i]>0||mem[i]>0)print i,c[i],cpu[i],mem[i]}'\
-				| sort -rk 4", "r");
+			| awk '{c[$1\" \"$2]+=1;cpu[$1\" \"$2]+=$3;mem[$1\" \"$2]+=$4}\
+			END{for(i in c)if(cpu[i]>0||mem[i]>0)print i,c[i],cpu[i],mem[i]}'\
+			| sort -rk 4", "r");
 	if(!pipe) return;
 	char user[100], process[100];
 	int count;
@@ -320,15 +320,15 @@ void _collect_proc(plugin_t *plugin, json_object *values) {
 		if(!*(unsigned *)plugin->spec) {
 			char metric_name[50];
 			snprintf(metric_name, 50, "proc_stat_proc%d_user", i);
-			json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+			json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 			snprintf(metric_name, 50, "proc_stat_proc%d_name", i);
-			json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+			json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 			snprintf(metric_name, 50, "proc_stat_proc%d_count", i);
-			json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+			json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 			snprintf(metric_name, 50, "proc_stat_proc%d_cpu", i);
-			json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+			json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 			snprintf(metric_name, 50, "proc_stat_proc%d_mem", i);
-			json_object_array_add(plugin->metric_names, json_object_new_string(metric_name));
+			json_object_array_add(plugin->metric, json_object_new_string(metric_name));
 		}
 		json_object_array_add(values, json_object_new_string(user));
 		json_object_array_add(values, json_object_new_string(process));
@@ -366,12 +366,12 @@ void _collect_memory(plugin_t *plugin, json_object *values) {
 	}
 
 	if(!*(unsigned *)plugin->spec) {
-		json_object_array_add(plugin->metric_names, json_object_new_string("mem_stat_total"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("mem_stat_free"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("mem_stat_cached"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("mem_stat_user"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("mem_stat_sys"));
-		json_object_array_add(plugin->metric_names, json_object_new_string("mem_stat_virtual_usage"));
+		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_total"));
+		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_free"));
+		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_cached"));
+		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_user"));
+		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_sys"));
+		json_object_array_add(plugin->metric, json_object_new_string("mem_stat_virtual_usage"));
 	}
 	json_object_array_add(values, json_object_new_int(total));
 	json_object_array_add(values, json_object_new_int(free));
