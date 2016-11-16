@@ -32,7 +32,7 @@ int scheduler_init(scheduler_t *scheduler) {
 	scheduler->tag = zlog_get_category("scheduler");
 	if(!scheduler->tag);
 
-	zlog_debug(scheduler->tag, "Initailize a plugin table");
+	DEBUG(zlog_debug(scheduler->tag, "Initailize a plugin table"));
 	memset(scheduler->plugins, 0, sizeof(plugin_t *)*MAX_PLUGIN);
 
 	scheduler->period = SCHEDULER_TICK;
@@ -44,7 +44,7 @@ int scheduler_init(scheduler_t *scheduler) {
 		return -1;
 	}
 
-	zlog_debug(scheduler->tag, "Initialize plugins");
+	DEBUG(zlog_debug(scheduler->tag, "Initialize plugins"));
 	char line[1000];
 	plugin_t *plugin;
 	while(fgets(line, 1000, plugin_conf)) {
@@ -71,7 +71,7 @@ void scheduler_fini(scheduler_t *scheduler) {
 }
 
 void start_plugins(scheduler_t *scheduler) {
-	zlog_debug(scheduler->tag, "Start plugins");
+	DEBUG(zlog_debug(scheduler->tag, "Start plugins"));
 	plugin_t **plugins = scheduler->plugins;
 	for(int i=0; i<MAX_PLUGIN; ++i) {
 		if(plugins[i]) 
@@ -88,15 +88,15 @@ void scheduler_main(void *_scheduler) {
 	for(int i=0; i<MAX_PLUGIN; ++i) {
 		plugin_t *plugin = scheduler->plugins[i];
 		if(!plugin) continue;
-		zlog_debug(scheduler->tag, "Plugin_%d [%c%c] (%d/%d)", \
+		DEBUG(zlog_debug(scheduler->tag, "Plugin_%d [%c%c] (%d/%d)", \
 				plugin->index, \
 				alive(plugin)   ?'A':'.', \
 				outdated(plugin)?'O':'.', \
 				plugin->holding,\
-				plugin->capacity);
+				plugin->capacity));
 
 		if(alive(plugin) && outdated(plugin)) {
-			zlog_debug(scheduler->tag, "Poking");
+			DEBUG(zlog_debug(scheduler->tag, "Poking"));
 			if(poke(plugin) < 0) {
 				zlog_error(scheduler->tag, "Cannot poke the agent");
 				restart(plugin);
