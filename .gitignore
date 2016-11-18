@@ -3,3 +3,5 @@ log
 html
 obj
 res/**
+src/**.swp
+inc/**.swp
