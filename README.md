@@ -1,21 +1,24 @@
-# INSTALLATION GUIDE
+# Maxguage on Cloud Agent
  
-## 1. Specification
+## A. Specification
 
-### Environment
-- Ubuntu 64bit (Linux)
-- Language: C
+### Supports
+* Ubuntu, Debian: 12.04 LTS, 14.04 LTS, 16.04 LTS
+* Redhat, CentOS: 6, 7
 
 ### Libraries need
-- zlog (https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz)
-- libcurl (https://curl.haxx.se/download/curl-7.50.3.tar.gz)
-- json-c (sudo apt-get install libjson0-dev)
-- openssl-dev
-- libmysqlclient-dev
+* [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz)
+* [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz)
+* json-c (libjson0-dev)
+* openssl (openssl)
+* mysqlclient (libmysqlclient-dev)
 
-### Generate documents (Need doxygen library) (Not supported yet)
-    $ make doc
+### Source documentation (Need doxygen library) (Not yet ready)
+```
+$ make doc
+```
 
+<<<<<<< HEAD
 ## 2. Install process
 ##### a. Download tar file
     $ wget (address)
@@ -26,22 +29,45 @@
 Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A following space is needed after a line.
 
     $ vim cfg/plugins
+=======
+## B. Install
+1. Download tar file
 
-> os, 
+    ```
+    $ wget (Download link)
+    ```
+1. Untar moc_agent.tar.gz
 
-> proxy, 
+    ```
+    $ tar -zxf moc_agent.tar.gz
+    ```
+1. Install the libraries listed above
+1. Modify configuration files
 
-> mysql, 
+    Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A following space is needed after a line
 
-Modify the license file.
+        $ vim cfg/plugins
+
+    > 
+    > os
+    >
+    > jvm,8084
+    >
+    > mysql,127.0.0.1,root,password
 
     $ vim cfg/license
 
-##### e. Compile and Lauch!
-    $ make
+    Modify the license file.
+
+        $ vim cfg/license
+1. Lauch!
+
+    ```
     $ ./bin/agent & 
     [1] pid
+    ```
 
-### Terminate
+## C. Termination
 If you want to terminate, use this
+
     $ kill pid
