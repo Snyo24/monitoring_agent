@@ -9,7 +9,7 @@
 
 typedef plugin_t mysql_plugin_t;
 
-int  mysql_plugin_init(plugin_t *plugin);
+int  mysql_plugin_init(plugin_t *plugin, char *option);
 void mysql_plugin_fini(plugin_t *plugin);
 
 #endif

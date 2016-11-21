@@ -18,14 +18,14 @@
 
 ## 2. Install process
 ##### a. Download tar file
-    wget (address)
-##### b. get moc_agent.tar.gz
-    tar -zxf moc_agent.tar.gz
+    $ wget (address)
+##### b. Get moc_agent.tar.gz
+    $ tar -zxf moc_agent.tar.gz
 ##### c. Install the libraries listed above
 ##### d. Modify configuration files
 Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A following space is needed after a line.
 
-    vim cfg/plugins
+    $ vim cfg/plugins
 
 > os, 
 
@@ -35,12 +35,13 @@ Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A 
 
 Modify the license file.
 
-    vim cfg/license
+    $ vim cfg/license
 
 ##### e. Compile and Lauch!
-    make
-    ./bin/agent & 
+    $ make
+    $ ./bin/agent & 
     [1] pid
 
-##### f. If you want to terminate, use this
-    kill pid
+### Terminate
+If you want to terminate, use this
+    $ kill pid

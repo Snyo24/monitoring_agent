@@ -17,7 +17,7 @@
 #include "util.h"
 
 // return 0 for success, -1 for failure
-int plugin_init(plugin_t *plugin, const char *type) {
+int plugin_init(plugin_t *plugin, const char *type, char *option) {
 	if(!plugin) return -1;
 	memset(plugin, 0, sizeof(plugin_t));
 
@@ -40,8 +40,8 @@ int plugin_init(plugin_t *plugin, const char *type) {
 	snprintf(dlname, 20, "lib%s.so", type);
 	snprintf(smname, 30, "%s_plugin_init", type);
 	void *dl = dlopen(dlname, RTLD_LAZY);
-	int (*dynamic_plugin_init)(plugin_t *) = dlsym(dl, smname);
-	if(dlerror() || dynamic_plugin_init(plugin) < 0) {
+	int (*dynamic_plugin_init)(plugin_t *, char *) = dlsym(dl, smname);
+	if(dlerror() || dynamic_plugin_init(plugin, option) < 0) {
 		zlog_error(plugin->tag, "Fail to load %s", smname);
 		plugin_fini(plugin);
 		return -1;

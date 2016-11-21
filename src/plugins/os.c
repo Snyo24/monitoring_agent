@@ -47,7 +47,7 @@ static void _collect_network(plugin_t *plugin, json_object *values);
 
 static void collect_os(plugin_t *plugin);
 
-int os_plugin_init(plugin_t *plugin) {
+int os_plugin_init(plugin_t *plugin, char *option) {
 	plugin->spec = malloc(sizeof(1));
 	if(!plugin->spec) return -1;
 	*(unsigned *)plugin->spec = 0;

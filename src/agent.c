@@ -60,7 +60,6 @@ int main(int argc, char **argv) {
 	start_runnable((runnable_t *)&scheduler);
 	start_runnable((runnable_t *)&storage);
 	start_runnable((runnable_t *)&sender);
-	start_plugins(&scheduler);
 
 	/* Finalize */
 	scheduler_fini(&scheduler);

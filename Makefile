@@ -13,7 +13,7 @@ LOGDIR		:= log
 DOCDIR		:= html
 
 #Flags, Libraries and Includes
-CFLAGS		:= -std=gnu99 -fms-extensions -Wall -O2 -g
+CFLAGS		:= -std=gnu99 -fms-extensions -Wall -O2 -g $(V)
 LDLIBS		:= -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib
 LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson -lssl -lcrypto -lmysqlclient
 INC			:= -I$(INCDIR) -I/usr/local/include/

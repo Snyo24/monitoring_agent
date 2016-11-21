@@ -25,7 +25,7 @@ void snyo_sleep(float sec) {
 
 int pthread_sync(pthread_cond_t *syncd,\
                  pthread_mutex_t *sync,\
-				 unsigned long timelimit) {
+				 time_t timelimit) {
 	struct timespec timeout;
 	clock_gettime(CLOCK_REALTIME, &timeout);
 	timeout.tv_sec += timelimit;

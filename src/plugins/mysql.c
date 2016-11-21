@@ -30,7 +30,10 @@ static void _collect_threads(plugin_t *plugin, json_object *values);
 static void _collect_replica(plugin_t *plugin, json_object *values);
 static MYSQL_RES *query_result(MYSQL *mysql, const char *query);
 
-int mysql_plugin_init(plugin_t *plugin) {
+int mysql_plugin_init(plugin_t *plugin, char *option) {
+    char host[50], root[50], pass[50];
+    if(sscanf(option, "%50[^,],%50[^,],%50[^,]\n", host, root, pass) != 3)
+        return -1;
 	mysql_spec_t *spec = malloc(sizeof(mysql_spec_t));
 	if(!spec) return -1;
 
@@ -39,7 +42,7 @@ int mysql_plugin_init(plugin_t *plugin) {
 		return -1;
 	}
 
-	if(!mysql_real_connect(spec->mysql, "localhost", "root", "snyo", NULL, 0, NULL, 0)) {
+	if(!mysql_real_connect(spec->mysql, host, root, pass, NULL, 0, NULL, 0)) {
 		mysql_close(spec->mysql);
 		free(spec);
 		return -1;

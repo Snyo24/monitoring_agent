@@ -7,7 +7,7 @@
 
 #include "plugin.h"
 
-int  os_plugin_init(plugin_t *plugin);
+int  os_plugin_init(plugin_t *plugin, char *option);
 void os_plugin_fini(plugin_t *plugin);
 
 #endif

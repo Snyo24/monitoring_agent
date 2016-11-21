@@ -48,38 +48,30 @@ int scheduler_init(scheduler_t *scheduler) {
 	char line[1000];
 	plugin_t *plugin;
 	while(fgets(line, 1000, plugin_conf)) {
-		char type[100], option[900];
-		if(sscanf(line, "%100[^(,\n)],%900[^\n]\n", type, option) != 2)
-			continue;
-		plugin = malloc(sizeof(plugin_t));
-
-		if(plugin_init(plugin, type) != -1) {
-			if(strncmp(type, "os", 2) == 0)
-				plugin->index = 0;
-			else if(strncmp(type, "proxy", 5) == 0)
+		char type[10], option[200];
+        int args = sscanf(line, "%10[^(,\n)],%200[^\n]\n", type, option);
+		if(args > 0) {
+            plugin = malloc(sizeof(plugin_t));
+            if(plugin_init(plugin, type, option) < 0) {
+                free(plugin);
+                continue;
+            }
+			if(strncmp(type, "os", 2) == 0) {
+                plugin->index = 0;
+            } else if(strncmp(type, "jvm", 3) == 0) {
 				plugin->index = 1;
-			else if(strncmp(type, "mysql", 5) == 0)
+            } else if(strncmp(type, "mysql", 5) == 0) {
 				plugin->index = 2;
+            }
 			scheduler->plugins[plugin->index] = plugin;
-		}
+            start(plugin);
+        }
 	}
 	return 0;
 }
 
 void scheduler_fini(scheduler_t *scheduler) {
 	runnable_fini((runnable_t *)scheduler);
-}
-
-void start_plugins(scheduler_t *scheduler) {
-	DEBUG(zlog_debug(scheduler->tag, "Start plugins"));
-	plugin_t **plugins = scheduler->plugins;
-	for(int i=0; i<MAX_PLUGIN; ++i) {
-		if(plugins[i]) 
-			if(start(plugins[i]) < 0) {
-				plugin_fini(plugins[i]);
-				plugins[i] = NULL;
-			}
-	}
 }
 
 void scheduler_main(void *_scheduler) {

@@ -19,7 +19,6 @@ typedef struct scheduler_t {
 
 int  scheduler_init(scheduler_t *scheduler);
 void scheduler_fini(scheduler_t *scheduler);
-void start_plugins(scheduler_t *scheduler);
 
 void scheduler_main(void *_scheduler);
 

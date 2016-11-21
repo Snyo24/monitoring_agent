@@ -20,7 +20,7 @@ epoch_t epoch_time();
 void snyo_sleep(float sec);
 int pthread_sync(pthread_cond_t *syncd,\
 		         pthread_mutex_t *sync,\
-				 unsigned long timelimit);
+				 time_t timelimit);
 int file_exist(char *filename);
 
 #endif

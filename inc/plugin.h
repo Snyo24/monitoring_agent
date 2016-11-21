@@ -52,7 +52,7 @@ struct _plugin {
 	void (*fini)(plugin_t *);
 };
 
-int plugin_init(plugin_t *plugin, const char *type);
+int plugin_init(plugin_t *plugin, const char *type, char *option);
 int plugin_fini(plugin_t *plugin);
 
 void *plugin_main(void *_plugin);
