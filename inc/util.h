@@ -17,7 +17,7 @@
 typedef unsigned long long epoch_t;
 
 epoch_t epoch_time();
-void snyo_sleep(epoch_t ms);
+void snyo_sleep(float sec);
 int pthread_sync(pthread_cond_t *syncd,\
 		         pthread_mutex_t *sync,\
 				 unsigned long timelimit);

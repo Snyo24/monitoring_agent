@@ -14,7 +14,7 @@
 #include "plugin.h"
 #include "util.h"
 
-#define SCHEDULER_TICK MSPS/2
+#define SCHEDULER_TICK 0.5
 
 typedef struct plugin_set_t {
 	unsigned up;

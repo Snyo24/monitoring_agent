@@ -14,7 +14,7 @@
 #include "plugin.h"
 #include "util.h"
 
-#define MYSQL_PLUGIN_TICK MSPS*5
+#define MYSQL_PLUGIN_TICK 5
 #define MYSQL_PLUGIN_CAPACITY 1
 
 typedef struct _mysql_spec {

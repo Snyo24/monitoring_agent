@@ -14,7 +14,7 @@ typedef struct runnable_t {
 
 	volatile unsigned alive : 1; 
 
-	unsigned long period;
+	float period;
 
 	void *tag;
 	void (*job)(void *);

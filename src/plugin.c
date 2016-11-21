@@ -77,7 +77,7 @@ int start(plugin_t *plugin) {
 	plugin->metric  = json_object_new_array();
 	plugin->values  = json_object_new_object();
 
-	plugin->next_run = epoch_time() + plugin->period;
+	plugin->next_run = 0;
 
 	pthread_mutex_lock(&plugin->sync);
 	pthread_create(&plugin->running_thread, NULL, plugin_main, plugin);
@@ -126,13 +126,14 @@ void *plugin_main(void *_plugin) {
 		DEBUG(zlog_debug(plugin->tag, "Poked"));
 
 		pthread_mutex_lock(&plugin->sync);
-		plugin->next_run += plugin->period;
 		pthread_cond_signal(&plugin->syncd);
 		pthread_mutex_unlock(&plugin->sync);
 
-		epoch_t begin = epoch_time();
 		DEBUG(zlog_debug(plugin->tag, "Start collecting"));
+		DEBUG(epoch_t begin = epoch_time());
+		plugin->curr_run = epoch_time();
 		plugin->collect(plugin);
+		plugin->next_run = plugin->curr_run + (epoch_t)(plugin->period*MSPS);
 		if(plugin->holding == plugin->capacity) {
 			pack(plugin);
 			plugin->metric = json_object_new_array();

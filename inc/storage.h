@@ -32,12 +32,11 @@ void storage_fini(storage_t *storage);
 
 void storage_main(void *_storage);
 
-int  storage_empty(storage_t *storage);
-int  storage_full(storage_t *storage);
 void storage_add(storage_t *storage, void *data);
 void storage_drop(storage_t *storage);
-char *storage_fetch(storage_t *storage);
-void storage_lock(storage_t *storage);
-void storage_unlock(storage_t *storage);
+const char *storage_fetch(storage_t *storage);
+
+int  storage_empty(storage_t *storage);
+int  storage_full(storage_t *storage);
 
 #endif

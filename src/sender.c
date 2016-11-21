@@ -15,7 +15,7 @@
 #include "storage.h"
 #include "util.h"
 
-#define SENDER_TICK MSPS*3
+#define SENDER_TICK 0.7
 
 #define REG_URI    "http://gate.maxgauge.com/v1/agents"
 #define METRIC_URI "http://gate.maxgauge.com/v1/metrics"
@@ -101,7 +101,8 @@ void sender_main(void *_sender) {
 	sender_t *sender = (sender_t *)_sender;
 
 	while(!storage_empty(&storage)) {
-		char *payload = storage_fetch(&storage);
+		const char *payload = storage_fetch(&storage);
+        if(!payload) continue;
 		DEBUG(zlog_debug(sender->tag, "Try POST for 30sec"));
 		if(sender_post(sender, payload) < 0) {
 			zlog_error(sender->tag, "POST fail");
@@ -157,8 +158,8 @@ int alert_post(char *payload) {
 	return (curl_code == CURLE_OK && status_code == 202) - 1;
 }
 
-int sender_post(sender_t *sender, char *payload) {
-	zlog_debug(sender->tag, "%s (%zu)", payload, strlen(payload));
+int sender_post(sender_t *sender, const char *payload) {
+	DEBUG(zlog_debug(sender->tag, "%s (%zu)", payload, strlen(payload)));
 	curl_easy_setopt(sender->curl, CURLOPT_POSTFIELDS, payload);
 	CURLcode curl_code = curl_easy_perform(sender->curl);
 	long status_code;

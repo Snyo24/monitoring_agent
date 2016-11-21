@@ -26,7 +26,6 @@ LDS			:= $(PLUGINS:$(SRCDIR)/plugins/%.c=$(OBJDIR)/plugins/lib%.so)
 
 #Rules
 all: directories $(BINDIR)/$(TARGET) $(LDS)
-	$(shell sudo cp $(LDS) /usr/lib)
 
 directories:
 	@mkdir -p $(BINDIR)
@@ -36,7 +35,7 @@ directories:
 $(BINDIR)/$(TARGET): $(OBJECTS)
 	@echo
 	@echo "[ Target ]"
-	$(CC) $(OBJECTS) $(INC) -Wl,--export-dynamic -o $@ $(LDLIBS) $(LDFLAGS)
+	$(CC) -o $@ $(OBJECTS) $(INC) -Wl,--export-dynamic -Wl,-rpath,$(shell pwd)/obj/plugins $(LDLIBS) $(LDFLAGS)
 
 $(OBJDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
 	@echo
@@ -50,7 +49,7 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCDIR)/%.h
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
 
 clean:
-	rm -rf *.o $(TARGET) $(OBJDIR) $(BINDIR) $(DOCDIR)
+	rm -rf $(TARGET) $(OBJDIR) $(BINDIR) $(DOCDIR)
 
 doc:
 	@doxygen -s

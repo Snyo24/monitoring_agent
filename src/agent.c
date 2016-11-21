@@ -44,6 +44,8 @@ int main(int argc, char **argv) {
 		if(scheduler.plugins[i])
 			n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", scheduler.plugins[i]->type);
 	}
+    if(sw == 0)
+        exit(1);
 	n += snprintf(reg_str+n, 1000-n, "],\"target_num\":[");
 	sw = 0;
 	for(int i=0; i<10; ++i) {

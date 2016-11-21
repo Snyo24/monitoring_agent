@@ -32,7 +32,7 @@ void sender_main(void *_sender);
 void sender_set_reg_uri(sender_t *sender);
 void sender_set_met_uri(sender_t *sender);
 
-int sender_post(sender_t *sender, char *payload);
+int sender_post(sender_t *sender, const char *payload);
 int alert_post(char *payload);
 
 #endif

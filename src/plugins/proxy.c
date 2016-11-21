@@ -17,7 +17,7 @@
 #include "metadata.h"
 #include "sender.h"
 
-#define PROXY_PLUGIN_TICK MSPS*1
+#define PROXY_PLUGIN_TICK 1
 #define PROXY_PLUGIN_CAPACITY 1
 #define MAX_CONNECTION 3
 

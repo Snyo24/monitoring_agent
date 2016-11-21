@@ -6,6 +6,7 @@
 #include "storage.h"
 
 #include <stdio.h>
+#include <string.h>
 #include <pthread.h>
 
 #include <json/json.h>
@@ -13,12 +14,15 @@
 
 #include "runnable.h"
 
-#define STORAGE_TICK MSPS*3
+#define STORAGE_TICK 3
 #define zlog_unsent(cat, fmt, ...) zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, 19,fmt,##__VA_ARGS__)
 
 struct packet_t {
 	json_object *data;
 };
+
+void storage_lock(storage_t *storage);
+void storage_unlock(storage_t *storage);
 
 int storage_init(storage_t *storage) {
 	if(!storage) return -1;
@@ -36,6 +40,7 @@ int storage_init(storage_t *storage) {
 	storage->tail    = 0;
 	storage->holding = 0;
 	pthread_mutex_init(&storage->lock, NULL);
+    memset(storage->queue, 0, sizeof(storage->queue));
 
 	DEBUG(zlog_debug(storage->tag, "Done"));
 
@@ -54,23 +59,14 @@ void storage_main(void *_storage) {
 
 	if(storage_full(storage)) {
 		zlog_warn(storage->tag, "Full storage, store unsent JSON");
-		storage_lock(storage);
 		while(!storage_empty(storage)) {
 			zlog_unsent(storage->tag, "%s\n", storage_fetch(storage));
 			storage_drop(storage);
 		}
-		storage_unlock(storage);
 	}
 }
 
-int storage_empty(storage_t *storage) {
-	return storage->holding == 0;
-}
-
-int storage_full(storage_t *storage) {
-	return storage->holding == CAPACITY;
-}
-
+// Plugin
 void storage_add(storage_t *storage, void *data) {
 	pthread_mutex_lock(&storage->lock);
 	packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
@@ -83,13 +79,31 @@ void storage_add(storage_t *storage, void *data) {
 
 void storage_drop(storage_t *storage) {
 	json_object_put(storage->queue[storage->head]->data);
-	free(storage->queue[storage->head++]);
+	free(storage->queue[storage->head]);
+    storage->queue[storage->head++] = 0;
 	storage->head %= CAPACITY;
 	storage->holding--;
 }
 
-char *storage_fetch(storage_t *storage) {
-	return (char *)json_object_to_json_string(storage->queue[storage->head]->data);
+// Sender
+const char *storage_fetch(storage_t *storage) {
+    const char *fetched;
+    storage_lock(storage);
+    if(!storage->queue[storage->head]) {
+        fetched = NULL;
+    } else {
+        fetched = json_object_to_json_string(storage->queue[storage->head]->data);
+    }
+    storage_unlock(storage);
+	return fetched;
+}
+
+int storage_empty(storage_t *storage) {
+	return storage->holding == 0;
+}
+
+int storage_full(storage_t *storage) {
+	return storage->holding == CAPACITY;
 }
 
 void storage_lock(storage_t *storage) {

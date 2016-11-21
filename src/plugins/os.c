@@ -9,7 +9,7 @@
 
 #include "plugin.h"
 
-#define OS_PLUGIN_TICK MSPS*3
+#define OS_PLUGIN_TICK 3
 #define OS_PLUGIN_CAPACITY 10
 
 typedef struct _os_plugin {
@@ -85,7 +85,7 @@ void collect_os(plugin_t *plugin) {
 		*(unsigned *)plugin->spec = 0;
 
 	char ts[20];
-	snprintf(ts, 20, "%llu", plugin->next_run - plugin->period);
+	snprintf(ts, 20, "%llu", plugin->next_run);
 	json_object_object_add(plugin->values, ts, values);
 }
 

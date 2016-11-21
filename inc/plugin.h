@@ -31,8 +31,11 @@ struct _plugin {
 	char *ip;
 
 	/* Timing variables */
-	unsigned long period;
-	epoch_t next_run;
+	float period;
+	union {
+        epoch_t next_run;
+        epoch_t curr_run;
+    };
 
 	/* Metrics */
 	int capacity;
