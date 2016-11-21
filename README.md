@@ -1,6 +1,6 @@
 # INSTALLATION GUIDE
  
-##1. Specification
+## 1. Specification
 
 ### Environment
 - Ubuntu 64bit (Linux)
@@ -17,12 +17,12 @@
     $ make doc
 
 ## 2. Install process
-#####a. Download tar file
-    wget address
-#####b. get moc_agent.tar.gz
+##### a. Download tar file
+    wget (address)
+##### b. get moc_agent.tar.gz
     tar -zxf moc_agent.tar.gz
-#####c. Install the libraries listed above
-#####d. Modify configuration files
+##### c. Install the libraries listed above
+##### d. Modify configuration files
 Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A following space is needed after a line.
 
     vim cfg/plugins
@@ -37,10 +37,10 @@ Modify the license file.
 
     vim cfg/license
 
-#####e. Compile and Lauch!
+##### e. Compile and Lauch!
     make
     ./bin/agent & 
-    [1] *pid*
+    [1] pid
 
-#####f. If you want to terminate, use this
-    kill *pid*
+##### f. If you want to terminate, use this
+    kill pid
