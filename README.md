@@ -33,7 +33,7 @@
 1. Untar moc_agent.tar.gz
 
         $ tar -zxf moc_agent.tar.gz
-1. Write your license in `cfg/licence`
+1. Write your license in `cfg/license`
 1. Modify your configuration file (See [C. Configuration](#c-configuration))
 1. Lauch the agent background
 
