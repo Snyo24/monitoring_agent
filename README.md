@@ -44,16 +44,29 @@
 
 ## C. Configuration
     
-* Your configuration is in `cfg/plugins`. We support 3 plugins, os, jvm, and mysql.
+* Your configuration is in `cfg/plugins`. We support 3 plugins, os, jvm, and mysql. Add the configuration by following instructions.
     * **OS**
         
-        It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option.
-        > *os*
+        It is written in the conf file by default.
+        You can delete the line to stop observe the OS metrics.
+        OS plugin does not need any option.
+        In `cfg/plugins`, add a line `os`.
+        > os
     
     * **JVM**
         
-        JVM plugin needs a port to communicate with java agent. Write the port after `jvm` with a comma.
-        > *jvm,8084*
+        JVM plugin needs a port to communicate with java agent. We call it jspd.
+        The jspd runs with tomcat to collect metrics from tomcat.
+        So, we must set the java agent to run with tomcat at the same time.
+        
+        At the first line of `$(tomcat path)/bin/catalina.sh`,
+        
+        > export JSPD_HOME=(your agent path)/jspd
+        >
+        > export JAVA_OPTS="-javaagent:$JSPD_HOME/lib/jspd.jar -noverify"
+        
+        In `cfg/plugins`, add a line `jvm`.
+        > jvm
     
     * **MySQL**
         
