@@ -39,32 +39,32 @@
 
     ```
     $ ./bin/agent & 
-    [1] (your pid)
+    [1] (agent pid)
     ```
 
 ## C. Configuration
     
 * Your configuration is in `cfg/plugins`. We support 3 plugins, os, jvm, and mysql.
-    * OS
+    * **OS**
         
         It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option.
         > *os*
     
-    * JVM
+    * **JVM**
         
-        JVM plugin needs a port to communicate with java agent. Write the port after `jvm,`.
+        JVM plugin needs a port to communicate with java agent. Write the port after `jvm` with a comma.
         > *jvm,8084*
     
-    * MySQL
+    * **MySQL**
         
-        MySQL plugin need a database host address, the root account, and its password. Write the options after `mysql,` with seperating comma.
+        MySQL plugin needs a host address, the root account, and its password. Write the options after `mysql` with seperating commas.
         > *mysql,127.0.0.1,root,password*
 
 ## D. Termination
 
 * If you want to terminate, use this:
 
-        $ kill (your pid)
+        $ kill (agent pid)
 
 * Check your agent is terminated
 
