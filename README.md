@@ -52,7 +52,17 @@
     
     * **JVM**
         
-        JVM plugin needs a port to communicate with java agent. Write the port after `jvm` with a comma.
+        JVM plugin needs a port to communicate with java agent.
+        The java agent runs with tomcat to collect metrics from tomcat.
+        So, we must set the java agent to run with tomcat at the same time.
+        
+        At the first line of `$(tomcat path)/bin/catalina.sh`,
+        
+        > export JSPD_HOME=(your agent path)/jspd
+        >
+        > export JAVA_OPTS="-javaagent:$JSPD_HOME/lib/jspd.jar -noverify"
+        
+        In `cfg/plugins`, write the port after `jvm` with a comma.
         > *jvm,8084*
     
     * **MySQL**
