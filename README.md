@@ -44,7 +44,7 @@
 
 ## C. Configuration
     
-* Your configuration is in `cfg/plugins`. We support 3 plugins, os, jvm, and mysql.
+* Your configuration is in `cfg/plugins`. We support 3 plugins, os, jvm, and mysql. Add the configuration by following instructions.
     * **OS**
         
         It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option.
