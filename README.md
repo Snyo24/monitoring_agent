@@ -17,22 +17,22 @@
 
 ### Source documentation (Need doxygen library) (Not yet ready)
 
-```
-$ make doc
-```
+    $ make doc
 
 
 ## B. Install
 1. Download tar file
 
-    ```
-    $ wget (Download link)
-    ```
+        $ wget (Download link)
+    * Check download links here
+        * [RHEL 6/ CentOS 6](gadsfadsf)
+        * [RHEL 7/ CentOS 7](gadsfadsf)
+        * [Debian 7/ Ubuntu 12.04](gadsfadsf)
+        * [Debain 8/ Ubuntu 14.04](gadsfadsf)
+        * [Ubuntu 16.04](gadsfadsf)
 1. Untar moc_agent.tar.gz
 
-    ```
-    $ tar -zxf moc_agent.tar.gz
-    ```
+        $ tar -zxf moc_agent.tar.gz
 1. Write your license in `cfg/licence`
 1. Modify your configuration file (See C)
 1. Lauch the agent background
@@ -44,18 +44,21 @@ $ make doc
 
 ## C. Configuration
     
-* Your configuration file is `cfg/plugins`. We support 3 plugins, os, jvm, and mysql.
-    * OS plugin
+* Your configuration in in `cfg/plugins`. We support 3 plugins, os, jvm, and mysql.
+    * OS
         
-        It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option. After you 
+        It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option.
         > *os*
     
-    * JVM plugin
+    * JVM
         
-        JVM plugin needs a port to communicate with 
-        > jvm,8084
-        >
-        > mysql,127.0.0.1,root,password
+        JVM plugin needs a port to communicate with java agent. Write the port after `jvm,`.
+        > *jvm,8084*
+    
+    * MySQL
+        
+        MySQL plugin need a database host address, the root account, and its password. Write the options after `mysql,` with seperating comma.
+        > *mysql,127.0.0.1,root,password*
 
 ## D. Termination
 
@@ -67,3 +70,8 @@ $ make doc
 
         $ ps aux | grep moc_agent
         [1]+ Terminated    ./bin/moc_agent
+
+* If you forgot the agent pid, check with `ps` command.
+
+        $ ps -eo pid | grep moc_agent
+        (agent pid)
