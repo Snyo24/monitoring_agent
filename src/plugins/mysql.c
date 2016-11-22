@@ -193,7 +193,6 @@ void _collect_innodb(plugin_t *plugin, json_object *values) {
                 json_object_array_add(values, json_object_new_int(total));
                 json_object_array_add(values, json_object_new_int(free));
                 json_object_array_add(values, json_object_new_int(used));
-                printf("%d %d %d\n\n", total, free, used);
             }
     }
     mysql_free_result(res);
