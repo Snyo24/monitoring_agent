@@ -20,10 +20,10 @@ typedef struct plugin_set_t {
 	unsigned up;
 } plugin_set_t;
 
-static plugin_set_t plugin_set = {0};
+//static plugin_set_t plugin_set = {0};
 
-static int  _indexing();
-static void _deindexing();
+//static int  _indexing();
+//static void _deindexing();
 
 int scheduler_init(scheduler_t *scheduler) {
 	if(runnable_init((runnable_t *)&scheduler) < 0)

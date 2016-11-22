@@ -50,6 +50,7 @@
         It is written in the conf file by default.
         You can delete the line to stop observe the OS metrics.
         OS plugin does not need any option.
+
         In `cfg/plugins`, add a line `os`.
         > os
     
