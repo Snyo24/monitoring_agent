@@ -34,7 +34,7 @@
 
         $ tar -zxf moc_agent.tar.gz
 1. Write your license in `cfg/licence`
-1. Modify your configuration file (See [C](http://10.10.30.96/Agent/agent_factory/blob/master/README.md#c-configuration))
+1. Modify your configuration file (See [C](#c-configuration))
 1. Lauch the agent background
 
     ```
