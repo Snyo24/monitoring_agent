@@ -7,29 +7,21 @@
 * Redhat, CentOS: 6, 7
 
 ### Libraries need
-* [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz)
-* [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz)
-* json-c (libjson0-dev)
-* openssl (openssl)
-* mysqlclient (libmysqlclient-dev)
+* From apt/ yum repositories
+    * json-c `sudo apt-get install libjson0-dev`
+    * openssl `sudo apt-get install openssl`
+    * mysqlclient `sudo apt-get install libmysqlclient-dev`
+* Others
+    * [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz) ([Document](https://hardysimpson.github.io/zlog/UsersGuide-EN.html))
+    * [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz) ([Installation guide](https://curl.haxx.se/docs/install.html))
 
 ### Source documentation (Need doxygen library) (Not yet ready)
+
 ```
 $ make doc
 ```
 
-<<<<<<< HEAD
-## 2. Install process
-##### a. Download tar file
-    $ wget (address)
-##### b. Get moc_agent.tar.gz
-    $ tar -zxf moc_agent.tar.gz
-##### c. Install the libraries listed above
-##### d. Modify configuration files
-Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A following space is needed after a line.
 
-    $ vim cfg/plugins
-=======
 ## B. Install
 1. Download tar file
 
@@ -41,33 +33,37 @@ Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A 
     ```
     $ tar -zxf moc_agent.tar.gz
     ```
-1. Install the libraries listed above
-1. Modify configuration files
-
-    Add lines of plugins that you want to observe, one of "os", "proxy", "mysql". A following space is needed after a line
-
-        $ vim cfg/plugins
-
-    > 
-    > os
-    >
-    > jvm,8084
-    >
-    > mysql,127.0.0.1,root,password
-
-    $ vim cfg/license
-
-    Modify the license file.
-
-        $ vim cfg/license
-1. Lauch!
+1. Write your license in `cfg/licence`
+1. Modify your configuration file (See C)
+1. Lauch the agent background
 
     ```
     $ ./bin/agent & 
-    [1] pid
+    [1] (your pid)
     ```
 
-## C. Termination
-If you want to terminate, use this
+## C. Configuration
+    
+* Your configuration file is `cfg/plugins`. We support 3 plugins, os, jvm, and mysql.
+    * OS plugin
+        
+        It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option. After you 
+        > *os*
+    
+    * JVM plugin
+        
+        JVM plugin needs a port to communicate with 
+        > jvm,8084
+        >
+        > mysql,127.0.0.1,root,password
 
-    $ kill pid
+## D. Termination
+
+* If you want to terminate, use this:
+
+        $ kill (your pid)
+
+* Check your agent is terminated
+
+        $ ps aux | grep moc_agent
+        [1]+ Terminated    ./bin/moc_agent
