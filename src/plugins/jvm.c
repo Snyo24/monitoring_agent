@@ -31,8 +31,7 @@ typedef struct _jvm_spec {
 static int jvm_spec_init(jvm_spec_t *spec, unsigned short port);
 
 int jvm_plugin_init(jvm_plugin_t *plugin, char *option) {
-    unsigned short port;
-    if(sscanf(option, "%hu", &port) != 1) return -1;
+    unsigned short port = 6974;
 
 	plugin->spec = malloc(sizeof(jvm_spec_t));
 	if(!plugin->spec) return -1;

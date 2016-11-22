@@ -72,7 +72,8 @@ int get_agent_type() {
 int get_license() {
 	FILE *license_fd = fopen("cfg/license", "r");
 	if(!license_fd) return -1;
-	int success = fscanf(license_fd, "%s", license) == 1;
+    char tmp[1000];
+	int success = fscanf(license_fd, "%s%s", tmp, license) == 2;
 	fclose(license_fd);
 	if(!success) return -1;
 	return 0;
