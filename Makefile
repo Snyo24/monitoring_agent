@@ -15,7 +15,7 @@ DOCDIR		:= html
 #Flags, Libraries and Includes
 CFLAGS		:= -std=gnu99 -fms-extensions -Wall -O2 -g $(V)
 LDLIBS		:= -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib
-LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson -lssl -lcrypto -lmysqlclient
+LDFLAGS		:= -lrt -ldl -lpthread -lzlog -lcurl -ljson-c -lssl -lcrypto -lmysqlclient
 INC			:= -I$(INCDIR) -I/usr/local/include/
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)
@@ -40,7 +40,7 @@ $(BINDIR)/$(TARGET): $(OBJECTS)
 $(OBJDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
 	@echo
 	@echo "[ Plugin "$*" ]"
-	$(CC) -shared -o $@ $< $(LDFLAGS)
+	$(CC) -shared -o $@ $< $(LDLIBS) $(LDFLAGS)
 
 $(OBJDIR)/plugins/%.o: $(SRCDIR)/plugins/%.c $(INCDIR)/plugins/%.h
 	$(CC) $(CFLAGS) $(INC) -fPIC -c $< -o $@

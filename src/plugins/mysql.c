@@ -140,7 +140,7 @@ void _collect_query(plugin_t *plugin, json_object *values) {
 	}
     */
     res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
-            "SELECT concat_ws(',', user_host, ifnull(sql_text, ''),TIME_TO_SEC(query_time),DATE_FORMAT(start_time, '%Y-%m-%d %H:%i:%s'),rows_sent,rows_examined) FROM mysql.slow_log WHERE sql_text NOT LIKE '%#MOC#%' LIMIT 100;");
+            "SELECT concat_ws(',', user_host, ifnull(sql_text, ''),TIME_TO_SEC(query_time),concat(UNIX_TIMESTAMP(start_time), '000'),rows_sent,rows_examined) FROM mysql.slow_log WHERE sql_text NOT LIKE '%#MOC#%' LIMIT 100;");
     int num = 0;
     while ((row = mysql_fetch_row(res))) {
         char slow_q[100];

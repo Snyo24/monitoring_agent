@@ -8,9 +8,9 @@
 
 ### Libraries need
 * From apt/ yum repositories
-    * json-c `sudo apt-get install libjson0-dev`
-    * openssl `sudo apt-get install openssl`
-    * mysqlclient `sudo apt-get install libmysqlclient-dev`
+    * json-c `sudo apt-get install libjson0-dev` `sudo yum install json-c-dev`
+    * openssl `sudo apt-get install openssl` `sudo yum install openssl-dev`
+    * mysqlclient `sudo apt-get install libmysqlclient-dev` `sudo yum install mysql-dev`
 * Others
     * [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz) ([Document](https://hardysimpson.github.io/zlog/UsersGuide-EN.html))
     * [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz) ([Installation guide](https://curl.haxx.se/docs/install.html))

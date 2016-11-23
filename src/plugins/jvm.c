@@ -127,8 +127,8 @@ void collect_jvm_metrics(jvm_plugin_t *plugin) {
 				if(!obj) break;
 				json_object_put(plugin->metric);
 				json_object_put(plugin->values);
-				plugin->metric = json_object_object_get(obj, "metrics");
-				plugin->values = json_object_object_get(obj, "values");
+				json_object_object_get_ex(obj, "metrics", &plugin->metric);
+				json_object_object_get_ex(obj, "values", &plugin->values);
 				plugin->holding++;
 			}
 		}
