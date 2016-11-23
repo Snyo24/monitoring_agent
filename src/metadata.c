@@ -29,13 +29,13 @@ static int get_pid();
 static int get_mac_addr();
 
 int metadata_init() {
-	return get_hostname()!= -1
+	return (get_hostname()!= -1
 		&& get_os()      != -1
 		&& get_license() != -1
 		&& get_uuid()    != -1
 		&& get_agent_ip()!= -1
 		&& get_agent_type()!=-1
-		&& get_pid()     != -1;
+		&& get_pid()     != -1) -1;
 }
 
 int get_hostname() {

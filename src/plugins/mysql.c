@@ -213,12 +213,13 @@ void _collect_threads(plugin_t *plugin, json_object *values) {
 	mysql_free_result(res);
 
     res = query_result(((mysql_spec_t *)plugin->spec)->mysql, \
-	   "SELECT a.id, concat_ws(',', ifnull(b.thread_id, ''), ifnull(a.info, ''), ifnull(a.user, ''), ifnull(a.host, ''), ifnull(a.db, ''), a.time, ifnull(round(c.timer_wait/1000000000000,3), ''), ifnull(c.event_id, ''), ifnull(c.event_name, ''), a.command, a.state) FROM information_schema.processlist a left join performance_schema.threads b on a.id=b.processlist_id left join performance_schema.events_waits_current c on b.thread_id=c.thread_id WHERE  1=1 and ( a.info is null or  a.info not like '%#MOC#%')");
+	   "SELECT concat_ws(',',a.id,ifnull(b.thread_id, ''), ifnull(a.info, ''), ifnull(a.user, ''), ifnull(a.host, ''), ifnull(a.db, ''), a.time, ifnull(round(c.timer_wait/1000000000000,3), ''), ifnull(c.event_id, ''), ifnull(c.event_name, ''), a.command, a.state) FROM information_schema.processlist a left join performance_schema.threads b on a.id=b.processlist_id left join performance_schema.events_waits_current c on b.thread_id=c.thread_id WHERE  1=1 and ( a.info is null or  a.info not like '%#MOC#%')");
+    int i = 0;
 	   while((row = mysql_fetch_row(res))) {
            char thread[100];
-           sprintf(thread, "Thread|%s\n", row[0]);
+           sprintf(thread, "Thread|%d\n", i++);
            json_object_array_add(plugin->metric, json_object_new_string(thread));
-           json_object_array_add(values, json_object_new_string(row[1]));
+           json_object_array_add(values, json_object_new_string(row[0]));
 	   }
 	   mysql_free_result(res);
 }
