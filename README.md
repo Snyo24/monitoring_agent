@@ -9,7 +9,7 @@
 ### Libraries need
 * From apt/ yum repositories
     * json-c `sudo apt-get install libjson0-dev` `sudo yum install json-c-dev`
-    * openssl `sudo apt-get install openssl` `sudo yum install openssl-dev`
+    * openssl `sudo apt-get install libssl-dev` `sudo yum install openssl-dev`
     * mysqlclient `sudo apt-get install libmysqlclient-dev` `sudo yum install mysql-dev`
 * Others
     * [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz) ([Document](https://hardysimpson.github.io/zlog/UsersGuide-EN.html))
