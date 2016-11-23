@@ -60,7 +60,6 @@ int get_agent_ip() {
 	if(getaddrinfo(hostname, NULL, &hints, &result) != 0)
 		return -1;
     char *addr = inet_ntoa(((struct sockaddr_in *)result->ai_addr)->sin_addr);
-    printf("%s\n", addr);
 	snprintf(agent_ip, 17, "%s", addr);
 	freeaddrinfo(result);
 	return 0;

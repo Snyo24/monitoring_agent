@@ -83,7 +83,7 @@
 * Check your agent is terminated
 
         $ ps aux | grep moc_agent
-        [1]+ Terminated    ./bin/moc_agent
+        (print nothing)
 
 * If you forgot the agent pid, check with `ps` command.
 
