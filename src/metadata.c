@@ -16,8 +16,8 @@ char hostname[100];
 char os[50];
 char license[100];
 char uuid[33];
-char *agent_ip;
-char *agent_type;
+char agent_ip[17];
+char agent_type[20];
 
 static int get_hostname();
 static int get_os();
@@ -59,13 +59,15 @@ int get_agent_ip() {
 	hints.ai_socktype = SOCK_STREAM;
 	if(getaddrinfo(hostname, NULL, &hints, &result) != 0)
 		return -1;
-	agent_ip = inet_ntoa(((struct sockaddr_in *)result->ai_addr)->sin_addr);
+    char *addr = inet_ntoa(((struct sockaddr_in *)result->ai_addr)->sin_addr);
+    printf("%s\n", addr);
+	snprintf(agent_ip, 17, "%s", addr);
 	freeaddrinfo(result);
 	return 0;
 }
 
 int get_agent_type() {
-	agent_type = "linux_1.0";
+    snprintf(agent_type, 20, "linux_1.0");
 	return 0;
 }
 
