@@ -49,9 +49,6 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCDIR)/%.h
 	$(CC) $(CFLAGS) $(INC) -c $< -o $@
 
 clean:
-	rm -rf $(TARGET) $(OBJDIR) $(BINDIR) $(DOCDIR)
+	rm -rf $(BINDIR) $(OBJDIR) $(BINDIR)
 
-doc:
-	@doxygen -s
-
-.PHONY: all clean doc
+.PHONY: all clean

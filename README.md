@@ -15,11 +15,6 @@
     * [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz) ([Document](https://hardysimpson.github.io/zlog/UsersGuide-EN.html))
     * [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz) ([Installation guide](https://curl.haxx.se/docs/install.html))
 
-### Source documentation (Need doxygen library) (Not yet ready)
-
-    $ make doc
-
-
 ## B. Install
 1. Download tar file
 
