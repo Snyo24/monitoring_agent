@@ -45,7 +45,7 @@ int get_hostname() {
 int get_os() {
 	FILE *os_pipe = popen("lsb_release -d | awk '{ORS=\" \";for(i=2;$i!=\"\";i++)print $i}'", "r");
 	if(!os_pipe) return -1;
-	int success = fgets(os, 50, os_pipe);
+	int success = fgets(os, 50, os_pipe)!=NULL;
 	pclose(os_pipe);
 	if(!success) return -1;
 	return 0;
