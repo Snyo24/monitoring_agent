@@ -20,10 +20,14 @@
 
         $ wget (Download link)
     * Check download links here
-        * [RHEL 6/ CentOS 6](gadsfadsf)
-        * [RHEL 7/ CentOS 7](gadsfadsf)
-        * [Debian 7/ Ubuntu 12.04](gadsfadsf)
-        * [Debain 8/ Ubuntu 14.04](gadsfadsf)
+        * [RHEL 6](gadsfadsf)
+        * [RHEL 7](gadsfadsf)
+        * [CentOS 6](gadsfadsf)
+        * [CentOS 7](gadsfadsf)
+        * [Debian 7](gadsfadsf)
+        * [Debain 8](https://s3.ap-northeast-2.amazonaws.com/maxgaugeoncloud/downloads/agent/debian_8.6/moc_agent_debian_8.6_v1.0.tar.gz)
+        * [Ubuntu 12.04](gadsfadsf)
+        * [Ubuntu 14.04](https://s3.ap-northeast-2.amazonaws.com/maxgaugeoncloud/downloads/agent/ubuntu_14.04/moc_agent_ubuntu_14.04_v1.0.tar.gz)
         * [Ubuntu 16.04](gadsfadsf)
 1. Untar moc_agent.tar.gz
 
@@ -67,7 +71,7 @@
     * **MySQL**
         
         MySQL plugin needs a host address, the root account, and its password. Write the options after `mysql` with seperating commas.
-        > *mysql,127.0.0.1,root,password*
+        > mysql,127.0.0.1,root,password
 
 ## D. Termination
 
