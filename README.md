@@ -3,10 +3,14 @@
 ## A. Specification
 
 ### Supports
-* Ubuntu, Debian: 12.04 LTS, 14.04 LTS, 16.04 LTS
+* Ubuntu: 12.04 LTS, 14.04 LTS, 16.04 LTS
+* Debian: 7, 8
 * Redhat, CentOS: 6, 7
 
-### Libraries
+### Requirments
+* Nothing
+
+### Library used
 * From apt/ yum repositories
     * json-c `sudo apt-get install libjson0-dev` `sudo yum install json-c-dev`
     * openssl `sudo apt-get install libssl-dev` `sudo yum install openssl-dev`
