@@ -1,6 +1,7 @@
 agent
 log
 html
-obj
+obj/plugins
+obj/*.o
 res/**
 *.swp

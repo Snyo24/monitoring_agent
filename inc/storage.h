@@ -10,7 +10,7 @@
 
 #include "runnable.h"
 
-#define CAPACITY 5
+#define CAPACITY 1000
 
 typedef struct packet_t packet_t;
 
