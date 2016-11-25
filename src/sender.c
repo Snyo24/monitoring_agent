@@ -17,9 +17,9 @@
 
 #define SENDER_TICK 0.7
 
-#define REG_URI    "http://gate.maxgauge.com/v1/agents"
-#define METRIC_URI "http://gate.maxgauge.com/v1/metrics"
-#define ALERT_URI  "http://gate.maxgauge.com/v1/alert"
+#define REG_URI    "https://gate.maxgauge.com/v1/agents"
+#define METRIC_URI "https://gate.maxgauge.com/v1/metrics"
+#define ALERT_URI  "https://gate.maxgauge.com/v1/alert"
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
@@ -51,6 +51,8 @@ int sender_init(sender_t *sender) {
 
 	snprintf(unsent_end, 50, "%s/unsent.%d", unsent_path, UNSENT_END);
 	snprintf(unsent_sending, 50, "%s/unsent_sending", unsent_path);
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
 
 	DEBUG(zlog_debug(sender->tag, "Initialize cURL"));
 	sender->header = 0;
