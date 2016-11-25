@@ -13,7 +13,7 @@
     * mysqlclient `sudo apt-get install libmysqlclient-dev` `sudo yum install mysql-dev`
 * Others
     * [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz) ([Document](https://hardysimpson.github.io/zlog/UsersGuide-EN.html)) (Do not have to install, included)
-    * [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz) ([Installation guide](https://curl.haxx.se/docs/install.html))
+    * [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz) ([Installation guide](https://curl.haxx.se/docs/install.html) (./configure --with-ssl))
 
 ## B. Install
 1. Download tar file
