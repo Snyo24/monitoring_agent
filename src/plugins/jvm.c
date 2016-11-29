@@ -28,6 +28,7 @@ typedef struct _jvm_spec {
 	int epoll_fd;
 } jvm_spec_t;
 
+char buf[100000];
 static int jvm_spec_init(jvm_spec_t *spec, unsigned short port);
 
 int jvm_plugin_init(jvm_plugin_t *plugin, char *option) {
@@ -114,7 +115,6 @@ void collect_jvm_metrics(jvm_plugin_t *plugin) {
 			alert_post(oob);
 		}
 		else {
-			char buf[1024];
 			if(ev & (EPOLLRDHUP | EPOLLERR)) {
 				close(fd);
 				epoll_ctl(spec->epoll_fd, EPOLL_CTL_DEL, fd, NULL);
@@ -122,7 +122,9 @@ void collect_jvm_metrics(jvm_plugin_t *plugin) {
 				alert_post(oob);
 				break;
 			} else if(ev & EPOLLIN) {
-				if(read(fd, buf, 1024) <= 0) break;
+				int n;
+				if((n = read(fd, buf, 100000)) <= 0) break;
+				buf[n] = '\0';
 				json_object *obj = json_tokener_parse(buf);
 				if(!obj) break;
 				json_object_put(plugin->metric);
