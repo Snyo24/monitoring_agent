@@ -3,5 +3,4 @@ log
 html
 obj/plugins
 obj/*.o
-res/**
 *.swp

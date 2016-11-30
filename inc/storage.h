@@ -10,7 +10,7 @@
 
 #include "runnable.h"
 
-#define CAPACITY 1000
+#define CAPACITY 10
 
 typedef struct packet_t packet_t;
 
@@ -23,6 +23,7 @@ typedef struct storage_t {
 	packet_t *queue[CAPACITY];
 
 	pthread_mutex_t lock;
+    volatile int intlock;
 } storage_t;
 
 extern storage_t storage;

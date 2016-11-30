@@ -39,6 +39,7 @@ int storage_init(storage_t *storage) {
 	storage->head    = 0;
 	storage->tail    = 0;
 	storage->holding = 0;
+	storage->intlock = 0;
 	pthread_mutex_init(&storage->lock, NULL);
     memset(storage->queue, 0, sizeof(storage->queue));
 
@@ -60,41 +61,47 @@ void storage_main(void *_storage) {
 	if(storage_full(storage)) {
 		zlog_warn(storage->tag, "Full storage, store unsent JSON");
 		while(!storage_empty(storage)) {
-			zlog_unsent(storage->tag, "%s\n", storage_fetch(storage));
+			zlog_unsent(storage->tag, "%s", storage_fetch(storage));
 			storage_drop(storage);
 		}
+        storage->intlock = 0;
 	}
 }
 
 // Plugin
 void storage_add(storage_t *storage, void *data) {
-	pthread_mutex_lock(&storage->lock);
+    while(__sync_bool_compare_and_swap(&storage->intlock, 0, 1));
+
 	packet_t *packet = (packet_t *)malloc(sizeof(packet_t));
 	packet->data = data;
 	storage->queue[storage->tail++] = packet;
 	storage->tail %= CAPACITY;
 	storage->holding++;
-	pthread_mutex_unlock(&storage->lock);
+
+    if(!storage_full(storage))
+        storage->intlock = 0;
 }
 
 void storage_drop(storage_t *storage) {
+    pthread_mutex_lock(&storage->lock);
 	json_object_put(storage->queue[storage->head]->data);
 	free(storage->queue[storage->head]);
     storage->queue[storage->head++] = 0;
 	storage->head %= CAPACITY;
 	storage->holding--;
+    pthread_mutex_unlock(&storage->lock);
 }
 
 // Sender
 const char *storage_fetch(storage_t *storage) {
     const char *fetched;
-    storage_lock(storage);
+    pthread_mutex_lock(&storage->lock);
     if(!storage->queue[storage->head]) {
         fetched = NULL;
     } else {
         fetched = json_object_to_json_string(storage->queue[storage->head]->data);
     }
-    storage_unlock(storage);
+    pthread_mutex_unlock(&storage->lock);
 	return fetched;
 }
 

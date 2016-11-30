@@ -15,7 +15,7 @@
 #include "storage.h"
 #include "util.h"
 
-#define SENDER_TICK 0.7
+#define SENDER_TICK 5
 
 #define REG_URI    "https://gate.maxgauge.com/v1/agents"
 #define METRIC_URI "https://gate.maxgauge.com/v1/metrics"
@@ -161,14 +161,14 @@ int alert_post(char *payload) {
 }
 
 int sender_post(sender_t *sender, const char *payload) {
-	DEBUG(zlog_debug(sender->tag, "%s (%zu)", payload, strlen(payload)));
+	DEBUG(zlog_debug(sender->tag, "%s", payload));
 	curl_easy_setopt(sender->curl, CURLOPT_POSTFIELDS, payload);
 	CURLcode curl_code = curl_easy_perform(sender->curl);
 	long status_code;
 	curl_easy_getinfo(sender->curl, CURLINFO_RESPONSE_CODE, &status_code);
-	DEBUG(zlog_debug(sender->tag, "POST returns curl code(%d) and http_status(%ld)", curl_code, status_code));
+	DEBUG(zlog_debug(sender->tag, "POST %.1fkB, curl(%d), http(%ld)", (float)strlen(payload)/1024, curl_code, status_code));
 	if(status_code == 403) {
-		zlog_error(sender->tag, "Check your license");
+		zlog_error(sender->tag, "Cannot verify your license");
 		exit(1);
 	}
 	return (curl_code == CURLE_OK && status_code == 202) - 1;

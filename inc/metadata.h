@@ -1,12 +1,12 @@
 #ifndef _METADATA_H_
 #define _METADATA_H_
 
-extern char hostname[];
 extern char os[];
-extern char license[];
+extern char ip[];
+extern char host[];
+extern char type[];
 extern char uuid[];
-extern char agent_ip[];
-extern char agent_type[];
+extern char license[];
 
 int metadata_init();
 

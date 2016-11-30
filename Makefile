@@ -16,7 +16,7 @@ DOCDIR		:= html
 CFLAGS		:= -std=gnu99 -fms-extensions -Wall -O2 -g $(V)
 LDLIBS		:= -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib -Lobj/third-party -Wl,-rpath=./obj/plugins -Wl,-rpath=./obj/third-party
 LDFLAGS		:= -lrt -ldl -lpthread -lcurl -ljson-c -lssl -lcrypto -lzlog -lmysqlclient
-INC			:= -I$(INCDIR) -I/usr/local/include/
+INC			:= -I$(INCDIR) -I/usr/local/include/ -I$(INCDIR)/zlog  -I$(INCDIR)/json
 
 CORE		:= $(wildcard $(SRCDIR)/*.c)
 PLUGINS		:= $(wildcard $(SRCDIR)/plugins/*.c)

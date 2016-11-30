@@ -15,9 +15,9 @@
     * json-c `sudo apt-get install libjson0-dev` `sudo yum install json-c-dev`
     * openssl `sudo apt-get install libssl-dev` `sudo yum install openssl-dev`
     * mysqlclient `sudo apt-get install libmysqlclient-dev` `sudo yum install mysql-dev`
+    * curl `sudo apt-get install libcurl4-openssl-dev`
 * Others
     * [zlog](https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz) ([Document](https://hardysimpson.github.io/zlog/UsersGuide-EN.html)) (Do not have to install, included)
-    * [libcurl](https://curl.haxx.se/download/curl-7.50.3.tar.gz) ([Installation guide](https://curl.haxx.se/docs/install.html) (./configure --with-ssl))
 
 ## B. Install
 1. Download tar file

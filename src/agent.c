@@ -15,57 +15,59 @@ storage_t   storage;
 sender_t    sender;
 
 int main(int argc, char **argv) {
-	if(zlog_init("cfg/zlog.conf")) {
-		printf("zlog initiation failed\n");
-		exit(1);
-	}
+    if(zlog_init(".zlog.conf")) {
+        printf("zlog initiation failed\n");
+        exit(1);
+    }
 
-	/* Initiation */
-	scheduler_init(&scheduler);
-	storage_init(&storage);
-	sender_init(&sender);
+    /* Initiation */
+    scheduler_init(&scheduler);
+    storage_init(&storage);
+    sender_init(&sender);
 
-	/* Metadata register */
-	if(metadata_init() < 0)
-		exit(1);
-	sender_set_reg_uri(&sender);
-	char reg_str[1000];
-	int n = 0;
-	n += snprintf(reg_str, 1000, "{\
-			\"os\":\"%s\",\
-			\"hostname\":\"%s\",\
-			\"license\":\"%s\",\
-			\"uuid\":\"%s\",\
-			\"agent_ip\":\"%s\",\
-			\"agent_type\":\"%s\",\
-			\"target_type\":[", os, hostname, license, uuid, agent_ip, agent_type);
-	int sw = 0;
-	for(int i=0; i<10; ++i) {
-		if(scheduler.plugins[i])
-			n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", scheduler.plugins[i]->type);
-	}
+    /* Metadata register */
+    if(metadata_init() < 0) {
+        printf("Fail to initialize metadata\n");
+        exit(1);
+    }
+    sender_set_reg_uri(&sender);
+    char reg_str[1000];
+    int n = 0;
+    n += snprintf(reg_str, 1000, "{\
+            \"os\":\"%s\",\
+            \"hostname\":\"%s\",\
+            \"license\":\"%s\",\
+            \"uuid\":\"%s\",\
+            \"agent_ip\":\"%s\",\
+            \"agent_type\":\"%s\",\
+            \"target_type\":[", os, host, license, uuid, ip, type);
+    int sw = 0;
+    for(int i=0; i<10; ++i) {
+        if(scheduler.plugins[i])
+            n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", scheduler.plugins[i]->type);
+    }
     if(sw == 0)
         exit(1);
-	n += snprintf(reg_str+n, 1000-n, "],\"target_num\":[");
-	sw = 0;
-	for(int i=0; i<10; ++i) {
-		if(scheduler.plugins[i])
-			n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", scheduler.plugins[i]->index);
-	}
-	n += snprintf(reg_str+n, 1000-n, "]}");
-	if(sender_post(&sender, reg_str) < 0) exit(1);
+    n += snprintf(reg_str+n, 1000-n, "],\"target_num\":[");
+    sw = 0;
+    for(int i=0; i<10; ++i) {
+        if(scheduler.plugins[i])
+            n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", scheduler.plugins[i]->index);
+    }
+    n += snprintf(reg_str+n, 1000-n, "]}");
+    if(sender_post(&sender, reg_str) < 0) exit(1);
 
-	/* Run */
-	sender_set_met_uri(&sender);
-	start_runnable((runnable_t *)&scheduler);
-	start_runnable((runnable_t *)&storage);
-	start_runnable((runnable_t *)&sender);
+    /* Run */
+    sender_set_met_uri(&sender);
+    start_runnable((runnable_t *)&scheduler);
+    start_runnable((runnable_t *)&storage);
+    start_runnable((runnable_t *)&sender);
 
-	/* Finalize */
-	scheduler_fini(&scheduler);
-	storage_fini(&storage);
-	sender_fini(&sender);
+    /* Finalize */
+    scheduler_fini(&scheduler);
+    storage_fini(&storage);
+    sender_fini(&sender);
 
-	zlog_fini();
-	return 0;
+    zlog_fini();
+    return 0;
 }

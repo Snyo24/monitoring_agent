@@ -81,7 +81,7 @@ void scheduler_main(void *_scheduler) {
 		plugin_t *plugin = scheduler->plugins[i];
 		if(!plugin) continue;
 		DEBUG(zlog_debug(scheduler->tag, "Plugin_%d [%c%c] (%d/%d)", \
-				plugin->index, \
+				i, \
 				alive(plugin)   ?'A':'.', \
 				outdated(plugin)?'O':'.', \
 				plugin->holding,\

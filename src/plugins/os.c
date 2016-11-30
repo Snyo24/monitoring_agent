@@ -10,7 +10,7 @@
 #include "plugin.h"
 
 #define OS_PLUGIN_TICK 3
-#define OS_PLUGIN_CAPACITY 10
+#define OS_PLUGIN_CAPACITY 20
 
 typedef struct _os_plugin {
 	plugin_t;
