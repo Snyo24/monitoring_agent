@@ -56,6 +56,11 @@ int scheduler_init(scheduler_t *scheduler) {
                 free(plugin);
                 continue;
             }
+            if(start(plugin) < 0) {
+                plugin_fini(plugin);
+                free(plugin);
+                continue;
+            }
 			if(strncmp(type, "os", 2) == 0) {
                 plugin->index = 0;
             } else if(strncmp(type, "jvm", 3) == 0) {
@@ -64,7 +69,8 @@ int scheduler_init(scheduler_t *scheduler) {
 				plugin->index = 2;
             }
 			scheduler->plugins[plugin->index] = plugin;
-            start(plugin);
+            pthread_mutex_lock(&plugin->pike);
+            pthread_mutex_unlock(&plugin->pike);
         }
 	}
 	return 0;

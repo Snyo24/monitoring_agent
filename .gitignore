@@ -1,5 +1,10 @@
 bin
 log
+
 obj/plugins
 obj/*.o
+
 *.swp
+
+.uuid
+.pid

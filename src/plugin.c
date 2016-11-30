@@ -108,7 +108,6 @@ int poke(plugin_t *plugin) {
 	pthread_cond_signal(&plugin->poked);
 	pthread_mutex_unlock(&plugin->pike);
 
-	// confirm the plugin starts collecting
 	return pthread_sync(&plugin->syncd, &plugin->sync, 1);
 }
 
