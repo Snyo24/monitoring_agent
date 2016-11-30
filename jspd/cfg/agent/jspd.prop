@@ -1,0 +1,28 @@
+# ${IP}:${TCP_PORT}
+WR_ADDR=127.0.0.1:6974
+
+# ${UDP_PORT|UDP_PORT}
+TXN_ADDR=2404
+
+# ${UDP_PORT|UDP_PORT}
+UTS_ADDR=
+#UTS_ADDR=2405
+
+# default 10000
+TXN_REGISTRY_SIZE=
+
+# default 200000
+MTD_REGISTRY_SIZE=
+
+# default 200
+MTD_BUFFER_COUNT=
+
+# default 2500
+MTD_BUFFER_SIZE=
+
+# default 60KB
+MTD_MAX_SIZE=
+
+# default false
+AUDIT=
+

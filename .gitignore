@@ -1,6 +1,5 @@
-agent
+bin
 log
-html
 obj/plugins
 obj/*.o
 *.swp
