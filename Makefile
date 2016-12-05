@@ -38,6 +38,7 @@ dir:
 	@mkdir -p $(BINDIR)
 	@mkdir -p $(LOGDIR)
 	@mkdir -p $(OBJDIR)/plugins
+	@mkdir -p $(LIBDIR)/plugins
 
 $(BINDIR)/$(TARGET): $(OBJECTS)
 	@echo

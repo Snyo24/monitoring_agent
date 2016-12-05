@@ -31,23 +31,22 @@ int get_os() {
 	return 0;
 }
 
+int get_host() {
+	return gethostname(host, 99);
+}
+
 int get_ip() {
 	struct addrinfo hints;
 	struct addrinfo *result;
 	memset(&hints, 0, sizeof(struct addrinfo));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_STREAM;
-    printf("%d\n", getaddrinfo(host, NULL, &hints, &result));
 	if(getaddrinfo(host, NULL, &hints, &result) != 0)
 		return -1;
     char *addr = inet_ntoa(((struct sockaddr_in *)result->ai_addr)->sin_addr);
 	snprintf(ip, 17, "%s", addr);
 	freeaddrinfo(result);
 	return 0;
-}
-
-int get_host() {
-	return gethostname(host, 99);
 }
 
 int get_type() {
@@ -123,8 +122,8 @@ int get_mac_addr(char *mac) {
 
 int metadata_init() {
 	return -(get_os()      < 0
-		  //|| get_ip()      < 0
           || get_host()    < 0
+		  || get_ip()      < 0
 		  || get_type()    < 0
 		  || get_uuid()    < 0
 		  || get_license() < 0

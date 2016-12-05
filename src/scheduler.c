@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <dlfcn.h>
 
 #include <zlog.h>
 
@@ -34,45 +35,98 @@ int scheduler_init(scheduler_t *scheduler) {
 
 	DEBUG(zlog_debug(scheduler->tag, "Initailize a plugin table"));
 	memset(scheduler->plugins, 0, sizeof(plugin_t *)*MAX_PLUGIN);
+    scheduler->pluginc = 0;
 
 	scheduler->period = SCHEDULER_TICK;
 	scheduler->job    = scheduler_main;
 
-	FILE *plugin_conf = fopen("cfg/plugins", "r");
-	if(!plugin_conf) {
+	DEBUG(zlog_debug(scheduler->tag, "Initialize plugins"));
+
+    FILE *conf = fopen("./plugin.conf", "r");
+    if(!conf) {
 		zlog_error(scheduler->tag, "Fail to open conf");
 		return -1;
 	}
+    enum {
+        NONE,
+        PLUG,
+        NAME,
+        VAL
+    } status = NONE;
 
-	DEBUG(zlog_debug(scheduler->tag, "Initialize plugins"));
-	char line[1000];
-	plugin_t *plugin;
-	while(fgets(line, 1000, plugin_conf)) {
-		char type[10], option[200];
-        int args = sscanf(line, "%10[^(,\n)],%200[^\n]\n", type, option);
-		if(args > 0) {
-            plugin = malloc(sizeof(plugin_t));
-            if(plugin_init(plugin, type, option) < 0) {
-                free(plugin);
-                continue;
+	char line[99];
+
+    char type[98];
+    char dlname[98], smname[98];
+    int argc = 0;
+    char argv[10][98];
+
+    while(fgets(line, 99, conf)) {
+        char first, remain[98];
+        sscanf(line, "%c%s", &first, remain);
+        if(first == '\n' || first == '#') {
+        } else if(first == '<') {
+            if(status != NONE) {
+                zlog_error(scheduler->tag, "Unexpected character '<'");
+                exit(1);
             }
-            if(start(plugin) < 0) {
+            argc = 0;
+            snprintf(type, 98, "%s", remain);
+            snprintf(dlname, 98, "lib%s.so", type);
+            snprintf(smname, 98, "%s_plugin_init", type);
+            status = PLUG;
+        } else if(first == '!') {
+            if(status != PLUG) {
+                zlog_error(scheduler->tag, "Unexpected character '!'");
+                exit(1);
+            }
+            status = NAME;
+        } else if(first == '-') {
+            if(status == PLUG) {
+                if(strncmp(remain, "OFF", 3) == 0) {
+                    void *err;
+                    while((err = fgets(line, 99, conf)) && line[0] != '>');
+                    if(!err) {
+                        zlog_error(scheduler->tag, "Expecting ']' for %s", type);
+                        exit(1);
+                    }
+                    status = NONE;
+                } else if(strncmp(remain, "ON", 2) != 0) {
+                    zlog_error(scheduler->tag, "Status for %s is unknown: %s", type, remain);
+                    exit(1);
+                }
+            } else if(status == NAME) {
+                snprintf(argv[argc++], 98, "%s", remain);
+                status = VAL;
+            } else if(status == VAL) {
+                snprintf(argv[argc++], 98, "%s", remain);
+            } else {
+                zlog_error(scheduler->tag, "Unexpected character '-'");
+                exit(1);
+            }
+        } else if(first == '>') {
+            if(status != VAL && status != PLUG) {
+                zlog_error(scheduler->tag, "Unexpected character '>'");
+                exit(1);
+            }
+            status = NONE;
+            void *dl = dlopen(dlname, RTLD_LAZY);
+            void *(*dynamic_plugin_init)(int, char **) = dlsym(dl, smname);
+            void *plugin = 0;
+            if(dlerror() || !(plugin = dynamic_plugin_init(argc, (char **)argv))) {
                 plugin_fini(plugin);
-                free(plugin);
-                continue;
+                return -1;
             }
-			if(strncmp(type, "os", 2) == 0) {
-                plugin->index = 0;
-            } else if(strncmp(type, "jvm", 3) == 0) {
-				plugin->index = 1;
-            } else if(strncmp(type, "mysql", 5) == 0) {
-				plugin->index = 2;
-            }
-			scheduler->plugins[plugin->index] = plugin;
-            pthread_mutex_lock(&plugin->pike);
-            pthread_mutex_unlock(&plugin->pike);
+            if(plugin_init(plugin) < 0) continue;
+            start(plugin);
+            scheduler->plugins[scheduler->pluginc++] = plugin;
+        } else {
+            zlog_error(scheduler->tag, "Unexpected character");
+            exit(1);
         }
-	}
+    }
+    fclose(conf);
+
 	return 0;
 }
 
@@ -86,12 +140,10 @@ void scheduler_main(void *_scheduler) {
 	for(int i=0; i<MAX_PLUGIN; ++i) {
 		plugin_t *plugin = scheduler->plugins[i];
 		if(!plugin) continue;
-		DEBUG(zlog_debug(scheduler->tag, "Plugin_%d [%c%c] (%d/%d)", \
+		DEBUG(zlog_debug(scheduler->tag, "Plugin_%d [%c%c]", \
 				i, \
 				alive(plugin)   ?'A':'.', \
-				outdated(plugin)?'O':'.', \
-				plugin->holding,\
-				plugin->capacity));
+				outdated(plugin)?'O':'.'));
 
 		if(alive(plugin) && outdated(plugin)) {
 			DEBUG(zlog_debug(scheduler->tag, "Poking"));

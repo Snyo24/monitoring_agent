@@ -14,7 +14,8 @@
 
 typedef struct scheduler_t {
 	runnable_t;
-	plugin_t *plugins[MAX_PLUGIN];
+    int pluginc;
+	void *plugins[MAX_PLUGIN];
 } scheduler_t;
 
 int  scheduler_init(scheduler_t *scheduler);

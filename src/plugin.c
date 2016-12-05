@@ -7,7 +7,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <dlfcn.h>
 
 #include <zlog.h>
 #include <json/json.h>
@@ -17,13 +16,12 @@
 #include "util.h"
 
 // return 0 for success, -1 for failure
-int plugin_init(plugin_t *plugin, const char *type, char *option) {
+int plugin_init(plugin_t *plugin) {
 	if(!plugin) return -1;
-	memset(plugin, 0, sizeof(plugin_t));
 
 	/* Tag */
 	plugin->tag = zlog_get_category(type);
-	if(!plugin->tag); 
+	if(!plugin->tag);
 
 	/* Thread variables */
 	if(pthread_mutex_init(&plugin->sync, NULL) < 0
@@ -31,18 +29,6 @@ int plugin_init(plugin_t *plugin, const char *type, char *option) {
 			|| pthread_cond_init(&plugin->syncd, NULL) < 0
 			|| pthread_cond_init(&plugin->poked, NULL) < 0) {
 		zlog_error(plugin->tag, "Fail to initialize thread variables");
-		plugin_fini(plugin);
-		return -1;
-	}
-
-	/* Specify plugin */
-	char dlname[20], smname[30];
-	snprintf(dlname, 20, "lib%s.so", type);
-	snprintf(smname, 30, "%s_plugin_init", type);
-	void *dl = dlopen(dlname, RTLD_LAZY);
-	int (*dynamic_plugin_init)(plugin_t *, char *) = dlsym(dl, smname);
-	if(dlerror() || dynamic_plugin_init(plugin, option) < 0) {
-		zlog_error(plugin->tag, "Fail to load %s", smname);
 		plugin_fini(plugin);
 		return -1;
 	}
@@ -73,16 +59,17 @@ int start(plugin_t *plugin) {
 	DEBUG(zlog_info(plugin->tag, "Starting"));
 
 	plugin->alive   = 1;
-	plugin->holding = 0;
-	plugin->metric  = json_object_new_array();
-	plugin->values  = json_object_new_object();
-
 	plugin->next_run = 0;
 
 	pthread_mutex_lock(&plugin->sync);
 	pthread_create(&plugin->running_thread, NULL, plugin_main, plugin);
 
-	return pthread_sync(&plugin->syncd, &plugin->sync, 1);
+	if(pthread_sync(&plugin->syncd, &plugin->sync, 1) < 0)
+        return -1;
+
+    pthread_mutex_lock(&plugin->pike);
+    pthread_mutex_unlock(&plugin->pike);
+    return 0;
 }
 
 void stop(plugin_t *plugin) {
@@ -92,9 +79,6 @@ void stop(plugin_t *plugin) {
 	pthread_cancel(plugin->running_thread);
 	pthread_mutex_unlock(&plugin->sync);
 	pthread_mutex_unlock(&plugin->pike);
-
-	json_object_put(plugin->metric);
-	json_object_put(plugin->values);
 }
 
 void restart(plugin_t *plugin) {
@@ -129,32 +113,25 @@ void *plugin_main(void *_plugin) {
 		pthread_mutex_unlock(&plugin->sync);
 
 		DEBUG(zlog_debug(plugin->tag, "Start collecting"));
-		DEBUG(epoch_t begin = epoch_time());
-		plugin->curr_run = epoch_time();
-		plugin->collect(plugin);
-		plugin->next_run = plugin->curr_run + (epoch_t)(plugin->period*MSPS);
-		if(plugin->holding == plugin->capacity) {
-			pack(plugin);
-			plugin->metric = json_object_new_array();
-		}
-		DEBUG(zlog_debug(plugin->tag, "Done in %llums", epoch_time()-begin));
+        for(int i=0; i<plugin->tgc; i++) {
+            int n = 0;
+            plugin->packet = malloc(4096);
+            DEBUG(epoch_t begin = epoch_time());
+            plugin->curr_run = epoch_time();
+            n += sprintf(plugin->packet+n, "{\"ts\":%llu,\"target\":%d,\"value\":", plugin->curr_run, i);
+            n += plugin->collect(plugin->tgv[i], plugin->packet+n);
+            n += sprintf(plugin->packet+n, "}");
+            plugin->next_run = plugin->curr_run + (epoch_t)(plugin->period*MSPS);
+            pack(plugin->packet);
+            DEBUG(zlog_debug(plugin->tag, "Done in %llums", epoch_time()-begin));
+        }
 	}
 
 	return NULL;
 }
 
-void pack(plugin_t *plugin) {
-	DEBUG(zlog_debug(plugin->tag, "Packing data"));
-	json_object *payload = json_object_new_object();
-	json_object_object_add(payload, "license", json_object_new_string(license));
-	json_object_object_add(payload, "uuid", json_object_new_string(uuid));
-	json_object_object_add(payload, "target_num", json_object_new_int(plugin->index));
-	json_object_object_add(payload, "metrics", plugin->metric);
-	json_object_object_add(payload, "values", plugin->values);
-	storage_add(&storage, payload);
-
-	plugin->values = json_object_new_object();
-	plugin->holding = 0;
+void pack(char *packet) {
+	storage_add(&storage, packet);
 }
 
 unsigned alive(plugin_t *plugin) {

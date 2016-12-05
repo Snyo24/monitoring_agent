@@ -1,8 +1,8 @@
 bin
 log
 
-obj/plugins
-obj/*.o
+obj
+lib/plugins
 
 *.swp
 

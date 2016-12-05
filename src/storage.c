@@ -18,7 +18,7 @@
 #define zlog_unsent(cat, fmt, ...) zlog(cat,__FILE__,sizeof(__FILE__)-1,__func__,sizeof(__func__)-1,__LINE__, 19,fmt,##__VA_ARGS__)
 
 struct packet_t {
-	json_object *data;
+	char *data;
 };
 
 void storage_lock(storage_t *storage);
@@ -84,7 +84,7 @@ void storage_add(storage_t *storage, void *data) {
 
 void storage_drop(storage_t *storage) {
     pthread_mutex_lock(&storage->lock);
-	json_object_put(storage->queue[storage->head]->data);
+	free(storage->queue[storage->head]->data);
 	free(storage->queue[storage->head]);
     storage->queue[storage->head++] = 0;
 	storage->head %= CAPACITY;
@@ -99,7 +99,7 @@ const char *storage_fetch(storage_t *storage) {
     if(!storage->queue[storage->head]) {
         fetched = NULL;
     } else {
-        fetched = json_object_to_json_string(storage->queue[storage->head]->data);
+        fetched = storage->queue[storage->head]->data;
     }
     pthread_mutex_unlock(&storage->lock);
 	return fetched;

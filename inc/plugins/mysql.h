@@ -5,11 +5,7 @@
 #ifndef _MYSQL_H_
 #define _MYSQL_H_
 
-#include "plugin.h"
-
-typedef plugin_t mysql_plugin_t;
-
-int  mysql_plugin_init(plugin_t *plugin, char *option);
-void mysql_plugin_fini(plugin_t *plugin);
+void *mysql_plugin_init(int argc, char **argv);
+void mysql_plugin_fini(void *_plugin);
 
 #endif

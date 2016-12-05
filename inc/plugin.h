@@ -11,9 +11,9 @@
 
 #include "util.h"
 
-typedef struct _plugin plugin_t;
+typedef struct plugin_t plugin_t;
 
-struct _plugin {
+struct plugin_t {
 	int index;
 	
 	/* Thread variables */
@@ -30,6 +30,11 @@ struct _plugin {
 	char *type;
 	char *ip;
 
+    int tgc;
+    void *tgv[5];
+
+    char *packet;
+
 	/* Timing variables */
 	float period;
 	union {
@@ -37,22 +42,16 @@ struct _plugin {
         epoch_t curr_run;
     };
 
-	/* Metrics */
-	int capacity;
-	int holding;
-	json_object *metric;
-	json_object *values;
-
 	/* Inheritance */
 	void *spec;
 
 	/* Polymorphism */
 	void *tag;
-	void (*collect)(plugin_t *);
-	void (*fini)(plugin_t *);
+	int (*collect)(void *, char *);
+	void (*fini)(void *);
 };
 
-int plugin_init(plugin_t *plugin, const char *type, char *option);
+int plugin_init(plugin_t *plugin);
 int plugin_fini(plugin_t *plugin);
 
 void *plugin_main(void *_plugin);
@@ -61,7 +60,7 @@ int  start(plugin_t *plugin);
 void stop(plugin_t *plugin);
 void restart(plugin_t *plugin);
 int  poke(plugin_t *plugin);
-void pack(plugin_t *plugin);
+void pack(char *packet);
 
 unsigned alive(plugin_t *plugin);
 unsigned outdated(plugin_t *plugin);
