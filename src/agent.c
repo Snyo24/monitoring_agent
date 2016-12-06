@@ -59,7 +59,7 @@ int main(int argc, char **argv) {
             n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", ((plugin_t *)scheduler.plugins[i])->index);
     }
     n += snprintf(reg_str+n, 1000-n, "]\n}");
-    if(sender_post(&sender, reg_str) < 0) exit(1);
+    if(sender_post(&sender, reg_str) < 0);// exit(1);
 
     /* Run */
     sender_set_met_uri(&sender);

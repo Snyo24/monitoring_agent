@@ -12,8 +12,8 @@
 
 ### Library used
 * From apt/ yum repositories
-    * json-c `sudo apt-get install libjson0-dev` `sudo yum install json-c-dev`
-    * openssl `sudo apt-get install libssl-dev` `sudo yum install openssl-dev`
+    * json-c `sudo apt-get install libjson0-dev` `sudo yum install json-c-devel`
+    * openssl `sudo apt-get install libssl-dev` `sudo yum install openssl-devel`
     * mysqlclient `sudo apt-get install libmysqlclient-dev` `sudo yum install mysql-dev`
     * curl `sudo apt-get install libcurl4-openssl-dev`
 * Others

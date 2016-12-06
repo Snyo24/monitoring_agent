@@ -118,9 +118,9 @@ void *plugin_main(void *_plugin) {
             plugin->packet = malloc(4096);
             DEBUG(epoch_t begin = epoch_time());
             plugin->curr_run = epoch_time();
-            n += sprintf(plugin->packet+n, "{\"ts\":%llu,\"target\":%d,\"value\":", plugin->curr_run, i);
+            n += sprintf(plugin->packet+n, "{\"ts\":%llu,\"target\":%d,\"values\":{", plugin->curr_run, i);
             n += plugin->collect(plugin->tgv[i], plugin->packet+n);
-            n += sprintf(plugin->packet+n, "}");
+            n += sprintf(plugin->packet+n, "}}");
             plugin->next_run = plugin->curr_run + (epoch_t)(plugin->period*MSPS);
             pack(plugin->packet);
             DEBUG(zlog_debug(plugin->tag, "Done in %llums", epoch_time()-begin));

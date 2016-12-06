@@ -6,11 +6,13 @@
 #include "plugin.h"
 
 #include <stdio.h>
+#include <sys/statvfs.h>
 
 #include "metadata.h"
 
 #define OS_PLUGIN_TICK 3
-#define OS_PLUGIN_CAPACITY 20
+#define BFSZ 128
+#define BPKB 1024
 
 typedef struct os_plugin_t {
 	plugin_t;
@@ -20,11 +22,11 @@ typedef struct os_target_t {
     char host[50];
 } os_target_t;
 
-int _collect_cpu(char *packet);
-int _collect_disk(char *packet);
-int _collect_proc(char *packet);
-int _collect_memory(char *packet);
-int _collect_network(char *packet);
+int _collect_os_cpu(char *packet);
+int _collect_os_disk(char *packet);
+int _collect_os_proc(char *packet);
+int _collect_os_memory(char *packet);
+int _collect_os_network(char *packet);
 
 int collect_os(void *_target, char *packet);
 
@@ -62,18 +64,17 @@ void os_plugin_fini(void *_plugin) {
 
 int collect_os(void *_target, char *packet) {
     int n = 0;
-    n += sprintf(packet+n, "{");
     n += sprintf(packet+n, "\"cpu\":{");
-	n += _collect_cpu(packet+n);
+	n += _collect_os_cpu(packet+n);
     n += sprintf(packet+n, "},\"disk\":{");
-	n +=_collect_disk(packet+n);
+	n +=_collect_os_disk(packet+n);
     n += sprintf(packet+n, "},\"proc\":{");
-	n += _collect_proc(packet+n);
+	n += _collect_os_proc(packet+n);
     n += sprintf(packet+n, "},\"mem\":{");
-	n += _collect_memory(packet+n);
+	n += _collect_os_memory(packet+n);
     n += sprintf(packet+n, "},\"net\":{");
-	n += _collect_network(packet+n);
-    n += sprintf(packet+n, "}}");
+	n += _collect_os_network(packet+n);
+    n += sprintf(packet+n, "}");
 
     return n;
 }
@@ -88,7 +89,7 @@ int collect_os(void *_target, char *packet) {
  *
  * (CPU usage of user, system, and idle)
  */
-int _collect_cpu(char *packet) {
+int _collect_os_cpu(char *packet) {
 	FILE *pipe;
 	pipe = popen("awk '$1~/^cpu$/{tot=$2+$3+$4+$5;print $2/tot,$4/tot,$5/tot}' /proc/stat", "r");
 	if(!pipe) return 0;
@@ -107,7 +108,7 @@ int _collect_cpu(char *packet) {
  * Disk metrics
  * This function extracts disk metrics.
  */
-int _collect_disk(char *packet) {
+int _collect_os_disk(char *packet) {
 	FILE *pipe;
 	pipe = popen("awk '$1~\"^/dev/\"{print $1,$2}' /proc/mounts", "r");
 	if(!pipe) return 0;
@@ -115,44 +116,42 @@ int _collect_disk(char *packet) {
     int n = 0;
     n += sprintf(packet+n, "\"list\":{");
 
-	char part_name[9];
+	char part_name[BFSZ];
     unsigned short part_num;
-	char part_mount[49];
+	char part_mount[BFSZ];
 	unsigned long long io_tot = 0;
     int sw = 0;
-	while(fscanf(pipe, "/dev/%[^0-9]%hu%49s\n", part_name, &part_num, part_mount) == 3) {
+	while(fscanf(pipe, "/dev/%128[^0-9]%hu%128s\n", part_name, &part_num, part_mount) == 3) {
         int n2 = 0;
         n2 += sprintf(packet+n+n2, "%s\"%s%hu(%s)\":{", sw?",":"", part_name, part_num, part_mount);
-        sw = 1;
 
         // Usage
-		char cmd[99];
-		snprintf(cmd, 99, "df | awk '$1~\"%s%hu\"{print $2,$3}'", part_name, part_num);
-		FILE *subpipe = popen(cmd, "r");
-        if(!subpipe) continue;
-        unsigned long long part_total, part_used;
-        if(fscanf(subpipe, "%llu%llu", &part_total, &part_used) == 2)
-            n2 += sprintf(packet+n+n2, "\"tot\":%llu,\"used\":%llu,\"avail\":%llu", part_total, part_used, part_total-part_used);
-        pclose(subpipe);
+        struct statvfs vfs;
+        if(statvfs(part_mount, &vfs) < 0) continue;
+        unsigned long long tot   = vfs.f_blocks*vfs.f_frsize/BPKB;
+        unsigned long long free  = vfs.f_bfree *vfs.f_bsize /BPKB;
+        unsigned long long avail = vfs.f_bavail*vfs.f_bsize /BPKB;
+        n2 += sprintf(packet+n+n2, "\"tot\":%llu,\"free\":%llu,\"avail\":%llu", tot, free, avail);
         // !Usage
 
-        // Block size
-		snprintf(cmd, 99, "cat /sys/block/%s/queue/logical_block_size", part_name);
-		subpipe = popen(cmd, "r");
-		if(!subpipe) continue;
-		unsigned long sector;
-		if(fscanf(subpipe, "%lu", &sector) != 1)
-            sector = 0;
-		pclose(subpipe);
-        // !Block size
-
+        // Sector size
+		char cmd[BFSZ];
+        snprintf(cmd, BFSZ, "/sys/block/%s/queue/logical_block_size", part_name);
+        FILE *subpipe = fopen(cmd, "r");
+        if(!subpipe) continue;
+        unsigned long sec_size;
+        int success = fscanf(subpipe, "%lu", &sec_size)==1;
+        fclose(subpipe);
+        if(!success) continue;
+        // !Sector size
+   
         // Diskstat
-		snprintf(cmd, 99, "awk '$3~/^%s%hu$/{print $4,$6,$7,$8,$10,$11,$14}' /proc/diskstats", part_name, part_num);
+		snprintf(cmd, BFSZ, "awk '$3~/^%s%hu$/{print $4,$6,$7,$8,$10,$11,$14}' /proc/diskstats", part_name, part_num);
 		subpipe = popen(cmd, "r");
         if(!subpipe) continue;
         unsigned long long r, rsec, rt, w, wsec, wt, weight;
         if(fscanf(subpipe, "%llu%llu%llu%llu%llu%llu%llu", &r, &rsec, &rt, &w, &wsec, &wt, &weight) == 7) {
-            n2 += sprintf(packet+n+n2, ",\"io\":%llu,\"iot\":%llu,\"r\":%llu,\"rsec\":%llu,\"rt\":%llu,\"w\":%llu,\"wsec\":%llu,\"wt\":%llu,\"weight\":%llu", r+w, rt+wt, r, rsec*sector/1024, rt, w, wsec*sector/1024, wt, weight);
+            n2 += sprintf(packet+n+n2, ",\"io\":%llu,\"iot\":%llu,\"r\":%llu,\"rsec\":%llu,\"rt\":%llu,\"w\":%llu,\"wsec\":%llu,\"wt\":%llu,\"weight\":%llu", r+w, rt+wt, r, rsec*sec_size/BPKB, rt, w, wsec*sec_size/BPKB, wt, weight);
             io_tot += r+w;
         }
         pclose(subpipe);
@@ -160,8 +159,9 @@ int _collect_disk(char *packet) {
 
         n2 += sprintf(packet+n+n2, "}");
         n += n2;
+        sw = 1;
 	}
-    n += sprintf(packet+n, ",\"io_tot\":%llu}", io_tot);
+    n += sprintf(packet+n, "%s\"io_tot\":%llu}", sw?",":"", io_tot);
 	pclose(pipe);
 
     return n;
@@ -181,7 +181,7 @@ int _collect_disk(char *packet) {
  *
  * (a command to execute the process, cpu(or memory) percentage that the process is using)
  */
-int _collect_proc(char *packet) {
+int _collect_os_proc(char *packet) {
     // CPU
 	FILE *pipe = popen("ps -eo comm,pcpu --no-headers | awk '{c[$1]+=1;cpu[$1]+=$2} END{for(i in c)if(cpu[i]>0)print i,cpu[i]}' | sort -rk2,2 | head -n 10", "r");
 	if(!pipe) return 0;
@@ -190,9 +190,9 @@ int _collect_proc(char *packet) {
 
     n += sprintf(packet+n, "\"cpu_top10\":{");
     int sw = 0;
-	char proc[99];
+	char proc[BFSZ];
 	float cpu;
-	while(fscanf(pipe, "%s%f\n", proc, &cpu) == 2) {
+	while(fscanf(pipe, "%128s%f\n", proc, &cpu) == 2) {
         n += sprintf(packet+n, "%s\"%s\":%.2f", sw?",":"", proc, cpu);
         sw = 1;
     }
@@ -206,7 +206,7 @@ int _collect_proc(char *packet) {
     n += sprintf(packet+n, "},\"mem_top10\":{");
     sw = 0;
     float mem;
-	while(fscanf(pipe, "%s%f\n", proc, &mem) == 2) {
+	while(fscanf(pipe, "%128s%f\n", proc, &mem) == 2) {
         n += sprintf(packet+n, "%s\"%s\":%.2f", sw?",":"", proc, mem);
         sw = 1;
     }
@@ -217,15 +217,15 @@ int _collect_proc(char *packet) {
 	pipe = popen("ps -eo comm,user,pcpu,pmem --no-headers | awk '{c[$1\" \"$2]+=1;cpu[$1\" \"$2]+=$3;mem[$1\" \"$2]+=$4} END{for(i in c)if(cpu[i]>0||mem[i]>0)print i,c[i],cpu[i],mem[i]}' | sort -r -k5,5 -k4,4 | head -n 10", "r");
 	if(!pipe) return n;
 
-    n += sprintf(packet+n, "},\"list\":[");
+    n += sprintf(packet+n, "},\"list\":{");
     sw = 0;
-	char user[99];
+	char user[BFSZ];
 	unsigned long count;
-	while(fscanf(pipe, "%99s%99s%lu%f%f", proc, user, &count, &cpu, &mem) == 5) {
-        n += sprintf(packet+n, "%s[\"%s\",\"%s\",%lu,%.2f,%.2f]", sw?",":"", proc, user, count, cpu, mem);
+	while(fscanf(pipe, "%128s%128s%lu%f%f", proc, user, &count, &cpu, &mem) == 5) {
+        n += sprintf(packet+n, "%s\"%s\":[\"%s\",%lu,%.2f,%.2f]", sw?",":"", proc, user, count, cpu, mem);
         sw = 1;
 	}
-    n += sprintf(packet+n, "]");
+    n += sprintf(packet+n, "}");
 	pclose(pipe);
     // !PROCESSES
 
@@ -248,7 +248,7 @@ int _collect_proc(char *packet) {
  *
  * (total, free, cached, active, inactive, total virtual, and using virtual memory)
  */
-int _collect_memory(char *packet) {
+int _collect_os_memory(char *packet) {
 	FILE *pipe = popen("awk '/^Mem[TF]|^Cached|Active:|Inactive:|Vmalloc[TU]/{print $2}' /proc/meminfo", "r");
 	if(!pipe) return 0;
 
@@ -273,7 +273,7 @@ int _collect_memory(char *packet) {
  *
  * (network name, bytes, packets, errors received/transmitted)
  */
-int _collect_network(char *packet) {
+int _collect_os_network(char *packet) {
 	FILE *pipe = popen("awk '{print $1,$2,$3,$4,$10,$11,$12}' /proc/net/dev | tail -n +3", "r");
 	if(!pipe) return 0;
 
@@ -281,16 +281,16 @@ int _collect_network(char *packet) {
     n += sprintf(packet+n, "\"list\":{");
 
     int sw = 0;
-	char net[50];
+	char net[BFSZ];
 	unsigned long long i_byte, i_pckt, i_err, i_tot = 0;
 	unsigned long long o_byte, o_pckt, o_err, o_tot = 0;
-	while(fscanf(pipe, "%[^:]:", net) == 1) {
+	while(fscanf(pipe, "%128[^:]:", net) == 1) {
 		if(fscanf(pipe, "%llu%llu%llu%llu%llu%llu\n", &i_byte, &i_pckt, &i_err, &o_byte, &o_pckt, &o_err) == 6) {
             n += sprintf(packet+n, "%s\"%s\":{\"i_byte\":%llu,\"i_pckt\":%llu,\"i_err\":%llu,\"o_byte\":%llu,\"o_pckt\":%llu,\"o_err\":%llu}", sw?",":"", net, i_byte, i_pckt, i_err, o_byte, o_pckt, o_err);
 
-            sw = 1;
             i_tot += i_byte;
 			o_tot += o_byte;
+            sw = 1;
 		} else break;
 	}
     n += sprintf(packet+n, "},\"i_tot\":%llu,\"o_tot\":%llu", i_tot, o_tot);

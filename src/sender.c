@@ -17,9 +17,9 @@
 
 #define SENDER_TICK 5
 
-#define REG_URI    "https://gate.maxgauge.com/v1/agents"
-#define METRIC_URI "https://gate.maxgauge.com/v1/metrics"
-#define ALERT_URI  "https://gate.maxgauge.com/v1/alert"
+#define REG_URI    "http://52.79.75.180:8080/v1/agents"
+#define METRIC_URI "http://52.79.75.180:8080/v1/metrics"
+#define ALERT_URI  "http://52.79.75.180:8080/v1/alert"
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
