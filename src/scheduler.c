@@ -12,16 +12,16 @@
 
 #include <zlog.h>
 
-#include "plugin.h"
+#include "target.h"
 #include "util.h"
 
 #define SCHEDULER_TICK 0.5
 
-typedef struct plugin_set_t {
+typedef struct target_set_t {
 	unsigned up;
-} plugin_set_t;
+} target_set_t;
 
-//static plugin_set_t plugin_set = {0};
+//static target_set_t target_set = {0};
 
 //static int  _indexing();
 //static void _deindexing();
@@ -33,16 +33,16 @@ int scheduler_init(scheduler_t *scheduler) {
 	scheduler->tag = zlog_get_category("scheduler");
 	if(!scheduler->tag);
 
-	DEBUG(zlog_debug(scheduler->tag, "Initailize a plugin table"));
-	memset(scheduler->plugins, 0, sizeof(plugin_t *)*MAX_PLUGIN);
-    scheduler->pluginc = 0;
+	DEBUG(zlog_debug(scheduler->tag, "Initailize a target table"));
+	memset(scheduler->targets, 0, sizeof(target_t *)*MAX_PLUGIN);
+    scheduler->targetc = 0;
 
 	scheduler->period = SCHEDULER_TICK;
 	scheduler->job    = scheduler_main;
 
-	DEBUG(zlog_debug(scheduler->tag, "Initialize plugins"));
+	DEBUG(zlog_debug(scheduler->tag, "Initialize targets"));
 
-    FILE *conf = fopen("./plugin.conf", "r");
+    FILE *conf = fopen("./target.conf", "r");
     if(!conf) {
 		zlog_error(scheduler->tag, "Fail to open conf");
 		return -1;
@@ -73,7 +73,7 @@ int scheduler_init(scheduler_t *scheduler) {
             argc = 0;
             snprintf(type, 98, "%s", remain);
             snprintf(dlname, 98, "lib%s.so", type);
-            snprintf(smname, 98, "%s_plugin_init", type);
+            snprintf(smname, 98, "%s_target_init", type);
             status = PLUG;
         } else if(first == '!') {
             if(status != PLUG) {
@@ -111,15 +111,15 @@ int scheduler_init(scheduler_t *scheduler) {
             }
             status = NONE;
             void *dl = dlopen(dlname, RTLD_LAZY);
-            void *(*dynamic_plugin_init)(int, char **) = dlsym(dl, smname);
-            void *plugin = 0;
-            if(dlerror() || !(plugin = dynamic_plugin_init(argc, (char **)argv))) {
-                plugin_fini(plugin);
+            void *(*dynamic_target_init)(int, char **) = dlsym(dl, smname);
+            void *target = 0;
+            if(dlerror() || !(target = dynamic_target_init(argc, (char **)argv))) {
+                target_fini(target);
                 return -1;
             }
-            if(plugin_init(plugin) < 0) continue;
-            start(plugin);
-            scheduler->plugins[scheduler->pluginc++] = plugin;
+            if(target_init(target) < 0) continue;
+            if(start(target) == 0)
+                scheduler->targets[scheduler->targetc++] = target;
         } else {
             zlog_error(scheduler->tag, "Unexpected character");
             exit(1);
@@ -138,32 +138,32 @@ void scheduler_main(void *_scheduler) {
 	scheduler_t *scheduler = (scheduler_t *)_scheduler;
 
 	for(int i=0; i<MAX_PLUGIN; ++i) {
-		plugin_t *plugin = scheduler->plugins[i];
-		if(!plugin) continue;
+		target_t *target = scheduler->targets[i];
+		if(!target) continue;
 		DEBUG(zlog_debug(scheduler->tag, "Plugin_%d [%c%c]", \
 				i, \
-				alive(plugin)   ?'A':'.', \
-				outdated(plugin)?'O':'.'));
+				alive(target)   ?'A':'.', \
+				outdated(target)?'O':'.'));
 
-		if(alive(plugin) && outdated(plugin)) {
-			DEBUG(zlog_debug(scheduler->tag, "Poking"));
-			if(poke(plugin) < 0) {
-				zlog_error(scheduler->tag, "Cannot poke the agent");
-				restart(plugin);
+		if(alive(target) && outdated(target)) {
+			DEBUG(zlog_debug(scheduler->tag, "Ping"));
+			if(ping(target) < 0) {
+				zlog_error(scheduler->tag, "Cannot ping the agent");
+				restart(target);
 			}
 		}
 	}
 }
 
-int _indexing(plugin_set_t *plugin_set) {
-	if(!~plugin_set->up)
+int _indexing(target_set_t *target_set) {
+	if(!~target_set->up)
 		return -1;
 	int c;
-	for(c=0; (plugin_set->up >> c) & 0x1; c = (c+1)%(8*sizeof(plugin_set_t)));
-	plugin_set->up |= 0x1 << c ;
+	for(c=0; (target_set->up >> c) & 0x1; c = (c+1)%(8*sizeof(target_set_t)));
+	target_set->up |= 0x1 << c ;
 	return c;
 }
 
-void _deindexing(plugin_set_t *plugin_set, int c) {
-	plugin_set->up &= 0 - (1<<c) - 1;
+void _deindexing(target_set_t *target_set, int c) {
+	target_set->up &= 0 - (1<<c) - 1;
 }

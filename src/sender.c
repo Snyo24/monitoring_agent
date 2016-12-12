@@ -17,9 +17,9 @@
 
 #define SENDER_TICK 5
 
-#define REG_URI    "http://52.79.75.180:8080/v1/agents"
-#define METRIC_URI "http://52.79.75.180:8080/v1/metrics"
-#define ALERT_URI  "http://52.79.75.180:8080/v1/alert"
+#define REG_URL    "http://52.79.75.180:8080/v1/agents"
+#define METRIC_URL "http://52.79.75.180:8080/v1/metrics"
+#define ALERT_URL  "http://52.79.75.180:8080/v1/alert"
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
@@ -58,7 +58,7 @@ int sender_init(sender_t *sender) {
 	sender->header = 0;
 	if(!(sender->curl = curl_easy_init())
 			|| !(sender->header = curl_slist_append(sender->header, CONTENT_TYPE))
-			|| curl_easy_setopt(sender->curl, CURLOPT_TIMEOUT,       30)            != CURLE_OK
+			|| curl_easy_setopt(sender->curl, CURLOPT_TIMEOUT,       1)            != CURLE_OK
 			|| curl_easy_setopt(sender->curl, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
 			|| curl_easy_setopt(sender->curl, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
 			|| curl_easy_setopt(sender->curl, CURLOPT_HTTPHEADER,    sender->header)!= CURLE_OK
@@ -74,7 +74,7 @@ int sender_init(sender_t *sender) {
 			|| curl_easy_setopt(curl_alert, CURLOPT_TIMEOUT,       30)            != CURLE_OK
 			|| curl_easy_setopt(curl_alert, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
 			|| curl_easy_setopt(curl_alert, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
-			|| curl_easy_setopt(curl_alert, CURLOPT_URL, ALERT_URI) != CURLE_OK
+			|| curl_easy_setopt(curl_alert, CURLOPT_URL, ALERT_URL) != CURLE_OK
 			|| curl_easy_setopt(curl_alert, CURLOPT_HTTPHEADER,    header)        != CURLE_OK
 			|| curl_easy_setopt(curl_alert, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
 		zlog_error(sender->tag, "Fail to setup cURL");
@@ -142,11 +142,11 @@ void sender_main(void *_sender) {
 }
 
 void sender_set_reg_uri(sender_t *sender) {
-	curl_easy_setopt(sender->curl, CURLOPT_URL, REG_URI);
+	curl_easy_setopt(sender->curl, CURLOPT_URL, REG_URL);
 }
 
 void sender_set_met_uri(sender_t *sender) {
-	curl_easy_setopt(sender->curl, CURLOPT_URL, METRIC_URI);
+	curl_easy_setopt(sender->curl, CURLOPT_URL, METRIC_URL);
 }
 
 int alert_post(char *payload) {

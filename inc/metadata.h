@@ -3,9 +3,9 @@
 
 extern char os[];
 extern char host[];
-extern char ip[];
+extern char aip[];
 extern char type[];
-extern char uuid[];
+extern char aid[];
 extern char license[];
 
 int metadata_init();

@@ -8,7 +8,7 @@
 #include "scheduler.h"
 #include "storage.h"
 #include "sender.h"
-#include "plugin.h"
+#include "target.h"
 
 scheduler_t scheduler;
 storage_t   storage;
@@ -37,26 +37,26 @@ int main(int argc, char **argv) {
             \"os\":\"%s\",\n\
             \"hostname\":\"%s\",\n\
             \"license\":\"%s\",\n\
-            \"uuid\":\"%s\",\n\
-            \"agent_ip\":\"%s\",\n\
+            \"aid\":\"%s\",\n\
+            \"aip\":\"%s\",\n\
             \"agent_type\":\"%s\",\n\
             \"target_type\":[",\
-            os, host, license, uuid, ip, type);
+            os, host, license, aid, aip, type);
     int sw = 0;
     for(int i=0; i<10; ++i) {
-        if(scheduler.plugins[i])
-            n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", ((plugin_t *)scheduler.plugins[i])->type);
+        if(scheduler.targets[i])
+            n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", ((target_t *)scheduler.targets[i])->type);
     }
     if(sw == 0) {
-        printf("No plugins initialized\n");
+        printf("No targets initialized\n");
         exit(1);
     }
     n += snprintf(reg_str+n, 1000-n, "],\n\
             \"target_num\":[");
     sw = 0;
     for(int i=0; i<10; ++i) {
-        if(scheduler.plugins[i])
-            n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", ((plugin_t *)scheduler.plugins[i])->index);
+        if(scheduler.targets[i])
+            n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", ((target_t *)scheduler.targets[i])->index);
     }
     n += snprintf(reg_str+n, 1000-n, "]\n}");
     if(sender_post(&sender, reg_str) < 0);// exit(1);

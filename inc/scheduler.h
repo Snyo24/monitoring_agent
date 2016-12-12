@@ -1,21 +1,21 @@
 /**
  * @file scheduler.h
  * @author Snyo 
- * @brief Schedule plugins
+ * @brief Schedule targets
  */
 
 #ifndef _SCHEDULER_H_
 #define _SCHEDULER_H_
 
 #include "runnable.h"
-#include "plugin.h"
+#include "target.h"
 
 #define MAX_PLUGIN 10
 
 typedef struct scheduler_t {
 	runnable_t;
-    int pluginc;
-	void *plugins[MAX_PLUGIN];
+    int targetc;
+	void *targets[MAX_PLUGIN];
 } scheduler_t;
 
 int  scheduler_init(scheduler_t *scheduler);

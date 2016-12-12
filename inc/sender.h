@@ -10,6 +10,7 @@
 #include <curl/curl.h>
 
 #include "runnable.h"
+#include "target.h"
 
 typedef struct sender_t {
 	runnable_t;
@@ -22,6 +23,8 @@ typedef struct sender_t {
 	unsigned unsent_json_loaded : 1;
 
 	unsigned backoff : 5;
+
+    target_t *targets[];
 } sender_t;
 
 int  sender_init(sender_t *sender);

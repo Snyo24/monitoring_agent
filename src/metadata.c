@@ -13,17 +13,17 @@
 #include "util.h"
 
 char os[50];
-char ip[17];
+char aip[17];
 char host[99];
 char type[20];
-char uuid[33];
+char aid[33];
 char license[99];
 
 static int get_pid();
 static int get_mac_addr();
 
 int get_os() {
-	FILE *os_pipe = popen("awk -F'=' '$1~/^PRETTY_NAME$/{gsub(\"\\\"\",\"\");print$2}' /etc/os-release", "r");
+	FILE *os_pipe = popen("awk -F'=' '$1~\"PRETTY_NAME\"{gsub(\"\\\"\",\"\");print$2}' /etc/os-release", "r");
 	if(!os_pipe) return -1;
 	int success = fscanf(os_pipe, "%50[^\n]\n", os)==1;
 	pclose(os_pipe);
@@ -44,7 +44,7 @@ int get_ip() {
 	if(getaddrinfo(host, NULL, &hints, &result) != 0)
 		return -1;
     char *addr = inet_ntoa(((struct sockaddr_in *)result->ai_addr)->sin_addr);
-	snprintf(ip, 17, "%s", addr);
+	snprintf(aip, 17, "%s", addr);
 	freeaddrinfo(result);
 	return 0;
 }
@@ -54,11 +54,11 @@ int get_type() {
 	return 0;
 }
 
-int get_uuid() {
-	FILE *uuid_fd = fopen(".uuid", "r");
-	if(uuid_fd) {
-		int success = fscanf(uuid_fd, "%s", uuid) == 1;
-		fclose(uuid_fd);
+int get_aid() {
+	FILE *aid_fd = fopen(".aid", "r");
+	if(aid_fd) {
+		int success = fscanf(aid_fd, "%s", aid) == 1;
+		fclose(aid_fd);
 		if(success) return 0;
 	}
 	char md_str[100];
@@ -69,12 +69,12 @@ int get_uuid() {
 	unsigned char md_hash[MD5_DIGEST_LENGTH];
 	MD5((unsigned char *)&md_str, strlen(md_str), (unsigned char *)&md_hash);
 	for(int i=0; i<16; ++i)
-		sprintf(uuid+i*2, "%02x", (unsigned int)md_hash[i]);
+		sprintf(aid+i*2, "%02x", (unsigned int)md_hash[i]);
 
-	uuid_fd = fopen(".uuid", "w+");
-	if(!uuid_fd) return -1;
-	fprintf(uuid_fd, "%s\n", uuid);
-	fclose(uuid_fd);
+	aid_fd = fopen(".aid", "w+");
+	if(!aid_fd) return -1;
+	fprintf(aid_fd, "%s\n", aid);
+	fclose(aid_fd);
 	return 0;
 }
 
@@ -125,7 +125,7 @@ int metadata_init() {
           || get_host()    < 0
 		  || get_ip()      < 0
 		  || get_type()    < 0
-		  || get_uuid()    < 0
+		  || get_aid()    < 0
 		  || get_license() < 0
 		  || get_pid()     < 0);
 }

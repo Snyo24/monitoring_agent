@@ -1,4 +1,4 @@
-/**
+/*o
  * @file runnable.h
  * @author Snyo
  */
@@ -17,6 +17,7 @@ typedef struct runnable_t {
 	float period;
 
 	void *tag;
+
 	void (*job)(void *);
 } runnable_t;
 
