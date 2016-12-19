@@ -10,22 +10,36 @@
 #include "util.h"
 
 typedef struct runnable_t {
-	pthread_t running_thread;
-
 	volatile unsigned alive : 1; 
-
-	float period;
 
 	void *tag;
 
-	void (*job)(void *);
+	/* Timing */
+	float tick;
+    epoch_t due;
+
+	int (*routine)(void *);
+
+    /* Thread */
+	pthread_t running_thread;
+	pthread_mutex_t ping_me;
+	pthread_mutex_t pong_me;
+	pthread_cond_t  ping;
+	pthread_cond_t  pong;
 } runnable_t;
 
-int  runnable_init(runnable_t *app);
-void runnable_fini(runnable_t *app);
+int runnable_init(runnable_t *r);
+int runnable_fini(runnable_t *r);
 
-void *run(void *_app);
+int runnable_start(void *_r);
+int runnable_stop(runnable_t *r);
+int runnable_restart(runnable_t *r);
 
-void start_runnable(runnable_t *app);
+int runnable_ping(runnable_t *r);
+
+void *runnable_main(void *_r);
+
+unsigned runnable_alive(runnable_t *r);
+unsigned runnable_overdue(runnable_t *r);
 
 #endif

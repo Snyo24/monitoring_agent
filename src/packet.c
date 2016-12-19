@@ -15,13 +15,19 @@ packet_t *alloc_packet() {
 }
 
 void free_packet(packet_t *p) {
-    free(p);
+    if(p) free(p);
 }
 
-int packet_new(packet_t *p) {
+char *packet_fetch(packet_t *p) {
+    if(!p || !p->ready)
+        return NULL;
+    return p->payload;
+}
+
+unsigned packet_new(packet_t *p) {
     return p && (epoch_time()-p->created) <= MSPS;
 }
 
-int packet_expire(packet_t *p) {
+unsigned packet_expire(packet_t *p) {
     return p && (epoch_time()-p->created) >= 6*MSPS;
 }

@@ -4,37 +4,120 @@
  */
 #include "runnable.h"
 
+#include <time.h>
 #include <pthread.h>
+
+#include <zlog.h>
 
 #include "util.h"
 
-/**
- * return 0 for success, -1 for failure
- */
-int runnable_init(runnable_t *app) {
-	if(!app) return -1;
+int runnable_init(runnable_t *r) {
+	if(!r) return -1;
 
-	app->alive = 0;
+	r->alive = 0;
+    r->tag   = NULL;
+    r->tick  = 3600;
+    r->due   = 0;
+
+    r->routine = NULL;
+
+    if(0x00 || pthread_mutex_init(&r->ping_me, NULL) < 0
+            || pthread_mutex_init(&r->pong_me, NULL) < 0
+            || pthread_cond_init(&r->ping, NULL) < 0
+            || pthread_cond_init(&r->pong, NULL) < 0) {
+        return -1;
+    }
 
 	return 0;
 }
 
-void runnable_fini(runnable_t *app) {
-	pthread_join(app->running_thread, NULL);
+int runnable_fini(runnable_t *r) {
+    if(0x00 || pthread_mutex_destroy(&r->ping_me) < 0
+            || pthread_mutex_destroy(&r->pong_me) < 0
+            || pthread_cond_destroy(&r->ping) < 0
+            || pthread_cond_destroy(&r->pong) < 0)
+        return -1;
+
+	return pthread_join(r->running_thread, NULL);
 }
 
-void start_runnable(runnable_t *app) {
-	app->alive = 1;
-	pthread_create(&app->running_thread, NULL, run, app);
+int runnable_sync(runnable_t *r) {
+    epoch_t then = epoch_time() + MSPS / 20;
+    struct timespec timeout = {then/MSPS, then%MSPS*NSPMS};
+    return (pthread_cond_timedwait(&r->pong, &r->pong_me, &timeout)==0) - 1;
 }
 
-void *run(void *_app) {
-	runnable_t *app = (runnable_t *)_app;
+int runnable_ping(runnable_t *r) {
+    pthread_mutex_lock(&r->ping_me);
+    pthread_cond_signal(&r->ping);
+    pthread_mutex_unlock(&r->ping_me);
 
-	while(app->alive) {
-		app->job(app);
-		snyo_sleep(app->period);
+    return runnable_sync(r);
+}
+
+int runnable_start(void *_r) {
+    if(!_r) return -1;
+    runnable_t *r = _r;
+    DEBUG(if(r->tag) zlog_info(r->tag, "Start"));
+    
+	r->alive = 1;
+    r->due = 0;
+    
+	pthread_create(&r->running_thread, NULL, runnable_main, r);
+
+    if(runnable_sync(r) < 0)
+        return -1;
+
+    pthread_mutex_lock(&r->ping_me);
+    pthread_mutex_unlock(&r->ping_me);
+
+    return 0;
+}
+
+int runnable_stop(runnable_t *r) {
+    DEBUG(if(r->tag) zlog_info(r->tag, "Stop"));
+
+    r->alive = 0;
+
+    pthread_cancel(r->running_thread);
+    pthread_mutex_unlock(&r->ping_me);
+    pthread_mutex_unlock(&r->pong_me);
+
+    return 0;
+}
+
+int runnable_restart(runnable_t *r) {
+    DEBUG(if(r->tag) zlog_info(r->tag, "Restart"));
+    return runnable_stop(r)==0 && runnable_start(r)==0;
+}
+
+void *runnable_main(void *_r) {
+	runnable_t *r = _r;
+
+    pthread_mutex_lock(&r->pong_me);
+    pthread_mutex_lock(&r->ping_me);
+    pthread_cond_signal(&r->pong);
+    pthread_mutex_unlock(&r->pong_me);
+
+	while(r->alive) {
+        pthread_cond_wait(&r->ping, &r->ping_me);
+
+        pthread_mutex_lock(&r->pong_me);
+        pthread_cond_signal(&r->pong);
+        pthread_mutex_unlock(&r->pong_me);
+
+        epoch_t begin = epoch_time();
+		if(r->routine) r->routine(r);
+        r->due = begin + (epoch_t)(r->tick*MSPS);
 	}
 
 	return NULL;
+}
+
+unsigned runnable_alive(runnable_t *r) {
+    return r->alive;
+}
+
+unsigned runnable_overdue(runnable_t *r) {
+    return r->due <= epoch_time();
 }

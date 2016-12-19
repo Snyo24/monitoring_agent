@@ -10,13 +10,17 @@
 #include <curl/curl.h>
 
 #include "runnable.h"
-#include "target.h"
+#include "plugin.h"
+
+#define REGISTER 0
+#define METRIC   1
+#define ALERT    2
 
 typedef struct sender_t {
 	runnable_t;
 
-	CURL *curl;
-	struct curl_slist *header;
+    int spin[3];
+    CURL *curl[3];
 
 	FILE *unsent_sending_fp;
 	char unsent_json[41960];
@@ -24,18 +28,15 @@ typedef struct sender_t {
 
 	unsigned backoff : 5;
 
-    target_t *targets[];
+    int  pluginc;
+    void **plugins;
 } sender_t;
 
-int  sender_init(sender_t *sender);
-void sender_fini(sender_t *sender);
+int sender_init(sender_t *sndr, int pluginc, void **plugins);
+int sender_fini(sender_t *sndr);
 
-void sender_main(void *_sender);
+int sender_post(sender_t *sndr, const char *payload, int post_type);
 
-void sender_set_reg_uri(sender_t *sender);
-void sender_set_met_uri(sender_t *sender);
-
-int sender_post(sender_t *sender, const char *payload);
-int alert_post(char *payload);
+int sender_main(void *_sender);
 
 #endif

@@ -8,57 +8,55 @@
 #include <stdlib.h>
 #include <sys/statvfs.h>
 
-#include "target.h"
+#include <zlog.h>
+
+#include "plugin.h"
 #include "metadata.h"
+#include "util.h"
 
-#define OS_TICK 3
-#define BFSZ 128
-#define BPKB 1024
+#define OS_TICK 2.973
 
-typedef target_t os_target_t;
+typedef plugin_t os_plugin_t;
 
-int _collect_os_cpu(char *packet);
-int _collect_os_disk(char *packet);
-int _collect_os_proc(char *packet);
-int _collect_os_memory(char *packet);
-int _collect_os_network(char *packet);
+int _gather_os_cpu(char *packet);
+int _gather_os_disk(char *packet);
+int _gather_os_proc(char *packet);
+int _gather_os_memory(char *packet);
+int _gather_os_network(char *packet);
 
-int collect_os(void *_target, char *packet);
+int gather_os(void *_p_os, char *packet);
 
-os_target_t os_target = {
-    .tid = 0,
-    .tip = aip,
-    .type = "linux_linux_1.0",
+void *plugin_os_init(int argc, char **argv);
+void plugin_os_fini(void *_p_os);
+void plugin_os_free(void *_p_os);
 
-    .tick = OS_TICK,
-    
-    .gather = collect_os,
-    .fini = os_target_fini
-};
+static os_plugin_t p_os;
 
-void *os_target_init(int argc, char **argv) {
-	return &os_target;
+void *plugin_os_init(int argc, char **argv) {
+    // fake allocation
+    plugin_init(&p_os);
+
+    p_os.tick = OS_TICK;
+    p_os.tip  = NULL;
+    p_os.type = "linux_linux_1.0";
+
+    p_os.gather = gather_os;
+
+	return &p_os;
 }
 
-void os_target_fini(void *_target) {
-	if(!_target)
-		return;
-
-    target_fini(_target);
-}
-
-int collect_os(void *_target, char *packet) {
+int gather_os(void *_p_os, char *packet) {
     int n = 0;
     n += sprintf(packet+n, "\"cpu\":{");
-	n += _collect_os_cpu(packet+n);
+	n += _gather_os_cpu(packet+n);
     n += sprintf(packet+n, "},\"disk\":{");
-	n +=_collect_os_disk(packet+n);
+	n +=_gather_os_disk(packet+n);
     n += sprintf(packet+n, "},\"proc\":{");
-	n += _collect_os_proc(packet+n);
+	n += _gather_os_proc(packet+n);
     n += sprintf(packet+n, "},\"mem\":{");
-	n += _collect_os_memory(packet+n);
+	n += _gather_os_memory(packet+n);
     n += sprintf(packet+n, "},\"net\":{");
-	n += _collect_os_network(packet+n);
+	n += _gather_os_network(packet+n);
     n += sprintf(packet+n, "}");
 
     return n;
@@ -74,7 +72,7 @@ int collect_os(void *_target, char *packet) {
  *
  * (CPU usage of user, system, and idle)
  */
-int _collect_os_cpu(char *packet) {
+int _gather_os_cpu(char *packet) {
 	FILE *pipe;
 	pipe = popen("awk '$1~/^cpu$/{tot=$2+$3+$4+$5;print$2/tot,$4/tot,$5/tot}' /proc/stat", "r");
 	if(!pipe) return 0;
@@ -93,7 +91,7 @@ int _collect_os_cpu(char *packet) {
  * Disk metrics
  * This function extracts disk metrics.
  */
-int _collect_os_disk(char *packet) {
+int _gather_os_disk(char *packet) {
 	FILE *pipe;
 	pipe = popen("awk '$1~\"^/dev/\"{print$1,$2}' /proc/mounts", "r");
 	if(!pipe) return 0;
@@ -197,7 +195,7 @@ int _collect_os_disk(char *packet) {
  *
  * (a command to execute the process, cpu(or memory) percentage that the process is using)
  */
-int _collect_os_proc(char *packet) {
+int _gather_os_proc(char *packet) {
     struct {
         char name[BFSZ];
         char user[BFSZ];
@@ -209,7 +207,7 @@ int _collect_os_proc(char *packet) {
     int n = 0;
 
     // CPU
-	FILE *pipe = popen("ps -eo comm,pcpu --no-headers | awk '{c[$1]+=1;cpu[$1]+=$2} END{for(i in c)if(cpu[i]>0)print i,cpu[i]}' | sort -rk2,2 | head -n 10", "r");
+	FILE *pipe = popen("ps -eo comm,pcpu --no-headers | awk '{c[$1]+=1;cpu[$1]+=$2} END{for(i in c)if(cpu[i]>0)print i,cpu[i]}' | sort -grk2,2 | head -n 10", "r");
 	if(!pipe) return 0;
 
     n += sprintf(packet+n, "\"cpu_top10\":{");
@@ -228,7 +226,7 @@ int _collect_os_proc(char *packet) {
     // !CPU
 
     // MEMORY
-	pipe = popen("ps -eo comm,pmem --no-headers | awk '{c[$1]+=1;mem[$1]+=$2} END{for(i in c)if(mem[i]>0)print i,mem[i]}' | sort -rk2,2 | head -n 10", "r");
+	pipe = popen("ps -eo comm,pmem --no-headers | awk '{c[$1]+=1;mem[$1]+=$2} END{for(i in c)if(mem[i]>0)print i,mem[i]}' | sort -grk2,2 | head -n 10", "r");
 	if(!pipe) return n;
 
     n += sprintf(packet+n, ",\"mem_top10\":{");
@@ -246,7 +244,7 @@ int _collect_os_proc(char *packet) {
     // !MEMORY
 
     // PROCESSES
-	pipe = popen("ps -eo comm,user,pcpu,pmem --no-headers | awk '{c[$1\" \"$2]+=1;cpu[$1\" \"$2]+=$3;mem[$1\" \"$2]+=$4} END{for(i in c)if(cpu[i]>0||mem[i]>0)print i,c[i],cpu[i],mem[i]}' | sort -r -k5,5 -k4,4 | head -n 10", "r");
+	pipe = popen("ps -eo comm,user,pcpu,pmem --no-headers | awk '{c[$1\" \"$2]+=1;cpu[$1\" \"$2]+=$3;mem[$1\" \"$2]+=$4} END{for(i in c)if(cpu[i]>0||mem[i]>0)print i,c[i],cpu[i],mem[i]}' | sort -gr -k5,5 -k4,4 | head -n 10", "r");
 	if(!pipe) return n;
 
     n += sprintf(packet+n, "},\"list\":{");
@@ -290,7 +288,7 @@ int _collect_os_proc(char *packet) {
  *
  * (total, free, cached, active, inactive, total virtual, and using virtual memory)
  */
-int _collect_os_memory(char *packet) {
+int _gather_os_memory(char *packet) {
 	FILE *pipe = popen("awk '/^Mem[TF]|^Cached|Active:|Inactive:|Vmalloc[TU]/{print$2}' /proc/meminfo", "r");
 	if(!pipe) return 0;
 
@@ -315,7 +313,7 @@ int _collect_os_memory(char *packet) {
  *
  * (network name, bytes, packets, errors received/transmitted)
  */
-int _collect_os_network(char *packet) {
+int _gather_os_network(char *packet) {
 	FILE *pipe = popen("awk '{print$1,$2,$3,$4,$10,$11,$12}' /proc/net/dev | tail -n +3", "r");
 	if(!pipe) return 0;
 

@@ -5,6 +5,9 @@
 
 #define MSPS (1000ULL)
 #define NSPMS (1000000ULL)
+#define BPKB 1024
+
+#define BFSZ 128
 
 #ifdef VERBOSE
 #define DEBUG(x) x

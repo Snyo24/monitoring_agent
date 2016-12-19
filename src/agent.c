@@ -4,74 +4,70 @@
 
 #include <zlog.h>
 
+#include "runnable.h"
 #include "metadata.h"
+#include "sparser.h"
 #include "scheduler.h"
-#include "storage.h"
 #include "sender.h"
-#include "target.h"
+#include "plugin.h"
+#include "util.h"
 
-scheduler_t scheduler;
-storage_t   storage;
-sender_t    sender;
+#define MAX_PLUGINS 5
+
+scheduler_t sched;
+sender_t    sndr;
 
 int main(int argc, char **argv) {
     if(zlog_init(".zlog.conf")) {
         printf("zlog initiation failed\n");
         exit(1);
     }
+    zlog_category_t *tag = zlog_get_category("main");
 
-    /* Initiation */
-    scheduler_init(&scheduler);
-    storage_init(&storage);
-    sender_init(&sender);
-
-    /* Metadata register */
+    /* Metadata */
     if(metadata_init() < 0) {
-        printf("Fail to initialize metadata\n");
+        DEBUG(zlog_error(tag, "Fail to initialize metadata"));
         exit(1);
     }
-    sender_set_reg_uri(&sender);
-    char reg_str[1000];
-    int n = 0;
-    n += snprintf(reg_str, 1000, "{\n\
-            \"os\":\"%s\",\n\
-            \"hostname\":\"%s\",\n\
-            \"license\":\"%s\",\n\
-            \"aid\":\"%s\",\n\
-            \"aip\":\"%s\",\n\
-            \"agent_type\":\"%s\",\n\
-            \"target_type\":[",\
-            os, host, license, aid, aip, type);
-    int sw = 0;
-    for(int i=0; i<10; ++i) {
-        if(scheduler.targets[i])
-            n += snprintf(reg_str+n, 1000-n, "%s\"%s\"", sw++?",":"", ((target_t *)scheduler.targets[i])->type);
-    }
-    if(sw == 0) {
-        printf("No targets initialized\n");
-        exit(1);
-    }
-    n += snprintf(reg_str+n, 1000-n, "],\n\
-            \"target_num\":[");
-    sw = 0;
-    for(int i=0; i<10; ++i) {
-        if(scheduler.targets[i])
-            n += snprintf(reg_str+n, 1000-n, "%s%d", sw++?",":"", ((target_t *)scheduler.targets[i])->index);
-    }
-    n += snprintf(reg_str+n, 1000-n, "]\n}");
-    if(sender_post(&sender, reg_str) < 0);// exit(1);
 
-    /* Run */
-    sender_set_met_uri(&sender);
-    start_runnable((runnable_t *)&scheduler);
-    start_runnable((runnable_t *)&storage);
-    start_runnable((runnable_t *)&sender);
+    /* Plugins */
+    int n;
+    void *plugins[MAX_PLUGINS] = {0};
+    if(!(n = sparse("plugin.conf", plugins))) {
+        DEBUG(zlog_error(tag, "No plugin found"));
+        exit(1);
+    }
+
+    /* Scheduler & Sender */
+    scheduler_init(&sched, n, plugins);
+    sender_init(&sndr, n, plugins);
+
+    runnable_start((runnable_t *)&sched);
+    runnable_start((runnable_t *)&sndr);
+
+    /* Start plugins */
+    for(int i=0; i<MAX_PLUGINS; i++) {
+        void *p = plugins[i];
+        if(p) {
+            runnable_start(p);
+        }
+    }
+
+    while(runnable_alive((runnable_t *)&sched) && runnable_alive((runnable_t *)&sndr)) {
+        if(runnable_overdue((runnable_t *)&sched))
+            if(runnable_ping((runnable_t *)&sched) < 0)
+                runnable_restart((runnable_t *)&sched);
+        if(runnable_overdue((runnable_t *)&sndr))
+            if(runnable_ping((runnable_t *)&sndr) < 0)
+                runnable_restart((runnable_t *)&sndr);
+        snyo_sleep(0.07);
+    }
 
     /* Finalize */
-    scheduler_fini(&scheduler);
-    storage_fini(&storage);
-    sender_fini(&sender);
+    scheduler_fini(&sched);
+    sender_fini(&sndr);
 
     zlog_fini();
+    
     return 0;
 }

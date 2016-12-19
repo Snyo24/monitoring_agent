@@ -5,6 +5,7 @@ obj
 lib/plugins
 
 *.swp
+*.swo
 
 .uuid
 .pid

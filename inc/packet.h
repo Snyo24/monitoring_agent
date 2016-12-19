@@ -6,8 +6,8 @@
 #define PCKTSZ 32768
 
 typedef struct packet_t {
-    unsigned ready : 1;
-    unsigned attempt : 2;
+    volatile unsigned ready : 1;
+    volatile unsigned attempt : 2;
     epoch_t created;
 
     int ofs;
@@ -20,7 +20,9 @@ typedef struct packet_t {
 packet_t *alloc_packet();
 void free_packet(packet_t *p);
 
-int packet_new(packet_t *p);
-int packet_expire(packet_t *p);
+char *packet_fetch(packet_t *p);
+
+unsigned packet_new(packet_t *p);
+unsigned packet_expire(packet_t *p);
 
 #endif

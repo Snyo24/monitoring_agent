@@ -1,5 +1,5 @@
 /**
- * @file sender.c
+ * @file sndr.c
  * @author Snyo
  */
 
@@ -12,14 +12,14 @@
 #include <zlog.h>
 #include <curl/curl.h>
 
-#include "storage.h"
+#include "packet.h"
 #include "util.h"
 
-#define SENDER_TICK 5
+#define SENDER_TICK 1
 
-#define REG_URL    "http://52.79.75.180:8080/v1/agents"
-#define METRIC_URL "http://52.79.75.180:8080/v1/metrics"
-#define ALERT_URL  "http://52.79.75.180:8080/v1/alert"
+#define REGISTER_URL "http://52.79.75.180:8080/v1/agents"
+#define METRIC_URL   "http://52.79.75.180:8080/v1/metrics"
+#define ALERT_URL    "http://52.79.75.180:8080/v1/alert"
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
@@ -32,150 +32,92 @@ char unsent_name[50];
 char unsent_end[50];
 char unsent_sending[50];
 
-CURL *curl_alert;
 struct curl_slist *header;
 
+static size_t callback(char *ptr, size_t size, size_t nmemb, void *tag);
 static int clear_unsent();
-static int load_unsent(sender_t *sender);
-static void drop_unsent_sending(sender_t *sender);
+static int load_unsent(sender_t *sndr);
+static void drop_unsent_sending(sender_t *sndr);
 static char *unsent_file(int i);
-static size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag);
+static int curl_init(CURL **curl, const char *url);
 
-int sender_init(sender_t *sender) {
-	if(runnable_init((runnable_t *)sender) < 0) return -1;
-	if(!(sender->tag = zlog_get_category("sender")));
+int sender_init(sender_t *sndr, int pluginc, void **plugins) {
+	if(runnable_init((runnable_t *)sndr) < 0) return -1;
+	if(!(sndr->tag = zlog_get_category("sender")));
 
-	DEBUG(zlog_debug(sender->tag, "Clear old data"));
+	DEBUG(zlog_debug(sndr->tag, "Clear old data"));
 	if(clear_unsent() < 0)
-		zlog_warn(sender->tag, "Fail to clear old data");
+		zlog_warn(sndr->tag, "Fail to clear old data");
 
 	snprintf(unsent_end, 50, "%s/unsent.%d", unsent_path, UNSENT_END);
 	snprintf(unsent_sending, 50, "%s/unsent_sending", unsent_path);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
-	DEBUG(zlog_debug(sender->tag, "Initialize cURL"));
-	sender->header = 0;
-	if(!(sender->curl = curl_easy_init())
-			|| !(sender->header = curl_slist_append(sender->header, CONTENT_TYPE))
-			|| curl_easy_setopt(sender->curl, CURLOPT_TIMEOUT,       1)            != CURLE_OK
-			|| curl_easy_setopt(sender->curl, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
-			|| curl_easy_setopt(sender->curl, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
-			|| curl_easy_setopt(sender->curl, CURLOPT_HTTPHEADER,    sender->header)!= CURLE_OK
-			|| curl_easy_setopt(sender->curl, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
-		zlog_error(sender->tag, "Fail to setup cURL");
-		sender_fini(sender);
-		return -1;
-	}
-
+	DEBUG(zlog_debug(sndr->tag, "Initialize cURL"));
 	header = 0;
-	if(!(curl_alert = curl_easy_init())
-			|| !(header = curl_slist_append(header, CONTENT_TYPE))
-			|| curl_easy_setopt(curl_alert, CURLOPT_TIMEOUT,       30)            != CURLE_OK
-			|| curl_easy_setopt(curl_alert, CURLOPT_NOSIGNAL,      1)             != CURLE_OK
-			|| curl_easy_setopt(curl_alert, CURLOPT_WRITEDATA,     sender->tag)   != CURLE_OK
-			|| curl_easy_setopt(curl_alert, CURLOPT_URL, ALERT_URL) != CURLE_OK
-			|| curl_easy_setopt(curl_alert, CURLOPT_HTTPHEADER,    header)        != CURLE_OK
-			|| curl_easy_setopt(curl_alert, CURLOPT_WRITEFUNCTION, post_callback) != CURLE_OK) {
-		zlog_error(sender->tag, "Fail to setup cURL");
-		sender_fini(sender);
-		return -1;
-	}
+    header = curl_slist_append(header, CONTENT_TYPE);
+    if(!header) {
+        zlog_error(sndr->tag, "Fail to initialize header");
+        return -1;
+    }
 
-	sender->period = SENDER_TICK;
-	sender->backoff = 1;
-	sender->unsent_sending_fp = NULL;
-	sender->unsent_json_loaded = 0;
+    if(0x00 || curl_init(sndr->curl+REGISTER, REGISTER_URL) < 0
+            || curl_init(sndr->curl+METRIC,   METRIC_URL)   < 0
+            || curl_init(sndr->curl+ALERT,    ALERT_URL)    < 0) {
+        curl_easy_cleanup(sndr->curl[REGISTER]);
+        curl_easy_cleanup(sndr->curl[METRIC]);
+        curl_easy_cleanup(sndr->curl[ALERT]);
+        zlog_error(sndr->tag, "Fail to setup cURL");
+        return -1;
+    }
 
-	sender->job = sender_main;
+	sndr->tick = SENDER_TICK;
+	sndr->backoff = 1;
+	sndr->unsent_sending_fp = NULL;
+	sndr->unsent_json_loaded = 0;
+    sndr->pluginc = pluginc;
+    sndr->plugins = plugins;
+
+	sndr->routine = sender_main;
 
 	return 0;
 }
 
-void sender_fini(sender_t *sender) {
-	runnable_fini((runnable_t *)sender);
-	curl_slist_free_all(sender->header);
+int curl_init(CURL **curl, const char *url) {
+    return ((*curl = curl_easy_init())
+            && curl_easy_setopt(*curl, CURLOPT_URL, url) == CURLE_OK
+            && curl_easy_setopt(*curl, CURLOPT_TIMEOUT, 30) == CURLE_OK
+            && curl_easy_setopt(*curl, CURLOPT_NOSIGNAL, 1) == CURLE_OK
+            && curl_easy_setopt(*curl, CURLOPT_HTTPHEADER, header) == CURLE_OK
+            && curl_easy_setopt(*curl, CURLOPT_WRITEFUNCTION, callback) == CURLE_OK) - 1;
+}
+
+int sender_fini(sender_t *sndr) {
+	runnable_fini((runnable_t *)sndr);
 	curl_slist_free_all(header);
-	curl_easy_cleanup(sender->curl);
+	curl_easy_cleanup(sndr->curl);
+    return 0;
 }
 
-void sender_main(void *_sender) {
-	sender_t *sender = (sender_t *)_sender;
-
-	while(!storage_empty(&storage)) {
-		const char *payload = storage_fetch(&storage);
-        if(!payload) continue;
-		DEBUG(zlog_debug(sender->tag, "Try POST for 30sec"));
-		if(sender_post(sender, payload) < 0) {
-			zlog_error(sender->tag, "POST fail");
-			sender->backoff <<= 1;
-			sender->backoff |= !sender->backoff;
-			sender->period = SENDER_TICK * sender->backoff;
-			break;
-		} else {
-			DEBUG(zlog_debug(sender->tag, "POST success"));
-			storage_drop(&storage);
-			sender->period = SENDER_TICK;
-			sender->backoff = 1;
-
-			if(!sender->unsent_sending_fp) {
-				if(load_unsent(sender) < 0) continue;
-			} else if(file_exist(unsent_end)) {
-				drop_unsent_sending(sender);
-				if(load_unsent(sender) < 0) continue;
-			}
-
-			DEBUG(zlog_debug(sender->tag, "POST unsent JSON"));
-			while(sender->unsent_json_loaded 
-					|| fgets(sender->unsent_json, 41960, sender->unsent_sending_fp)) {
-				sender->unsent_json_loaded = 1;
-				if(sender_post(sender, sender->unsent_json) < 0) {
-					zlog_error(sender->tag, "POST unsent fail");
-					return;
-				}
-				sender->unsent_json_loaded = 0;
-			}
-			zlog_error(sender->tag, "Fail to get unsent JSON");
-			drop_unsent_sending(sender);
-		}
-	}
-}
-
-void sender_set_reg_uri(sender_t *sender) {
-	curl_easy_setopt(sender->curl, CURLOPT_URL, REG_URL);
-}
-
-void sender_set_met_uri(sender_t *sender) {
-	curl_easy_setopt(sender->curl, CURLOPT_URL, METRIC_URL);
-}
-
-int alert_post(char *payload) {
-	curl_easy_setopt(curl_alert, CURLOPT_POSTFIELDS, payload);
-	CURLcode curl_code = curl_easy_perform(curl_alert);
-	long status_code;
-	curl_easy_getinfo(curl_alert, CURLINFO_RESPONSE_CODE, &status_code);
+int sender_post(sender_t *sndr, const char *payload, int post_type) {
+	DEBUG(zlog_debug(sndr->tag, "%s", payload));
+    while(__sync_bool_compare_and_swap(&sndr->spin[post_type], 0, 1));
+	curl_easy_setopt(sndr->curl[post_type], CURLOPT_POSTFIELDS, payload);
+	CURLcode curl_code = curl_easy_perform(sndr->curl);
+    long status_code;
+	curl_easy_getinfo(sndr->curl, CURLINFO_RESPONSE_CODE, &status_code);
+    sndr->spin[post_type] = 0;
+	DEBUG(zlog_debug(sndr->tag, "POST %.1fkB, curl(%d), http(%ld)", (float)strlen(payload)/1024, curl_code, status_code));
 	if(status_code == 403) {
-		exit(1);
+		zlog_error(sndr->tag, "Cannot verify your license");
+        return status_code;
 	}
-	return (curl_code == CURLE_OK && status_code == 202) - 1;
+	return (curl_code==CURLE_OK && status_code==202) - 1;
 }
 
-int sender_post(sender_t *sender, const char *payload) {
-	DEBUG(zlog_debug(sender->tag, "%s", payload));
-	curl_easy_setopt(sender->curl, CURLOPT_POSTFIELDS, payload);
-	CURLcode curl_code = curl_easy_perform(sender->curl);
-	long status_code;
-	curl_easy_getinfo(sender->curl, CURLINFO_RESPONSE_CODE, &status_code);
-	DEBUG(zlog_debug(sender->tag, "POST %.1fkB, curl(%d), http(%ld)", (float)strlen(payload)/1024, curl_code, status_code));
-	if(status_code == 403) {
-		zlog_error(sender->tag, "Cannot verify your license");
-		exit(1);
-	}
-	return (curl_code == CURLE_OK && status_code == 202) - 1;
-}
-
-size_t post_callback(char *ptr, size_t size, size_t nmemb, void *tag) {
-	zlog_debug(tag, "%.*s\n", (int)size*(int)nmemb, ptr);
+size_t callback(char *ptr, size_t size, size_t nmemb, void *tag) {
+	printf("%.*s\n", (int)size*(int)nmemb, ptr);
 	return nmemb;
 }
 
@@ -192,7 +134,7 @@ int clear_unsent() {
 	return !success - 1;
 }
 
-int load_unsent(sender_t *sender) {
+int load_unsent(sender_t *sndr) {
 	if(!file_exist(unsent_file(UNSENT_BEGIN)) && !file_exist(unsent_file(0)))
 		return -1;
 	for(int i=UNSENT_END; i>=UNSENT_BEGIN; --i) {
@@ -200,18 +142,18 @@ int load_unsent(sender_t *sender) {
 		if(file_exist(unsent)) {
 			if(rename(unsent, unsent_sending))
 				return -1;
-			sender->unsent_sending_fp = fopen(unsent_sending, "r");
-			return (sender->unsent_sending_fp != NULL)-1;
+			sndr->unsent_sending_fp = fopen(unsent_sending, "r");
+			return (sndr->unsent_sending_fp != NULL)-1;
 		}
 	}
 	return -1;
 }
 
-void drop_unsent_sending(sender_t *sender) {
-	DEBUG(zlog_debug(sender->tag, "Close and remove unsent_sending"));
-	fclose(sender->unsent_sending_fp);
-	sender->unsent_sending_fp = NULL;
-	sender->unsent_json_loaded = 0;
+void drop_unsent_sending(sender_t *sndr) {
+	DEBUG(zlog_debug(sndr->tag, "Close and remove unsent_sending"));
+	fclose(sndr->unsent_sending_fp);
+	sndr->unsent_sending_fp = NULL;
+	sndr->unsent_json_loaded = 0;
 	remove(unsent_sending);
 }
 
@@ -222,4 +164,56 @@ char *unsent_file(int i) {
 		snprintf(unsent_name, 50, "%s/unsent", unsent_path);
 	}
 	return unsent_name;
+}
+
+int sender_main(void *_sender) {
+	sender_t *sndr = (sender_t *)_sender;
+
+    for(int i=0; i<sndr->pluginc; i++) {
+        plugin_t *plugin = sndr->plugins[i];
+        if(!plugin) continue;
+        packet_t *packet = plugin->packets;
+        char *payload = packet_fetch(plugin->packets);
+        if(!payload) continue;
+		DEBUG(zlog_debug(sndr->tag, "Try POST for 30sec"));
+		if(sender_post(sndr, payload, METRIC) < 0) {
+			zlog_error(sndr->tag, "POST fail");
+            packet->attempt++;
+            if(packet->attempt >= 3) {
+                plugin->packets = packet->next;
+                free_packet(packet);
+            }
+			sndr->backoff <<= 1;
+			sndr->backoff |= !sndr->backoff;
+			sndr->tick = SENDER_TICK * sndr->backoff;
+			break;
+		} else {
+			DEBUG(zlog_debug(sndr->tag, "POST success"));
+            plugin->packets = packet->next;
+            free_packet(packet);
+			sndr->tick = SENDER_TICK;
+			sndr->backoff = 1;
+
+			/*if(!sndr->unsent_sending_fp) {
+				if(load_unsent(sndr) < 0) continue;
+			} else if(file_exist(unsent_end)) {
+				drop_unsent_sending(sndr);
+				if(load_unsent(sndr) < 0) continue;
+			}
+
+			DEBUG(zlog_debug(sndr->tag, "POST unsent JSON"));
+			while(sndr->unsent_json_loaded 
+					|| fgets(sndr->unsent_json, 41960, sndr->unsent_sending_fp)) {
+				sndr->unsent_json_loaded = 1;
+				if(sender_post(sndr, sndr->unsent_json, METRIC) < 0) {
+					zlog_error(sndr->tag, "POST unsent fail");
+					return;
+				}
+				sndr->unsent_json_loaded = 0;
+			}
+			zlog_error(sndr->tag, "Fail to get unsent JSON");
+			drop_unsent_sending(sndr);*/
+		}
+	}
+    return 0;
 }
