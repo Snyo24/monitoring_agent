@@ -18,9 +18,9 @@ ifeq ($(MAKECMDGOALS), v)
 endif
 
 #Flags, Libraries and Includes
-CFLAGS      := -std=gnu99 -fms-extensions -Wall -O2 -g $(V)
+CFLAGS      := -std=gnu99 -fms-extensions -Winline -Wall -O2 -g $(V)
 LDLIBS      := -L/usr/lib/x86_64-linux-gnu -L/usr/local/lib -L$(LIBDIR) -Wl,-rpath=./lib -Wl,-rpath=./lib/plugins
-LDFLAGS     := -lrt -ldl -lpthread -lcurl -ljson-c -lssl -lcrypto -lzlog -lmysqlclient
+LDFLAGS     := -lrt -ldl -lpthread -lcurl -ljson-c -lzlog -lmysqlclient
 INC         := -I/usr/local/include/ -I$(INCDIR) -I$(INCDIR)/zlog
 
 CORE        := $(wildcard $(SRCDIR)/*.c)
@@ -43,7 +43,7 @@ dir:
 $(BINDIR)/$(TARGET): $(OBJECTS)
 	@echo
 	@echo "[ Target ]"
-	$(CC) -o $@ $(OBJECTS) $(INC) -Wl,--export-dynamic $(LDLIBS) $(LDFLAGS)
+	$(CC) -Wl,--export-dynamic -o $@ $(OBJECTS) $(INC) $(LDLIBS) $(LDFLAGS)
 
 $(LIBDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
 	@echo

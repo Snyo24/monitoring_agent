@@ -12,20 +12,30 @@
 #include "util.h"
 
 typedef struct plugin_t {
-    runnable_t;
+
+    union {
+        runnable_t;
+        runnable_t r;
+    };
 
     unsigned long long tid;
 	const char *tip;
 	const char *type;
 
     packet_t *packets;
-    packet_t *writing;
+    packet_t *working;
+    packet_t *oob;
 
-    int (*exec)(void *);
+    int (*prep)(void *);
 	int (*fini)(void *);
-	int (*gather)(void *, char *);
+
+	int (*gather)(void *, packet_t *);
+    void *module;
+
 } plugin_t;
 
-int plugin_init(void *_p);
+int plugin_init(plugin_t *p);
+
+int plugin_gather_phase(plugin_t *p);
 
 #endif

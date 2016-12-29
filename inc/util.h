@@ -19,6 +19,5 @@ typedef unsigned long long epoch_t;
 
 epoch_t epoch_time();
 void snyo_sleep(float sec);
-int file_exist(char *filename);
 
 #endif

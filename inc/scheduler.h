@@ -1,5 +1,5 @@
 /**
- * @file scheduler.h
+ * @file sch.h
  * @author Snyo 
  * @brief Schedule plugins
  */
@@ -10,16 +10,7 @@
 #include "runnable.h"
 #include "plugin.h"
 
-typedef struct scheduler_t {
-	runnable_t;
-
-    int pluginc;
-	void **plugins;
-} scheduler_t;
-
-int  scheduler_init(scheduler_t *scheduler, int pluginc, void **plugins);
-void scheduler_fini(scheduler_t *scheduler);
-
-int scheduler_main(void *_scheduler);
+int  scheduler_init(runnable_t *sch);
+void scheduler_fini(runnable_t *sch);
 
 #endif

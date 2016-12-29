@@ -8,19 +8,16 @@
 #include <netdb.h>
 #include <arpa/inet.h>
 
-#include <openssl/md5.h>
-
 #include "util.h"
 
 char os[50];
 char aip[17];
 char host[99];
 char type[20];
-char aid[33];
+unsigned long long aid;
 char license[99];
 
 static int get_pid();
-static int get_mac_addr();
 
 int get_os() {
 	FILE *os_pipe = popen("awk -F'=' '$1~\"PRETTY_NAME\"{gsub(\"\\\"\",\"\");print$2}' /etc/os-release", "r");
@@ -50,30 +47,22 @@ int get_ip() {
 }
 
 int get_type() {
-    snprintf(type, 20, "linux_1.0");
+    snprintf(type, 20, "ubuntu_1.0");
 	return 0;
 }
 
 int get_aid() {
 	FILE *aid_fd = fopen(".aid", "r");
 	if(aid_fd) {
-		int success = fscanf(aid_fd, "%s", aid) == 1;
+		int success = fscanf(aid_fd, "%llu", &aid) == 1;
 		fclose(aid_fd);
 		if(success) return 0;
 	}
-	char md_str[100];
-	if(get_mac_addr(md_str) < 0) return -1;
-	int n = 12;
-	n += snprintf(md_str, 100-n, "%llu", epoch_time());
-
-	unsigned char md_hash[MD5_DIGEST_LENGTH];
-	MD5((unsigned char *)&md_str, strlen(md_str), (unsigned char *)&md_hash);
-	for(int i=0; i<16; ++i)
-		sprintf(aid+i*2, "%02x", (unsigned int)md_hash[i]);
-
+	
+    aid = epoch_time()*epoch_time()*epoch_time();
 	aid_fd = fopen(".aid", "w+");
 	if(!aid_fd) return -1;
-	fprintf(aid_fd, "%s\n", aid);
+	fprintf(aid_fd, "%llu\n", aid);
 	fclose(aid_fd);
 	return 0;
 }
@@ -94,29 +83,6 @@ int get_pid() {
 		return -1;
 	fprintf(pid_fd, "%d\n", getpid());
 	fclose(pid_fd);
-	return 0;
-}
-
-int get_mac_addr(char *mac) {
-	FILE *fd = popen("ls /sys/class/net", "r");
-	if(fd < 0) return -1;
-	char net_name[100];
-	int loaded = 0;
-	while(fscanf(fd, "%100s", net_name) == 1)
-		if(strncmp(net_name, "lo", 2) != 0) {
-			loaded = 1;
-			break;
-		}
-	pclose(fd);
-	if(!loaded) return -1;
-	char addr[100];
-	snprintf(addr, 100, "/sys/class/net/%s/address", net_name);
-	if((fd = fopen(addr, "r")) < 0)
-		return -1;
-	loaded = fscanf(fd, "%2s:%2s:%2s:%2s:%2s:%2s", &mac[0], &mac[2], &mac[4],\
-			&mac[6], &mac[8], &mac[10]) == 6;
-	fclose(fd);
-	if(!loaded) return -1;
 	return 0;
 }
 

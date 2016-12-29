@@ -2,8 +2,8 @@
 
 #include "util.h"
 
-#include <sys/stat.h>
 #include <time.h>
+#include <sys/time.h>
 
 /**
  * Millisecond resolution
@@ -21,7 +21,3 @@ void snyo_sleep(float sec) {
 	nanosleep(&timeout, NULL);
 }
 
-int file_exist(char *filename) {
-	struct stat st;
-	return !stat(filename, &st);
-}

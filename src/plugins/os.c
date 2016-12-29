@@ -3,6 +3,7 @@
  * @author Snyo
  */
 #include "plugins/os.h"
+#include "plugin.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,56 +11,42 @@
 
 #include <zlog.h>
 
-#include "plugin.h"
-#include "metadata.h"
+#include "packet.h"
 #include "util.h"
 
-#define OS_TICK 2.973
+#define OS_TICK 2.977F
 
-typedef plugin_t os_plugin_t;
+int os_gather(void *_p, packet_t *pkt);
 
-int _gather_os_cpu(char *packet);
-int _gather_os_disk(char *packet);
-int _gather_os_proc(char *packet);
-int _gather_os_memory(char *packet);
-int _gather_os_network(char *packet);
+int _os_gather_cpu(void *m, packet_t *pkt);
+int _os_gather_disk(void *m, packet_t *pkt);
+int _os_gather_proc(void *m, packet_t *pkt);
+int _os_gather_memory(void *m, packet_t *pkt);
+int _os_gather_network(void *m, packet_t *pkt);
 
-int gather_os(void *_p_os, char *packet);
+int load_os_module(plugin_t *p, int argc, char **argv) {
+    if(!p) return -1;
 
-void *plugin_os_init(int argc, char **argv);
-void plugin_os_fini(void *_p_os);
-void plugin_os_free(void *_p_os);
+    p->tick = OS_TICK;
+    p->tip  = NULL;
+    // TODO os version
+    p->type = "linux_ubuntu_1.0";
 
-static os_plugin_t p_os;
+    p->prep = NULL;
+    p->fini = NULL;
+    p->gather = os_gather;
 
-void *plugin_os_init(int argc, char **argv) {
-    // fake allocation
-    plugin_init(&p_os);
+    p->module = 0;
 
-    p_os.tick = OS_TICK;
-    p_os.tip  = NULL;
-    p_os.type = "linux_linux_1.0";
-
-    p_os.gather = gather_os;
-
-	return &p_os;
+	return 0;
 }
 
-int gather_os(void *_p_os, char *packet) {
-    int n = 0;
-    n += sprintf(packet+n, "\"cpu\":{");
-	n += _gather_os_cpu(packet+n);
-    n += sprintf(packet+n, "},\"disk\":{");
-	n +=_gather_os_disk(packet+n);
-    n += sprintf(packet+n, "},\"proc\":{");
-	n += _gather_os_proc(packet+n);
-    n += sprintf(packet+n, "},\"mem\":{");
-	n += _gather_os_memory(packet+n);
-    n += sprintf(packet+n, "},\"net\":{");
-	n += _gather_os_network(packet+n);
-    n += sprintf(packet+n, "}");
-
-    return n;
+int os_gather(void *m, packet_t *pkt) {
+    return packet_gather(pkt, "cpu",  _os_gather_cpu, m)
+        & packet_gather(pkt, "disk", _os_gather_disk, m)
+        & packet_gather(pkt, "proc", _os_gather_proc, m)
+        & packet_gather(pkt, "mem",  _os_gather_memory, m)
+        & packet_gather(pkt, "net",  _os_gather_network, m);
 }
 
 /*
@@ -72,29 +59,28 @@ int gather_os(void *_p_os, char *packet) {
  *
  * (CPU usage of user, system, and idle)
  */
-int _gather_os_cpu(char *packet) {
+int _os_gather_cpu(void *m, packet_t *pkt) {
 	FILE *pipe;
 	pipe = popen("awk '$1~/^cpu$/{tot=$2+$3+$4+$5;print$2/tot,$4/tot,$5/tot}' /proc/stat", "r");
-	if(!pipe) return 0;
+	if(!pipe) return ENODATA;
 
-    int n = 0;
 	float cpu_user, cpu_sys, cpu_idle;
 	if(fscanf(pipe, "%f%f%f", &cpu_user, &cpu_sys, &cpu_idle) == 3)
-        n += sprintf(packet+n, "\"user\":%.2f,\"sys\":%.2f,\"idle\":%.2f", cpu_user, cpu_sys, cpu_idle);
-
+        packet_append(pkt, "\"user\":%.2f,\"sys\":%.2f,\"idle\":%.2f", cpu_user, cpu_sys, cpu_idle);
 	pclose(pipe);
 
-    return n;
+    return ENONE;
 }
 
 /*
  * Disk metrics
  * This function extracts disk metrics.
  */
-int _gather_os_disk(char *packet) {
+int _os_gather_disk(void *m, packet_t *pkt) {
+    int error = ENODATA;
 	FILE *pipe;
 	pipe = popen("awk '$1~\"^/dev/\"{print$1,$2}' /proc/mounts", "r");
-	if(!pipe) return 0;
+	if(!pipe) return error;
 
     struct {
         char name[BFSZ], mount[BFSZ];
@@ -142,43 +128,44 @@ int _gather_os_disk(char *packet) {
 	}
 	pclose(pipe);
 
-    int n = 0;
-    n += sprintf(packet+n, "\"name\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s\"%s%hu(%s)\"", i?",":"", dev[i].name, dev[i].num, dev[i].mount);
-    n += sprintf(packet+n, "],\"tot\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].tot);
-    n += sprintf(packet+n, "],\"free\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].free);
-    n += sprintf(packet+n, "],\"avail\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].avail);
-    n += sprintf(packet+n, "],\"r\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].r);
-    n += sprintf(packet+n, "],\"rsec\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].rkb);
-    n += sprintf(packet+n, "],\"rt\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].rt);
-    n += sprintf(packet+n, "],\"w\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].w);
-    n += sprintf(packet+n, "],\"wsec\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].wkb);
-    n += sprintf(packet+n, "],\"wt\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].wt);
-    n += sprintf(packet+n, "],\"weight\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", dev[i].weight);
-    n += sprintf(packet+n, "],\"io_tot\":%llu", io_tot);
+    if(k == 0) return error;
 
-    return n;
+    packet_append(pkt, "\"name\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s\"%s%hu(%s)\"", i?",":"", dev[i].name, dev[i].num, dev[i].mount);
+    packet_append(pkt, "],\"tot\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].tot);
+    packet_append(pkt, "],\"free\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].free);
+    packet_append(pkt, "],\"avail\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].avail);
+    packet_append(pkt, "],\"r\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].r);
+    packet_append(pkt, "],\"rsec\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].rkb);
+    packet_append(pkt, "],\"rt\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].rt);
+    packet_append(pkt, "],\"w\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].w);
+    packet_append(pkt, "],\"wsec\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].wkb);
+    packet_append(pkt, "],\"wt\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].wt);
+    packet_append(pkt, "],\"weight\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", dev[i].weight);
+    packet_append(pkt, "],\"io_tot\":%llu", io_tot);
+
+    return ENONE;
 }
 
 /*
@@ -195,7 +182,9 @@ int _gather_os_disk(char *packet) {
  *
  * (a command to execute the process, cpu(or memory) percentage that the process is using)
  */
-int _gather_os_proc(char *packet) {
+int _os_gather_proc(void *m, packet_t *pkt) {
+    int error = ENODATA;
+
     struct {
         char name[BFSZ];
         char user[BFSZ];
@@ -204,72 +193,75 @@ int _gather_os_proc(char *packet) {
         float mem;
     } proc[10];
 
-    int n = 0;
-
     // CPU
 	FILE *pipe = popen("ps -eo comm,pcpu --no-headers | awk '{c[$1]+=1;cpu[$1]+=$2} END{for(i in c)if(cpu[i]>0)print i,cpu[i]}' | sort -grk2,2 | head -n 10", "r");
-	if(!pipe) return 0;
+	if(!pipe) return error;
 
-    n += sprintf(packet+n, "\"cpu_top10\":{");
     int k = 0;
 	while(fscanf(pipe, "%128s%f\n", proc[k].name, &proc[k].cpu) == 2) k++;
 	pclose(pipe);
 
-    n += sprintf(packet+n, "\"name\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s\"%s\"", i?",":"", proc[i].name);
-    n += sprintf(packet+n, "],\"cpu\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%.1f", i?",":"", proc[i].cpu);
-    n += sprintf(packet+n, "]}");
-
+    if(k > 0) {
+        error = ENONE;
+        packet_append(pkt, "\"cpu_top10\":{\"name\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s\"%s\"", i?",":"", proc[i].name);
+        packet_append(pkt, "],\"cpu\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s%.1f", i?",":"", proc[i].cpu);
+        packet_append(pkt, "]}");
+    }
     // !CPU
 
     // MEMORY
 	pipe = popen("ps -eo comm,pmem --no-headers | awk '{c[$1]+=1;mem[$1]+=$2} END{for(i in c)if(mem[i]>0)print i,mem[i]}' | sort -grk2,2 | head -n 10", "r");
-	if(!pipe) return n;
+	if(!pipe) return error;
 
-    n += sprintf(packet+n, ",\"mem_top10\":{");
     k = 0;
 	while(fscanf(pipe, "%128s%f\n", proc[k].name, &proc[k].mem) == 2) k++;
 	pclose(pipe);
 
-    n += sprintf(packet+n, "\"name\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s\"%s\"", i?",":"", proc[i].name);
-    n += sprintf(packet+n, "],\"cpu\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%.1f", i?",":"", proc[i].mem);
-    n += sprintf(packet+n, "]}");
+    if(k > 0) {
+        error = ENONE;
+        packet_append(pkt, "%s\"mem_top10\":{\"name\":[", pkt->payload[pkt->size-1]=='{'?"":",");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s\"%s\"", i?",":"", proc[i].name);
+        packet_append(pkt, "],\"mem\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s%.1f", i?",":"", proc[i].mem);
+        packet_append(pkt, "]}");
+    }
     // !MEMORY
 
     // PROCESSES
 	pipe = popen("ps -eo comm,user,pcpu,pmem --no-headers | awk '{c[$1\" \"$2]+=1;cpu[$1\" \"$2]+=$3;mem[$1\" \"$2]+=$4} END{for(i in c)if(cpu[i]>0||mem[i]>0)print i,c[i],cpu[i],mem[i]}' | sort -gr -k5,5 -k4,4 | head -n 10", "r");
-	if(!pipe) return n;
+	if(!pipe) return error;
 
-    n += sprintf(packet+n, "},\"list\":{");
     k = 0;
 	while(fscanf(pipe, "%128s%128s%lu%f%f", proc[k].name, proc[k].user, &proc[k].count, &proc[k].cpu, &proc[k].mem) == 5) k++;
-    n += sprintf(packet+n, "\"name\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s\"%s\"", i?",":"", proc[i].name);
-    n += sprintf(packet+n, "],\"user\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s\"%s\"", i?",":"", proc[i].user);
-    n += sprintf(packet+n, "],\"count\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%lu", i?",":"", proc[i].count);
-    n += sprintf(packet+n, "],\"cpu\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%.1f", i?",":"", proc[i].cpu);
-    n += sprintf(packet+n, "],\"mem\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%.1f", i?",":"", proc[i].mem);
-    n += sprintf(packet+n, "]");
 	pclose(pipe);
-    // !PROCESSES
 
-    return n;
+    if(k > 0) {
+        error = ENONE;
+        packet_append(pkt, "%s\"list\":{\"name\":[", pkt->payload[pkt->size-1]=='{'?"":",");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s\"%s\"", i?",":"", proc[i].name);
+        packet_append(pkt, "],\"user\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s\"%s\"", i?",":"", proc[i].user);
+        packet_append(pkt, "],\"count\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s%lu", i?",":"", proc[i].count);
+        packet_append(pkt, "],\"cpu\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s%.1f", i?",":"", proc[i].cpu);
+        packet_append(pkt, "],\"mem\":[");
+        for(int i=0; i<k; i++)
+            packet_append(pkt, "%s%.1f", i?",":"", proc[i].mem);
+        packet_append(pkt, "]}");
+    }
+    // !PROCESSES
+    return error;
 }
 
 /*
@@ -288,18 +280,19 @@ int _gather_os_proc(char *packet) {
  *
  * (total, free, cached, active, inactive, total virtual, and using virtual memory)
  */
-int _gather_os_memory(char *packet) {
+int _os_gather_memory(void *m, packet_t *pkt) {
+    int error = ENODATA;
 	FILE *pipe = popen("awk '/^Mem[TF]|^Cached|Active:|Inactive:|Vmalloc[TU]/{print$2}' /proc/meminfo", "r");
-	if(!pipe) return 0;
-
-    int n = 0;
+	if(!pipe) return error;
 
 	unsigned long long total, free, cached, active, inactive, v_total, v_used;
-	if(fscanf(pipe, "%llu%llu%llu%llu%llu%llu%llu", &total, &free, &cached, &active, &inactive, &v_total, &v_used) == 7)
-        n += sprintf(packet+n, "\"total\":%llu,\"free\":%llu,\"cached\":%llu,\"user\":%llu,\"sys\":%llu,\"virtual\":%.2lf", total, free, cached, active+inactive, total-free-active-inactive, (double)v_used/(double)v_total);
+	if(fscanf(pipe, "%llu%llu%llu%llu%llu%llu%llu", &total, &free, &cached, &active, &inactive, &v_total, &v_used) == 7) {
+        error = ENONE;
+        packet_append(pkt, "\"total\":%llu,\"free\":%llu,\"cached\":%llu,\"user\":%llu,\"sys\":%llu,\"virtual\":%.2lf", total, free, cached, active+inactive, total-free-active-inactive, (double)v_used/(double)v_total);
+    }
 	pclose(pipe);
-    
-    return n;
+
+    return error;
 }
 
 /*
@@ -313,11 +306,11 @@ int _gather_os_memory(char *packet) {
  *
  * (network name, bytes, packets, errors received/transmitted)
  */
-int _gather_os_network(char *packet) {
-	FILE *pipe = popen("awk '{print$1,$2,$3,$4,$10,$11,$12}' /proc/net/dev | tail -n +3", "r");
-	if(!pipe) return 0;
+int _os_gather_network(void *m, packet_t *pkt) {
+    int error = ENODATA;
 
-    int n = 0;
+	FILE *pipe = popen("awk '{print$1,$2,$3,$4,$10,$11,$12}' /proc/net/dev | tail -n +3", "r");
+	if(!pipe) return error;
 
     int k = 0;
     struct {
@@ -336,28 +329,30 @@ int _gather_os_network(char *packet) {
 	}
 	pclose(pipe);
 
-    n += sprintf(packet+n, "\"name\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s\"%s\"", i?",":"", net_if[i].name);
-    n += sprintf(packet+n, "],\"i_byte\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", net_if[i].i_byte);
-    n += sprintf(packet+n, "],\"o_byte\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", net_if[i].o_byte);
-    n += sprintf(packet+n, "],\"i_pckt\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", net_if[i].i_pckt);
-    n += sprintf(packet+n, "],\"o_pckt\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", net_if[i].o_pckt);
-    n += sprintf(packet+n, "],\"i_err\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", net_if[i].i_err);
-    n += sprintf(packet+n, "],\"o_err\":[");
-    for(int i=0; i<k; i++)
-        n += sprintf(packet+n, "%s%llu", i?",":"", net_if[i].o_err);
-    n += sprintf(packet+n, "],\"i_tot\":%llu,\"o_tot\":%llu", i_tot, o_tot);
+    if(k == 0) return error;
 
-    return n;
+    packet_append(pkt, "\"name\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s\"%s\"", i?",":"", net_if[i].name);
+    packet_append(pkt, "],\"i_byte\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", net_if[i].i_byte);
+    packet_append(pkt, "],\"o_byte\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", net_if[i].o_byte);
+    packet_append(pkt, "],\"i_pckt\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", net_if[i].i_pckt);
+    packet_append(pkt, "],\"o_pckt\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", net_if[i].o_pckt);
+    packet_append(pkt, "],\"i_err\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", net_if[i].i_err);
+    packet_append(pkt, "],\"o_err\":[");
+    for(int i=0; i<k; i++)
+        packet_append(pkt, "%s%llu", i?",":"", net_if[i].o_err);
+    packet_append(pkt, "],\"i_tot\":%llu,\"o_tot\":%llu", i_tot, o_tot);
+
+    return ENONE;
 }

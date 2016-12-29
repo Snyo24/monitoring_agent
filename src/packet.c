@@ -5,29 +5,35 @@
 
 #include "util.h"
 
-packet_t *alloc_packet() {
-    packet_t *p = malloc(sizeof(packet_t));
-    if(!p) return NULL;
-    memset(p, 0, sizeof(packet_t));
-    p->created = epoch_time();
-
-    return p;
-}
-
-void free_packet(packet_t *p) {
-    if(p) free(p);
-}
-
-char *packet_fetch(packet_t *p) {
-    if(!p || !p->ready)
+packet_t *packet_alloc(int type) {
+    if(type < 0 || type >=3)
         return NULL;
-    return p->payload;
+
+    packet_t *pkt = malloc(sizeof(packet_t));
+    if(!pkt) return NULL;
+    memset(pkt, 0, sizeof(packet_t));
+
+    pkt->type  = type;
+    pkt->state = EMPTY;
+
+    return pkt;
 }
 
-unsigned packet_new(packet_t *p) {
-    return p && (epoch_time()-p->created) <= MSPS;
+void packet_free(packet_t *pkt) {
+    if(pkt) free(pkt);
 }
 
-unsigned packet_expire(packet_t *p) {
-    return p && (epoch_time()-p->created) >= 6*MSPS;
+char *packet_fetch(packet_t *pkt) {
+    char *payload = NULL;
+
+    while(!__sync_bool_compare_and_swap(&pkt->spin, 0, 1));
+    if(pkt && pkt->state==READY)
+        payload = pkt->payload;
+    pkt->spin = 0;
+
+    return payload;
+}
+
+int packet_expire(packet_t *pkt) {
+    return pkt && (epoch_time()-pkt->started) >= 59.033*MSPS;
 }

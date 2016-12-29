@@ -1,4 +1,4 @@
-/*o
+/**
  * @file runnable.h
  * @author Snyo
  */
@@ -10,6 +10,7 @@
 #include "util.h"
 
 typedef struct runnable_t {
+    
 	volatile unsigned alive : 1; 
 
 	void *tag;
@@ -17,8 +18,9 @@ typedef struct runnable_t {
 	/* Timing */
 	float tick;
     epoch_t due;
+    unsigned delay : 3;
 
-	int (*routine)(void *);
+	int (*task)(void *);
 
     /* Thread */
 	pthread_t running_thread;
@@ -26,20 +28,23 @@ typedef struct runnable_t {
 	pthread_mutex_t pong_me;
 	pthread_cond_t  ping;
 	pthread_cond_t  pong;
+    
 } runnable_t;
 
 int runnable_init(runnable_t *r);
 int runnable_fini(runnable_t *r);
 
-int runnable_start(void *_r);
+int runnable_start(runnable_t *r);
 int runnable_stop(runnable_t *r);
 int runnable_restart(runnable_t *r);
 
 int runnable_ping(runnable_t *r);
 
-void *runnable_main(void *_r);
+void *runnable_main(runnable_t *r);
 
-unsigned runnable_alive(runnable_t *r);
-unsigned runnable_overdue(runnable_t *r);
+void runnable_change_task(runnable_t *r, void *task);
+
+int runnable_alive(runnable_t *r);
+int runnable_overdue(runnable_t *r);
 
 #endif

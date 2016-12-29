@@ -1,5 +1,5 @@
 /**
- * @file sched.c
+ * @file sch.c
  * @author Snyo
  */
 
@@ -9,7 +9,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <dlfcn.h>
 
 #include <zlog.h>
 
@@ -18,65 +17,42 @@
 
 #define SCHEDULER_TICK 0.53
 
-typedef struct plugin_set_t {
-	unsigned up;
-} plugin_set_t;
+int scheduler_main(void *_sch);
 
-//static plugin_set_t plugin_set = {0};
-
-//static int  _indexing();
-//static void _deindexing();
-
-int scheduler_init(scheduler_t *sched, int pluginc, void **plugins) {
-	if(runnable_init((runnable_t *)sched) < 0)
+int scheduler_init(runnable_t *sch) {
+	if(runnable_init(sch) < 0)
 		return -1;
 
-	sched->tag = zlog_get_category("scheduler");
-	if(!sched->tag);
+	sch->tag = zlog_get_category("scheduler");
+	if(!sch->tag);
 
-	sched->tick    = SCHEDULER_TICK;
-	sched->routine = scheduler_main;
-    sched->pluginc = pluginc;
-    sched->plugins = plugins;
+	sch->tick = SCHEDULER_TICK;
+    sch->task = scheduler_main;
 	
 	return 0;
 }
 
-void scheduler_fini(scheduler_t *sched) {
-	runnable_fini((runnable_t *)sched);
+void scheduler_fini(runnable_t *sch) {
+	runnable_fini(sch);
 }
 
-int scheduler_main(void *_sched) {
-	scheduler_t *sched = (scheduler_t *)_sched;
+int scheduler_main(void *_sch) {
+    runnable_t *sch = _sch;
 
-	for(int i=0; i<sched->pluginc; i++) {
-		void *p = sched->plugins[i];
+    extern int pluginc;
+    extern plugin_t *plugins[];
+    
+	for(int i=0; i<pluginc; i++) {
+		void *p = plugins[i];
 		if(!p) break;
-		DEBUG(zlog_debug(sched->tag, "Plugin_%d [%c%c]", \
-				i, \
-				runnable_alive(p)  ?'A':'.', \
-				runnable_overdue(p)?'O':'.'));
 
 		if(runnable_alive(p) && runnable_overdue(p)) {
-			DEBUG(zlog_debug(sched->tag, "Ping"));
-			if(runnable_ping(p) < 0) {
-				zlog_error(sched->tag, "Cannot ping the plugin");
+            DEBUG(zlog_debug(sch->tag, "Plugin_%d", i));
+			if(runnable_ping(p) < 0 && plugin_gather_phase(p)) {
+				zlog_error(sch->tag, "Cannot ping the plugin");
 				runnable_restart(p);
 			}
 		}
 	}
     return 0;
-}
-
-int _indexing(plugin_set_t *plugin_set) {
-	if(!~plugin_set->up)
-		return -1;
-	int c;
-	for(c=0; (plugin_set->up >> c) & 0x1; c = (c+1)%(8*sizeof(plugin_set_t)));
-	plugin_set->up |= 0x1 << c ;
-	return c;
-}
-
-void _deindexing(plugin_set_t *plugin_set, int c) {
-	plugin_set->up &= 0 - (1<<c) - 1;
 }

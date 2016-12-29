@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <dlfcn.h>
 
 #include <zlog.h>
@@ -18,10 +19,10 @@ int skip_until(FILE *conf, const char c) {
     return 0;
 }
 
-int sparse(const char *filename, void **plugins) {
+int sparse(const char *filename, plugin_t **plugins) {
     int n = 0;
 
-    zlog_category_t *tag = zlog_get_category("paser");
+    zlog_category_t *tag = zlog_get_category("parser");
 
     DEBUG(zlog_debug(tag, "Parse %s", filename));
 
@@ -44,7 +45,7 @@ int sparse(const char *filename, void **plugins) {
     int argc = 0;
     char argv[10][BFSZ];
     void *dl;
-    void *(*plugin_alloc)(int, char **) = 0;
+    int (*load_module)(plugin_t *, int, char**) = 0;
 
     while(fgets(line, BFSZ, conf)) {
         char first, remain[BFSZ];
@@ -60,10 +61,10 @@ int sparse(const char *filename, void **plugins) {
             status = PLUG;
             snprintf(type, BFSZ, "%s", remain);
             snprintf(dlname, BFSZ, "lib%s.so", type);
-            snprintf(smname, BFSZ, "plugin_%s_init", type);
-            if(0x00 || !(dl = dlopen(dlname, RTLD_NOW | RTLD_NODELETE))
-                    || !(plugin_alloc = dlsym(dl, smname))) {
-                zlog_error(tag, "Cannot load %s (from %s)", smname, dlname);
+            snprintf(smname, BFSZ, "load_%s_module", type);
+            if(0x00 || !(dl = dlopen(dlname, RTLD_LAZY | RTLD_NODELETE))
+                    || !(load_module = dlsym(dl, smname))) {
+                zlog_error(tag, "Cannot %s (from %s)", smname, dlname);
                 switch(skip_until(conf, '>')) {
                 case 1:
                     return -1;
@@ -109,10 +110,17 @@ int sparse(const char *filename, void **plugins) {
                 return -1;
             }
             status = NONE;
-            void *plugin = 0;
-            if(!(plugin = plugin_alloc(argc, (char **)argv)))
-                return -1;
-            plugins[n++] = plugin;
+            plugin_t *p = malloc(sizeof(plugin_t));
+            memset(p, 0, sizeof(plugin_t));
+            if(!p || plugin_init(p) < 0) {
+                free(p);
+                continue;
+            }
+            if(load_module(p, argc, (char **)argv) < 0) {
+                free(p);
+                continue;
+            }
+            plugins[n++] = p;
         } else {
             zlog_error(tag, "Unexpected character");
             return -1;

@@ -5,6 +5,8 @@
 #ifndef _OS_H_
 #define _OS_H_
 
-void *plugin_os_init(int argc, char **argv);
+#include "plugin.h"
+
+int load_os_module(plugin_t *p, int argc, char **argv);
 
 #endif
