@@ -13,42 +13,48 @@
 
 typedef struct packet_t packet_t;
 
-enum gather_error {
+enum packet_gather_error {
     ENONE,
     ENODATA,
     EPLUGUP,
     EPLUGDOWN
 };
 
+enum packet_type {
+    METRIC,
+    REGISTER,
+    ALERT
+};
+
+enum packet_state {
+    EMPTY,
+    BEGIN,
+    WROTE,
+    READY,
+    DONE
+};
+
+enum packet_response {
+    EINVALLICENSE = 201,
+    ETARGETAUTHFAIL = 202,
+    EAGENTAUTHFAIL = 203,
+    ETARGETNOTFOUND = 301,
+    ETARGETREG = 302,
+    ETARGETPCH = 303,
+    ETARGETVER = 401,
+    EAGENTVER = 402,
+    ENOTSUPPORT = 403,
+    EAGENTREG = 404,
+    EAGENTPCH = 405
+};
+
 struct packet_t {
     /* Metadata */
     epoch_t started;
 
-    enum packet_type {
-        METRIC,
-        REGISTER,
-        ALERT
-    } type;
-    enum packet_state {
-        EMPTY,
-        BEGIN,
-        WROTE,
-        READY,
-        DONE
-    } state;
-    enum packet_response {
-        EINVALLICENSE = 201,
-        ETARGETAUTHFAIL = 202,
-        EAGENTAUTHFAIL = 203,
-        ETARGETNOTFOUND = 301,
-        ETARGETREG = 302,
-        ETARGETPCH = 303,
-        ETARGETVER = 401,
-        EAGENTVER = 402,
-        ENOTSUPPORT = 403,
-        EAGENTREG = 404,
-        EAGENTPCH = 405
-    } error;
+    enum packet_type type;
+    enum packet_state state;
+    enum packet_response response;
 
     int size;
     int rollback_point;
@@ -66,7 +72,7 @@ struct packet_t {
 packet_t *packet_alloc(int type);
 void packet_free(packet_t *pkt);
 char *packet_fetch(packet_t *pkt);
-int packet_expire(packet_t *pkt);
+int packet_expired(packet_t *pkt);
 
 static inline
 void packet_transaction(packet_t *pkt) {
@@ -89,10 +95,11 @@ int packet_gather(packet_t *pkt, const char *tag, void *func, void *module) {
     int rollback_point = pkt->size;
 
     packet_append(pkt, "%s\"%s\":{", pkt->payload[pkt->size-1]=='}'?",":"", tag);
-    if(((int (*)(void *, packet_t *))func)(module, pkt) != 0) {
+    int res = ((int (*)(void *, packet_t *))func)(module, pkt);
+    if(res != 0) {
         pkt->size = rollback_point;
         pkt->payload[pkt->size] = '\0';
-        return 1;
+        return res;
     }
     packet_append(pkt, "}");
 

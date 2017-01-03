@@ -7,10 +7,12 @@
 #ifndef _STORAGE_H_
 #define _STORAGE_H_
 
-#include "runnable.h"
+#include "routine.h"
 #include "packet.h"
 
-int storage_init(runnable_t *storage);
-int storage_fini(runnable_t *storage);
+int storage_init(routine_t *storage);
+int storage_fini(routine_t *storage);
+
+packet_t *get_packet(enum packet_type type);
 
 #endif

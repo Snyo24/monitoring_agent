@@ -7,22 +7,21 @@
 
 #include <pthread.h>
 
-#include "runnable.h"
+#include "routine.h"
 #include "packet.h"
 #include "util.h"
 
 typedef struct plugin_t {
 
     union {
-        runnable_t;
-        runnable_t r;
+        routine_t;
+        routine_t r;
     };
 
     unsigned long long tid;
 	const char *tip;
 	const char *type;
 
-    packet_t *packets;
     packet_t *working;
     packet_t *oob;
 

@@ -5,6 +5,8 @@
 
 #include "util.h"
 
+#define PACKET_EXP 8.033F
+
 packet_t *packet_alloc(int type) {
     if(type < 0 || type >=3)
         return NULL;
@@ -34,6 +36,6 @@ char *packet_fetch(packet_t *pkt) {
     return payload;
 }
 
-int packet_expire(packet_t *pkt) {
-    return pkt && (epoch_time()-pkt->started) >= 59.033*MSPS;
+int packet_expired(packet_t *pkt) {
+    return pkt && (epoch_time()-pkt->started)/MSPS >= PACKET_EXP;
 }

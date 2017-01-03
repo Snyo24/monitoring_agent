@@ -10,11 +10,11 @@
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
-static size_t callback(char *ptr, size_t size, size_t nmemb, void *tag);
-static int sender_add_opt(sender_t *sender, const char *url);
-
 static sender_t sender[3];
 static struct curl_slist *header;
+
+static size_t callback(char *ptr, size_t size, size_t nmemb, void *tag);
+static int sender_add_opt(sender_t *sender, const char *url);
 
 int sender_init() {
     curl_global_init(CURL_GLOBAL_SSL);
@@ -41,10 +41,10 @@ int sender_add_opt(sender_t *sender, const char *url) {
 }
 
 int sender_fini() {
-	curl_slist_free_all(header);
     curl_easy_cleanup(sender[METRIC].curl);
     curl_easy_cleanup(sender[REGISTER].curl);
     curl_easy_cleanup(sender[ALERT].curl);
+	curl_slist_free_all(header);
     return 0;
 }
 
@@ -69,7 +69,7 @@ size_t callback(char *ptr, size_t size, size_t nmemb, void *_pkt) {
     for(int i=0; i<nmemb; i++)
         code = code*10 + (ptr[i]-'0');
 
-    ((packet_t *)_pkt)->error = code;
+    ((packet_t *)_pkt)->response = code;
 
 	return nmemb;
 }

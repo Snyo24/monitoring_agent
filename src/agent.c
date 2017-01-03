@@ -4,7 +4,7 @@
 
 #include <zlog.h>
 
-#include "runnable.h"
+#include "routine.h"
 #include "metadata.h"
 #include "sparser.h"
 #include "scheduler.h"
@@ -38,26 +38,26 @@ int main(int argc, char **argv) {
     }
 
     /* Scheduler & Sender */
-    runnable_t sch, st;
+    routine_t sch, st;
 
     scheduler_init(&sch);
     storage_init(&st);
 
-    runnable_start(&sch);
-    runnable_start(&st);
+    routine_start(&sch);
+    routine_start(&st);
 
     /* Start plugins */
     for(int i=0; i<pluginc; i++) {
         void *p = plugins[i];
-        if(p) runnable_start(p);
+        if(p) routine_start(p);
     }
 
-    while(runnable_alive(&sch) && runnable_alive(&st)) {
-        if(runnable_overdue(&sch))
-            if(runnable_ping(&sch) < 0)
-                runnable_restart(&sch);
-        if(runnable_overdue(&st))
-            runnable_ping(&st);
+    while(routine_alive(&sch) && routine_alive(&st)) {
+        if(routine_overdue(&sch))
+            if(routine_ping(&sch) < 0)
+                routine_restart(&sch);
+        if(routine_overdue(&st))
+            routine_ping(&st);
         snyo_sleep(0.07);
     }
 

@@ -14,6 +14,7 @@
 #include "metadata.h"
 #include "packet.h"
 #include "sender.h"
+#include "storage.h"
 #include "util.h"
 
 int plugin_fini(plugin_t *p);
@@ -24,14 +25,13 @@ int plugin_gather(plugin_t *p);
 int plugin_init(plugin_t *p) {
     if(!p) return -1;
 
-	if(runnable_init(&p->r) < 0)
+	if(routine_init(&p->r) < 0)
 		return -1;
 
-    p->packets = 0;
     p->working = 0;
     p->oob = 0;
 
-    runnable_change_task(&p->r, plugin_prep);
+    routine_change_task(&p->r, plugin_prep);
 
     return 0;
 }
@@ -42,12 +42,7 @@ int plugin_fini(plugin_t *p) {
     DEBUG(zlog_debug(p->tag, "Finialize"));
 
     if(p->fini) p->fini(p);
-    packet_t *prev, *curr = p->packets;
-    while(curr) {
-        prev = curr;
-        curr = curr->next;
-        packet_free(prev);
-    }
+    packet_free(p->working);
 
     return 0;
 }
@@ -64,7 +59,7 @@ int plugin_prep(plugin_t *p) {
         if(p->prep(p->module) < 0)
             return -1;
 
-    runnable_change_task(&p->r, plugin_regr);
+    routine_change_task(&p->r, plugin_regr);
 
     return plugin_regr(p);
 }
@@ -85,7 +80,16 @@ int plugin_regr(plugin_t *p) {
     }
 
     if(post(p->oob) < 0) {
-        switch(p->oob->error) {
+        switch(p->oob->response) {
+            case EINVALLICENSE:
+            break;
+
+            case ETARGETAUTHFAIL:
+            break;
+
+            case EAGENTAUTHFAIL:
+            break;
+
             case ETARGETREG:
             p->tid = epoch_time()*epoch_time()*epoch_time();
             break;
@@ -98,6 +102,10 @@ int plugin_regr(plugin_t *p) {
 
             case EAGENTPCH:
             break;
+
+            default:
+            // Not expected response
+            break;
         }
         return -1;
     }
@@ -105,9 +113,9 @@ int plugin_regr(plugin_t *p) {
     packet_free(p->oob);
     p->oob = 0;
 
-    p->working = packet_alloc(METRIC);
-    p->packets = p->working;
-    runnable_change_task(&p->r, plugin_gather);
+    //p->working = packet_alloc(METRIC);
+    //p->packets = p->working;
+    routine_change_task(&p->r, plugin_gather);
 
     return 0;
 }
@@ -123,7 +131,7 @@ int plugin_alert(plugin_t *p, const char *stat) {
 
     packet_free(p->oob);
     p->oob = 0;
-    runnable_change_task(&p->r, plugin_gather);
+    routine_change_task(&p->r, plugin_gather);
 
     return 0;
 }
@@ -137,13 +145,10 @@ int plugin_alert_down(plugin_t *p) {
 }
 
 int plugin_gather(plugin_t *p) {
-    while(p->packets->state==DONE) {
-        packet_t *pkt = p->packets;
-        p->packets = p->packets->next;
-        free(pkt);
-    }
-
     DEBUG(zlog_debug(p->tag, ".. Gather"));
+
+    if(!p->working)
+        p->working = get_packet(METRIC);
 
     packet_t *pkt = p->working;
 
@@ -175,28 +180,23 @@ int plugin_gather(plugin_t *p) {
 
         case EPLUGUP:
         packet_rollback(pkt);
-        runnable_change_task(&p->r, plugin_alert_up);
+        routine_change_task(&p->r, plugin_alert_up);
         break;
 
         case EPLUGDOWN:
         packet_rollback(pkt);
-        runnable_change_task((runnable_t *)p, plugin_alert_down);
+        routine_change_task(&p->r, plugin_alert_down);
         break;
     }
 
-    if(packet_expire(pkt)) {
+    if(packet_expired(pkt)) {
         if(pkt->state == WROTE) {
             packet_append(pkt, "]}");
-
-            packet_t *new = packet_alloc(METRIC);
-            packet_append(new, "{\"license\":\"%s\",\"tid\":%llu,\"metrics\":[", license, p->tid);
-            new->state = BEGIN;
-            pkt->next  = new;
-            p->working = new;
-
             pkt->state = READY;
+            p->working = 0;
         } else {
             pkt->state = DONE;
+            p->working = 0;
         }
     }
 
@@ -206,5 +206,5 @@ int plugin_gather(plugin_t *p) {
 }
 
 int plugin_gather_phase(plugin_t *p) {
-    return (void *)p->task == (void *)plugin_gather;
+    return (unsigned long int *)p->task == (unsigned long int *)plugin_gather;
 }

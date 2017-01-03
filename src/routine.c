@@ -1,8 +1,8 @@
 /**
- * @file runnable.c
+ * @file routine.c
  * @author Snyo
  */
-#include "runnable.h"
+#include "routine.h"
 
 #include <time.h>
 #include <pthread.h>
@@ -11,13 +11,14 @@
 
 #include "util.h"
 
-int runnable_init(runnable_t *r) {
+int routine_init(routine_t *r) {
 	if(!r) return -1;
 
 	r->alive = 0;
-    r->tag   = NULL;
-    r->tick  = 3600;
-    r->due   = 0;
+
+    r->tag  = NULL;
+    r->tick = 3600;
+    r->due  = 0;
 
     r->task = NULL;
 
@@ -31,7 +32,7 @@ int runnable_init(runnable_t *r) {
 	return 0;
 }
 
-int runnable_fini(runnable_t *r) {
+int routine_fini(routine_t *r) {
     if(0x00 || pthread_mutex_destroy(&r->ping_me) < 0
             || pthread_mutex_destroy(&r->pong_me) < 0
             || pthread_cond_destroy(&r->ping) < 0
@@ -41,32 +42,32 @@ int runnable_fini(runnable_t *r) {
 	return pthread_join(r->running_thread, NULL);
 }
 
-int runnable_sync(runnable_t *r) {
+int routine_sync(routine_t *r) {
     epoch_t then = epoch_time() + MSPS / 20;
     struct timespec timeout = {then/MSPS, then%MSPS*NSPMS};
     return (pthread_cond_timedwait(&r->pong, &r->pong_me, &timeout)==0) - 1;
 }
 
-int runnable_ping(runnable_t *r) {
+int routine_ping(routine_t *r) {
     struct timespec timeout = {0, 0};
     if(pthread_mutex_timedlock(&r->ping_me, &timeout) != 0)
         return -1;
     pthread_cond_signal(&r->ping);
     pthread_mutex_unlock(&r->ping_me);
 
-    return runnable_sync(r);
+    return routine_sync(r);
 }
 
-int runnable_start(runnable_t *r) {
+int routine_start(routine_t *r) {
     if(!r) return -1;
     DEBUG(if(r->tag) zlog_debug(r->tag, "Start"));
     
 	r->alive = 1;
     r->due = 0;
     
-	pthread_create(&r->running_thread, NULL, (void *)(void *)runnable_main, r);
+	pthread_create(&r->running_thread, NULL, (void *)(void *)routine_main, r);
 
-    if(runnable_sync(r) < 0)
+    if(routine_sync(r) < 0)
         return -1;
 
     pthread_mutex_lock(&r->ping_me);
@@ -75,7 +76,7 @@ int runnable_start(runnable_t *r) {
     return 0;
 }
 
-int runnable_stop(runnable_t *r) {
+int routine_stop(routine_t *r) {
     DEBUG(if(r->tag) zlog_debug(r->tag, "Stop"));
 
     r->alive = 0;
@@ -87,12 +88,12 @@ int runnable_stop(runnable_t *r) {
     return 0;
 }
 
-int runnable_restart(runnable_t *r) {
+int routine_restart(routine_t *r) {
     DEBUG(if(r->tag) zlog_debug(r->tag, "Restart"));
-    return runnable_stop(r)==0 && runnable_start(r)==0;
+    return routine_stop(r)==0 && routine_start(r)==0;
 }
 
-void *runnable_main(runnable_t *r) {
+void *routine_main(routine_t *r) {
     pthread_mutex_lock(&r->pong_me);
     pthread_mutex_lock(&r->ping_me);
     pthread_cond_signal(&r->pong);
@@ -113,14 +114,14 @@ void *runnable_main(runnable_t *r) {
 	return NULL;
 }
 
-void runnable_change_task(runnable_t *r, void *task) {
+void routine_change_task(routine_t *r, void *task) {
     r->task = task;
 }
 
-int runnable_alive(runnable_t *r) {
+int routine_alive(routine_t *r) {
     return r->alive;
 }
 
-int runnable_overdue(runnable_t *r) {
+int routine_overdue(routine_t *r) {
     return r->due <= epoch_time();
 }

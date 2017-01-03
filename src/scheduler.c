@@ -1,10 +1,10 @@
 /**
- * @file sch.c
+ * @file scheduler.c
  * @author Snyo
  */
 
 #include "scheduler.h"
-#include "runnable.h"
+#include "routine.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,8 +19,8 @@
 
 int scheduler_main(void *_sch);
 
-int scheduler_init(runnable_t *sch) {
-	if(runnable_init(sch) < 0)
+int scheduler_init(routine_t *sch) {
+	if(routine_init(sch) < 0)
 		return -1;
 
 	sch->tag = zlog_get_category("scheduler");
@@ -32,12 +32,12 @@ int scheduler_init(runnable_t *sch) {
 	return 0;
 }
 
-void scheduler_fini(runnable_t *sch) {
-	runnable_fini(sch);
+void scheduler_fini(routine_t *sch) {
+	routine_fini(sch);
 }
 
 int scheduler_main(void *_sch) {
-    runnable_t *sch = _sch;
+    routine_t *sch = _sch;
 
     extern int pluginc;
     extern plugin_t *plugins[];
@@ -46,11 +46,11 @@ int scheduler_main(void *_sch) {
 		void *p = plugins[i];
 		if(!p) break;
 
-		if(runnable_alive(p) && runnable_overdue(p)) {
+		if(routine_alive(p) && routine_overdue(p)) {
             DEBUG(zlog_debug(sch->tag, "Plugin_%d", i));
-			if(runnable_ping(p) < 0 && plugin_gather_phase(p)) {
+			if(routine_ping(p) < 0 && plugin_gather_phase(p)) {
 				zlog_error(sch->tag, "Cannot ping the plugin");
-				runnable_restart(p);
+				routine_restart(p);
 			}
 		}
 	}
