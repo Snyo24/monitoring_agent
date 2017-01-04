@@ -31,7 +31,8 @@ enum packet_state {
     BEGIN,
     WROTE,
     READY,
-    DONE
+    DONE,
+    FREE
 };
 
 enum packet_response {

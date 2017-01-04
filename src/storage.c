@@ -53,30 +53,27 @@ int storage_fini(routine_t *st) {
 
 packet_t *get_packet(enum packet_type type) {
     for(packet_t *pkt=packets; pkt; pkt=pkt->next) {
-        while(!__sync_bool_compare_and_swap(&pkt->spin, 0, 1));
-        if(pkt && pkt->state == DONE) {
+        if(__sync_bool_compare_and_swap(&pkt->state, DONE, EMPTY)) {
             pkt->type = type;
-            pkt->state = EMPTY;
             pkt->response = 0;
             pkt->size = 0;
             pkt->attempt = 0;
-            pkt->spin = 0;
             return pkt;
         }
-        pkt->spin = 0;
     }
 
     packet_t *pkt = packet_alloc(type);
     while(!packets) {
-        if(__sync_bool_compare_and_swap(&packets, NULL, pkt))
+        if(__sync_bool_compare_and_swap(&packets, 0, pkt))
             return pkt;
     }
 
-    packet_t *head = packets;
-    while(!__sync_bool_compare_and_swap(&packets->spin, 0, 1));
+    int *head_lock = &packets->spin;
+    while(!__sync_bool_compare_and_swap(head_lock, 0, 1));
     pkt->next = packets;
     packets = pkt;
-    head->spin = 0;
+    head_lock = 0;
+
     return pkt;
 }
 
@@ -102,6 +99,10 @@ int storage_main(void *_st) {
                 // TODO unsent_send();
             }
             st->tick = STORAGE_TICK * st->delay;
+        } else if(pkt->state == DONE) {
+            __sync_bool_compare_and_swap(&pkt->state, DONE, FREE);
+        } else if(pkt->state == FREE) {
+            //packet_free(pkt);
         }
     }
 

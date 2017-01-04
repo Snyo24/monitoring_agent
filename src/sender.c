@@ -52,6 +52,7 @@ int post(packet_t *pkt) {
     pkt->attempt++;
     char *payload = packet_fetch(pkt);
     if(!payload) return -1;
+    printf("%s\n", payload);
 
     while(!__sync_bool_compare_and_swap(&sender[pkt->type].spin, 0, 1));
 	curl_easy_setopt(sender[pkt->type].curl, CURLOPT_POSTFIELDS, payload);

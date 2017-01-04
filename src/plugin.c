@@ -199,6 +199,7 @@ int plugin_gather(plugin_t *p) {
             p->working = 0;
         }
     }
+    printf("%s\n", pkt->payload);
 
     DEBUG(zlog_debug(p->tag, ".. %d bytes, in %llums", pkt->size, epoch_time()-begin));
 
