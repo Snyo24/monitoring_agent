@@ -4,9 +4,12 @@
 
 #include "packet.h"
 
-#define METRIC_URL   "http://52.79.45.223:8080/v1/metrics"
-#define REGISTER_URL "http://52.79.45.223:8080/v1/agents"
-#define ALERT_URL    "http://52.79.45.223:8080/v1/alert"
+//#define METRIC_URL   "http://52.79.45.223:8080/v1/metrics"
+//#define REGISTER_URL "http://52.79.45.223:8080/v1/agents"
+//#define ALERT_URL    "http://52.79.45.223:8080/v1/alert"
+#define METRIC_URL   "https://gate.maxgauge.com/v1/metrics"
+#define REGISTER_URL "https://gate.maxgauge.com/v1/agents"
+#define ALERT_URL    "https://gate.maxgauge.com/v1/alert"
 
 #define CONTENT_TYPE "Content-Type: application/vnd.exem.v1+json"
 
@@ -52,7 +55,7 @@ int post(packet_t *pkt) {
     pkt->attempt++;
     char *payload = packet_fetch(pkt);
     if(!payload) return -1;
-    printf("%s\n", payload);
+    //printf("%s\n", payload);
 
     while(!__sync_bool_compare_and_swap(&sender[pkt->type].spin, 0, 1));
 	curl_easy_setopt(sender[pkt->type].curl, CURLOPT_POSTFIELDS, payload);
@@ -61,6 +64,7 @@ int post(packet_t *pkt) {
     long status_code;
 	curl_easy_getinfo(sender[pkt->type].curl, CURLINFO_RESPONSE_CODE, &status_code);
     sender[pkt->type].spin = 0;
+    printf("%d %ld\n", pkt->response, status_code);
 
 	return (curl_code==CURLE_OK && (status_code==202 || status_code==200)) - 1;
 }

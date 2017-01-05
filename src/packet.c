@@ -5,7 +5,7 @@
 
 #include "util.h"
 
-#define PACKET_EXP 8.033F
+#define PACKET_EXP 60.033F
 
 packet_t *packet_alloc(int type) {
     if(type < 0 || type >=3)

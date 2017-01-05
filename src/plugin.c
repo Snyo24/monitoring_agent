@@ -69,14 +69,16 @@ int plugin_regr(plugin_t *p) {
 
     DEBUG(zlog_debug(p->tag, ".. Register"));
 
+    p->tid = epoch_time()*epoch_time()*epoch_time();
     if(!p->oob) {
-        p->tid = epoch_time()*epoch_time()*epoch_time();
         p->oob = packet_alloc(REGISTER);
         p->oob->state = READY;
-        packet_append(p->oob, "{\"license\":\"%s\",\"aid\":%llu,\"tid\":%20llu,\"agent_type\":\"%s\",\"target_type\":\"%s\",\"os\":\"%s\",\"hostname\":\"%s\",\"ip\":\"%s\"%s%s%s}", license, aid, p->tid, type, p->type, os, host, aip, p->tip?",\"target_ip\":\"":"", p->tip?p->tip:"", p->tip?"\"":"");
+        packet_append(p->oob, "{\"license\":\"%s\",\"aid\":%llu,\"tid\":", license, aid);
+        packet_transaction(p->oob);
+        packet_append(p->oob, "%20llu,\"agent_type\":\"%s\",\"target_type\":\"%s\",\"os\":\"%s\",\"hostname\":\"%s\",\"ip\":\"%s\"%s%s%s}", p->tid, type, p->type, os, host, aip, p->tip?",\"target_ip\":\"":"", p->tip?p->tip:"", p->tip?"\"":"");
     } else {
-        sprintf(p->oob->payload+55, "%20llu", p->tid);
-        p->oob->payload[75] = ',';
+        sprintf(p->oob->payload+p->oob->rollback_point, "%20llu", p->tid);
+        p->oob->payload[p->oob->rollback_point+20] = ',';
     }
 
     if(post(p->oob) < 0) {
@@ -91,7 +93,6 @@ int plugin_regr(plugin_t *p) {
             break;
 
             case ETARGETREG:
-            p->tid = epoch_time()*epoch_time()*epoch_time();
             break;
 
             case ETARGETPCH:
@@ -113,8 +114,6 @@ int plugin_regr(plugin_t *p) {
     packet_free(p->oob);
     p->oob = 0;
 
-    //p->working = packet_alloc(METRIC);
-    //p->packets = p->working;
     routine_change_task(&p->r, plugin_gather);
 
     return 0;
@@ -199,7 +198,6 @@ int plugin_gather(plugin_t *p) {
             p->working = 0;
         }
     }
-    printf("%s\n", pkt->payload);
 
     DEBUG(zlog_debug(p->tag, ".. %d bytes, in %llums", pkt->size, epoch_time()-begin));
 

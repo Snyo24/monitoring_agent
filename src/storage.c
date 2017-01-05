@@ -16,7 +16,7 @@
 #include "sender.h"
 #include "unsent.h"
 
-#define STORAGE_TICK 19
+#define STORAGE_TICK 4
 
 int storage_main(void *_st);
 
@@ -58,11 +58,14 @@ packet_t *get_packet(enum packet_type type) {
             pkt->response = 0;
             pkt->size = 0;
             pkt->attempt = 0;
+            pkt->spin = 0;
             return pkt;
         }
     }
 
     packet_t *pkt = packet_alloc(type);
+    while(pkt == packets) pkt = packet_alloc(type);
+    
     while(!packets) {
         if(__sync_bool_compare_and_swap(&packets, 0, pkt))
             return pkt;
@@ -72,7 +75,7 @@ packet_t *get_packet(enum packet_type type) {
     while(!__sync_bool_compare_and_swap(head_lock, 0, 1));
     pkt->next = packets;
     packets = pkt;
-    head_lock = 0;
+    *head_lock = 0;
 
     return pkt;
 }
@@ -80,7 +83,8 @@ packet_t *get_packet(enum packet_type type) {
 int storage_main(void *_st) {
 	routine_t *st = _st;
 
-    for(packet_t *pkt=packets; pkt; pkt=pkt->next) {
+    for(packet_t *pkt=packets, *prev=0; pkt; prev=pkt,pkt=pkt->next) {
+        printf("-> %llx(%d) ", (unsigned long long)pkt%0x10000, pkt->state);
         if(pkt->state == READY) {
             DEBUG(zlog_debug(st->tag, "%04llx: POST %.1fkB", (unsigned long long)pkt%0x10000, (float)pkt->size/BPKB));
             if(post(pkt) < 0) {
@@ -99,12 +103,19 @@ int storage_main(void *_st) {
                 // TODO unsent_send();
             }
             st->tick = STORAGE_TICK * st->delay;
-        } else if(pkt->state == DONE) {
-            __sync_bool_compare_and_swap(&pkt->state, DONE, FREE);
-        } else if(pkt->state == FREE) {
-            //packet_free(pkt);
         }
+
+        /*
+        if(__sync_bool_compare_and_swap(&pkt->state, DONE, FREE)) {
+            //if(!prev) {
+            //    packets = pkt->next;
+            //} else {
+            //    prev->next = pkt->next;
+            //}
+            //packet_free(pkt);
+        }*/
     }
+    printf("\n");
 
     return 0;
 }

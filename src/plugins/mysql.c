@@ -332,7 +332,7 @@ int _mysql_gather_thread(mysql_module_t *m, packet_t *pkt) {
 
     if(k == 0) return error;
 
-    packet_append(pkt, "\"id\":[");
+    packet_append(pkt, "%s\"id\":[", comma?",":"");
     for(int i=0; i<k; i++)
         packet_append(pkt, "%s\"%lu\"", i?",":"", threads[k].id);
     packet_append(pkt, "],\"thread_id\":[");
