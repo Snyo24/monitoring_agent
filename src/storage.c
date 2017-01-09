@@ -53,7 +53,7 @@ int storage_fini(routine_t *st) {
 
 packet_t *get_packet(enum packet_type type) {
     for(packet_t *pkt=packets; pkt; pkt=pkt->next) {
-        if(__sync_bool_compare_and_swap(&pkt->state, DONE, EMPTY)) {
+        if(packet_change_state(pkt, DONE, EMPTY) == 0) {
             pkt->type = type;
             pkt->response = 0;
             pkt->size = 0;
@@ -84,7 +84,7 @@ int storage_main(void *_st) {
 	routine_t *st = _st;
 
     for(packet_t *pkt=packets, *prev=0; pkt; prev=pkt,pkt=pkt->next) {
-        printf("-> %llx(%d) ", (unsigned long long)pkt%0x10000, pkt->state);
+        printf("-> %llx(%d)\n", (unsigned long long)pkt%0x10000, pkt->state);
         if(pkt->state == READY) {
             DEBUG(zlog_debug(st->tag, "%04llx: POST %.1fkB", (unsigned long long)pkt%0x10000, (float)pkt->size/BPKB));
             if(post(pkt) < 0) {
@@ -106,16 +106,15 @@ int storage_main(void *_st) {
         }
 
         /*
-        if(__sync_bool_compare_and_swap(&pkt->state, DONE, FREE)) {
-            //if(!prev) {
-            //    packets = pkt->next;
-            //} else {
-            //    prev->next = pkt->next;
-            //}
-            //packet_free(pkt);
+        if(packet_change_state(pkt, DONE, FREE) == 0) {
+            if(!prev) {
+                packets = pkt->next;
+            } else {
+                prev->next = pkt->next;
+            }
+            packet_free(pkt);
         }*/
     }
-    printf("\n");
 
     return 0;
 }

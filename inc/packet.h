@@ -13,6 +13,27 @@
 
 typedef struct packet_t packet_t;
 
+struct packet_t {
+    /* Metadata */
+    epoch_t started;
+
+    enum packet_type type;
+    enum packet_state state;
+    enum packet_response response;
+
+    int size;
+    int rollback_point;
+    int attempt;
+
+    /* Paylaod */
+    char payload[PKTSZ];
+
+    /* Control */
+    int spin;
+    packet_t *next;
+
+};
+
 enum packet_gather_error {
     ENONE,
     ENODATA,
@@ -37,7 +58,7 @@ enum packet_state {
 
 enum packet_response {
     EINVALLICENSE = 201,
-    ETARGETAUTHFAIL = 202,
+    ETARoETAUTHFAIL = 202,
     EAGENTAUTHFAIL = 203,
     ETARGETNOTFOUND = 301,
     ETARGETREG = 302,
@@ -49,30 +70,18 @@ enum packet_response {
     EAGENTPCH = 405
 };
 
-struct packet_t {
-    /* Metadata */
-    epoch_t started;
-
-    enum packet_type type;
-    enum packet_state state;
-    enum packet_response response;
-
-    int size;
-    int rollback_point;
-    int attempt;
-
-    /* Paylaod */
-    char payload[PKTSZ];
-
-    /* Control */
-    int spin;
-    packet_t *next;
-
-};
-
 packet_t *packet_alloc(int type);
 void packet_free(packet_t *pkt);
 char *packet_fetch(packet_t *pkt);
+/**
+ * @brief Change a packet state (atomic)
+ * @detail Atomic change operation of the packet state to 'to' if the state is 'from'
+ * @param pkt the packet
+ * @param from the packet state must be
+ * @param to the packet state will be
+ * @return If success returns 0, else returns 1
+ */
+int packet_change_state(packet_t *pkt, enum packet_state from, enum packet_state to);
 int packet_expired(packet_t *pkt);
 
 static inline

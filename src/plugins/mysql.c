@@ -161,7 +161,7 @@ int _mysql_gather_query(mysql_module_t *m, packet_t *pkt) {
     if(res) {
         error = ENONE;
         while((row = mysql_fetch_row(res)))
-            packet_append(pkt, "\"slow queries\":%s", row[1]);
+            packet_append(pkt, "\"slow_queries\":%s", row[1]);
         mysql_free_result(res);
     }
     /*

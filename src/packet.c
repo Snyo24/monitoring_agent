@@ -36,6 +36,10 @@ char *packet_fetch(packet_t *pkt) {
     return payload;
 }
 
+int packet_change_state(packet_t *pkt, enum packet_state from, enum packet_state to) {
+    return __sync_bool_compare_and_swap(&pkt->state, from, to) - 1;
+}
+
 int packet_expired(packet_t *pkt) {
     return pkt && (epoch_time()-pkt->started)/MSPS >= PACKET_EXP;
 }

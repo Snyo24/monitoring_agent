@@ -76,5 +76,5 @@ size_t callback(char *ptr, size_t size, size_t nmemb, void *_pkt) {
 
     ((packet_t *)_pkt)->response = code;
 
-	return nmemb;
+	return 0;
 }
