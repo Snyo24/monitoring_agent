@@ -33,6 +33,14 @@ enum packet_response {
     EAGENTPCH = 405
 };
 
+/**
+ * @brief Packet structure containing json
+ * @detail to 'to' if the state is 'from'
+ * @param pkt a packet
+ * @param from the packet state must be
+ * @param to the packet state will be
+ * @return If success returns 0, else returns 1
+ */
 struct packet_t {
     /* Metadata */
     epoch_t started;
@@ -60,14 +68,20 @@ void packet_free(packet_t *pkt);
 char *packet_fetch(packet_t *pkt);
 
 /**
- * @brief Atomic change operation of the packet state
+ * @brief Atomic change operation of a packet state
  * @detail to 'to' if the state is 'from'
- * @param pkt the packet
+ * @param pkt a packet
  * @param from the packet state must be
  * @param to the packet state will be
  * @return If success returns 0, else returns 1
  */
 int packet_change_state(packet_t *pkt, enum packet_state from, enum packet_state to);
+
+/**
+ * @brief Check if a minute elapsed after the first record
+ * @param pkt a packet
+ * @return If yes returns 1, else returns 0
+ */
 int packet_expired(packet_t *pkt);
 
 static inline

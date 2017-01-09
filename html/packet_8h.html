@@ -102,6 +102,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpacket__t.html">packet_t</a></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Packet structure containing json  to 'to' if the state is 'from'.  <a href="structpacket__t.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
@@ -167,10 +168,10 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>packet_free</b> (<a c
 char *&#160;</td><td class="memItemRight" valign="bottom"><b>packet_fetch</b> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
 <tr class="separator:a1913c1e12a61e79c1580589f31627d91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet_change_state</a> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt, enum packet_state from, enum packet_state to)</td></tr>
-<tr class="memdesc:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Atomic change operation of the packet state  to 'to' if the state is 'from'.  <a href="#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">More...</a><br/></td></tr>
+<tr class="memdesc:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Atomic change operation of a packet state  to 'to' if the state is 'from'.  <a href="#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">More...</a><br/></td></tr>
 <tr class="separator:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7b6a66c0723bc62a065385ea829cb211"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7b6a66c0723bc62a065385ea829cb211"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>packet_expired</b> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
+<tr class="memitem:a7b6a66c0723bc62a065385ea829cb211"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#a7b6a66c0723bc62a065385ea829cb211">packet_expired</a> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
+<tr class="memdesc:a7b6a66c0723bc62a065385ea829cb211"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a minute elapsed after the first record.  <a href="#a7b6a66c0723bc62a065385ea829cb211">More...</a><br/></td></tr>
 <tr class="separator:a7b6a66c0723bc62a065385ea829cb211"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -206,10 +207,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>packet_expired</b> (<a
       </table>
 </div><div class="memdoc">
 
-<p>Atomic change operation of the packet state  to 'to' if the state is 'from'. </p>
+<p>Atomic change operation of a packet state  to 'to' if the state is 'from'. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">pkt</td><td>the packet </td></tr>
+    <tr><td class="paramname">pkt</td><td>a packet </td></tr>
     <tr><td class="paramname">from</td><td>the packet state must be </td></tr>
     <tr><td class="paramname">to</td><td>the packet state will be </td></tr>
   </table>
@@ -219,10 +220,35 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>packet_expired</b> (<a
 
 </div>
 </div>
+<a class="anchor" id="a7b6a66c0723bc62a065385ea829cb211"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int packet_expired </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structpacket__t.html">packet_t</a> *&#160;</td>
+          <td class="paramname"><em>pkt</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+
+<p>Check if a minute elapsed after the first record. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pkt</td><td>a packet </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If yes returns 1, else returns 0 </dd></dl>
+
+</div>
+</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Jan 9 2017 02:31:45 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Jan 9 2017 03:56:59 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>
