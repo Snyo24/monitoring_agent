@@ -144,49 +144,50 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="line"><a name="l00058"></a><span class="lineno">   58</span>&#160;<a class="code" href="structpacket__t.html">packet_t</a> *packet_alloc(<span class="keywordtype">int</span> type);</div>
 <div class="line"><a name="l00059"></a><span class="lineno">   59</span>&#160;<span class="keywordtype">void</span> packet_free(<a class="code" href="structpacket__t.html">packet_t</a> *pkt);</div>
 <div class="line"><a name="l00060"></a><span class="lineno">   60</span>&#160;<span class="keywordtype">char</span> *packet_fetch(<a class="code" href="structpacket__t.html">packet_t</a> *pkt);</div>
-<div class="line"><a name="l00069"></a><span class="lineno">   69</span>&#160;<span class="keywordtype">int</span> <a class="code" href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet_change_state</a>(<a class="code" href="structpacket__t.html">packet_t</a> *pkt, <span class="keyword">enum</span> packet_state from, <span class="keyword">enum</span> packet_state to);</div>
-<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="keywordtype">int</span> packet_expired(<a class="code" href="structpacket__t.html">packet_t</a> *pkt);</div>
-<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;</div>
-<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
-<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="keywordtype">void</span> packet_transaction(<a class="code" href="structpacket__t.html">packet_t</a> *pkt) {</div>
-<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;    pkt-&gt;rollback_point = pkt-&gt;size;</div>
-<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;}</div>
-<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;</div>
-<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
-<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="keywordtype">void</span> packet_commit(<a class="code" href="structpacket__t.html">packet_t</a> *pkt) {</div>
-<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;    pkt-&gt;rollback_point = pkt-&gt;size;</div>
-<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;}</div>
-<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;</div>
-<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
-<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="keywordtype">void</span> packet_rollback(<a class="code" href="structpacket__t.html">packet_t</a> *pkt) {</div>
-<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;    pkt-&gt;size = pkt-&gt;rollback_point;</div>
-<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    pkt-&gt;payload[pkt-&gt;size] = <span class="charliteral">&#39;\0&#39;</span>;</div>
-<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;}</div>
-<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;</div>
-<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
-<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="keywordtype">int</span> packet_gather(<a class="code" href="structpacket__t.html">packet_t</a> *pkt, <span class="keyword">const</span> <span class="keywordtype">char</span> *tag, <span class="keywordtype">void</span> *func, <span class="keywordtype">void</span> *module) {</div>
-<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;    <span class="keywordtype">int</span> rollback_point = pkt-&gt;size;</div>
-<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;</div>
-<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;    packet_append(pkt, <span class="stringliteral">&quot;%s\&quot;%s\&quot;:{&quot;</span>, pkt-&gt;payload[pkt-&gt;size-1]==<span class="charliteral">&#39;}&#39;</span>?<span class="stringliteral">&quot;,&quot;</span>:<span class="stringliteral">&quot;&quot;</span>, tag);</div>
-<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    <span class="keywordtype">int</span> res = ((int (*)(<span class="keywordtype">void</span> *, <a class="code" href="structpacket__t.html">packet_t</a> *))func)(module, pkt);</div>
-<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    <span class="keywordflow">if</span>(res != 0) {</div>
-<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;        pkt-&gt;size = rollback_point;</div>
-<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;        pkt-&gt;payload[pkt-&gt;size] = <span class="charliteral">&#39;\0&#39;</span>;</div>
-<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;        <span class="keywordflow">return</span> res;</div>
-<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;    }</div>
-<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    packet_append(pkt, <span class="stringliteral">&quot;}&quot;</span>);</div>
-<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;</div>
-<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;    <span class="keywordflow">return</span> 0;</div>
-<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;}</div>
-<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;</div>
-<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;<span class="preprocessor">#endif</span></div>
+<div class="line"><a name="l00061"></a><span class="lineno">   61</span>&#160;</div>
+<div class="line"><a name="l00070"></a><span class="lineno">   70</span>&#160;<span class="keywordtype">int</span> <a class="code" href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet_change_state</a>(<a class="code" href="structpacket__t.html">packet_t</a> *pkt, <span class="keyword">enum</span> packet_state from, <span class="keyword">enum</span> packet_state to);</div>
+<div class="line"><a name="l00071"></a><span class="lineno">   71</span>&#160;<span class="keywordtype">int</span> packet_expired(<a class="code" href="structpacket__t.html">packet_t</a> *pkt);</div>
+<div class="line"><a name="l00072"></a><span class="lineno">   72</span>&#160;</div>
+<div class="line"><a name="l00073"></a><span class="lineno">   73</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
+<div class="line"><a name="l00074"></a><span class="lineno">   74</span>&#160;<span class="keywordtype">void</span> packet_transaction(<a class="code" href="structpacket__t.html">packet_t</a> *pkt) {</div>
+<div class="line"><a name="l00075"></a><span class="lineno">   75</span>&#160;    pkt-&gt;rollback_point = pkt-&gt;size;</div>
+<div class="line"><a name="l00076"></a><span class="lineno">   76</span>&#160;}</div>
+<div class="line"><a name="l00077"></a><span class="lineno">   77</span>&#160;</div>
+<div class="line"><a name="l00078"></a><span class="lineno">   78</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
+<div class="line"><a name="l00079"></a><span class="lineno">   79</span>&#160;<span class="keywordtype">void</span> packet_commit(<a class="code" href="structpacket__t.html">packet_t</a> *pkt) {</div>
+<div class="line"><a name="l00080"></a><span class="lineno">   80</span>&#160;    pkt-&gt;rollback_point = pkt-&gt;size;</div>
+<div class="line"><a name="l00081"></a><span class="lineno">   81</span>&#160;}</div>
+<div class="line"><a name="l00082"></a><span class="lineno">   82</span>&#160;</div>
+<div class="line"><a name="l00083"></a><span class="lineno">   83</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
+<div class="line"><a name="l00084"></a><span class="lineno">   84</span>&#160;<span class="keywordtype">void</span> packet_rollback(<a class="code" href="structpacket__t.html">packet_t</a> *pkt) {</div>
+<div class="line"><a name="l00085"></a><span class="lineno">   85</span>&#160;    pkt-&gt;size = pkt-&gt;rollback_point;</div>
+<div class="line"><a name="l00086"></a><span class="lineno">   86</span>&#160;    pkt-&gt;payload[pkt-&gt;size] = <span class="charliteral">&#39;\0&#39;</span>;</div>
+<div class="line"><a name="l00087"></a><span class="lineno">   87</span>&#160;}</div>
+<div class="line"><a name="l00088"></a><span class="lineno">   88</span>&#160;</div>
+<div class="line"><a name="l00089"></a><span class="lineno">   89</span>&#160;<span class="keyword">static</span> <span class="keyword">inline</span></div>
+<div class="line"><a name="l00090"></a><span class="lineno">   90</span>&#160;<span class="keywordtype">int</span> packet_gather(<a class="code" href="structpacket__t.html">packet_t</a> *pkt, <span class="keyword">const</span> <span class="keywordtype">char</span> *tag, <span class="keywordtype">void</span> *func, <span class="keywordtype">void</span> *module) {</div>
+<div class="line"><a name="l00091"></a><span class="lineno">   91</span>&#160;    <span class="keywordtype">int</span> rollback_point = pkt-&gt;size;</div>
+<div class="line"><a name="l00092"></a><span class="lineno">   92</span>&#160;</div>
+<div class="line"><a name="l00093"></a><span class="lineno">   93</span>&#160;    packet_append(pkt, <span class="stringliteral">&quot;%s\&quot;%s\&quot;:{&quot;</span>, pkt-&gt;payload[pkt-&gt;size-1]==<span class="charliteral">&#39;}&#39;</span>?<span class="stringliteral">&quot;,&quot;</span>:<span class="stringliteral">&quot;&quot;</span>, tag);</div>
+<div class="line"><a name="l00094"></a><span class="lineno">   94</span>&#160;    <span class="keywordtype">int</span> res = ((int (*)(<span class="keywordtype">void</span> *, <a class="code" href="structpacket__t.html">packet_t</a> *))func)(module, pkt);</div>
+<div class="line"><a name="l00095"></a><span class="lineno">   95</span>&#160;    <span class="keywordflow">if</span>(res != 0) {</div>
+<div class="line"><a name="l00096"></a><span class="lineno">   96</span>&#160;        pkt-&gt;size = rollback_point;</div>
+<div class="line"><a name="l00097"></a><span class="lineno">   97</span>&#160;        pkt-&gt;payload[pkt-&gt;size] = <span class="charliteral">&#39;\0&#39;</span>;</div>
+<div class="line"><a name="l00098"></a><span class="lineno">   98</span>&#160;        <span class="keywordflow">return</span> res;</div>
+<div class="line"><a name="l00099"></a><span class="lineno">   99</span>&#160;    }</div>
+<div class="line"><a name="l00100"></a><span class="lineno">  100</span>&#160;    packet_append(pkt, <span class="stringliteral">&quot;}&quot;</span>);</div>
+<div class="line"><a name="l00101"></a><span class="lineno">  101</span>&#160;</div>
+<div class="line"><a name="l00102"></a><span class="lineno">  102</span>&#160;    <span class="keywordflow">return</span> 0;</div>
+<div class="line"><a name="l00103"></a><span class="lineno">  103</span>&#160;}</div>
+<div class="line"><a name="l00104"></a><span class="lineno">  104</span>&#160;</div>
+<div class="line"><a name="l00105"></a><span class="lineno">  105</span>&#160;<span class="preprocessor">#endif</span></div>
 <div class="ttc" id="util_8h_html"><div class="ttname"><a href="util_8h.html">util.h</a></div></div>
-<div class="ttc" id="packet_8h_html_ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><div class="ttname"><a href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet_change_state</a></div><div class="ttdeci">int packet_change_state(packet_t *pkt, enum packet_state from, enum packet_state to)</div><div class="ttdoc">Change a packet state (atomic)  Atomic change operation of the packet state to &#39;to&#39; if the state is &#39;...</div><div class="ttdef"><b>Definition:</b> packet.c:39</div></div>
+<div class="ttc" id="packet_8h_html_ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><div class="ttname"><a href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet_change_state</a></div><div class="ttdeci">int packet_change_state(packet_t *pkt, enum packet_state from, enum packet_state to)</div><div class="ttdoc">Atomic change operation of the packet state  to &#39;to&#39; if the state is &#39;from&#39;. </div><div class="ttdef"><b>Definition:</b> packet.c:39</div></div>
 <div class="ttc" id="structpacket__t_html"><div class="ttname"><a href="structpacket__t.html">packet_t</a></div><div class="ttdef"><b>Definition:</b> packet.h:36</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Jan 9 2017 02:25:48 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Jan 9 2017 02:31:45 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>

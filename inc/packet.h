@@ -58,9 +58,10 @@ struct packet_t {
 packet_t *packet_alloc(int type);
 void packet_free(packet_t *pkt);
 char *packet_fetch(packet_t *pkt);
+
 /**
- * @brief Change a packet state (atomic)
- * @detail Atomic change operation of the packet state to 'to' if the state is 'from'
+ * @brief Atomic change operation of the packet state
+ * @detail to 'to' if the state is 'from'
  * @param pkt the packet
  * @param from the packet state must be
  * @param to the packet state will be
