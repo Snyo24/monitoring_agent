@@ -34,20 +34,15 @@ enum packet_response {
 };
 
 /**
- * @brief Packet structure containing json
- * @detail to 'to' if the state is 'from'
- * @param pkt a packet
- * @param from the packet state must be
- * @param to the packet state will be
- * @return If success returns 0, else returns 1
+ * Packet structure containing json
  */
 struct packet_t {
     /* Metadata */
     epoch_t started;
 
-    packet_type type;
-    packet_state state;
-    packet_response response;
+    enum packet_type type;
+    enum packet_state state;
+    enum packet_response response;
 
     int size;
     int rollback_point;
@@ -63,13 +58,29 @@ struct packet_t {
 
 };
 
+/**
+ * Allocate a packet
+ * @param pkt a packet
+ * @return If success returns a json string, else returns NULL
+ */
 packet_t *packet_alloc(int type);
+
+/**
+ * Fetch the content(json string) of a packet
+ * @param pkt a packet
+ * @return If success returns a json string, else returns NULL
+ */
 void packet_free(packet_t *pkt);
+
+/**
+ * Fetch the content(json string) of a packet
+ * @param pkt a packet
+ * @return If success returns a json string, else returns NULL
+ */
 char *packet_fetch(packet_t *pkt);
 
 /**
- * @brief Atomic change operation of a packet state
- * @detail to 'to' if the state is 'from'
+ * Atomic change operation of a packet state to 'to' if the state is 'from'
  * @param pkt a packet
  * @param from the packet state must be
  * @param to the packet state will be
@@ -78,28 +89,44 @@ char *packet_fetch(packet_t *pkt);
 int packet_change_state(packet_t *pkt, enum packet_state from, enum packet_state to);
 
 /**
- * @brief Check if a minute elapsed after the first record
+ * Check if a minute elapsed after the first record
  * @param pkt a packet
  * @return If yes returns 1, else returns 0
  */
 int packet_expired(packet_t *pkt);
 
+/**
+ * Marks the rollback point (inline)
+ * @param pkt a packet
+ */
 static inline
 void packet_transaction(packet_t *pkt) {
     pkt->rollback_point = pkt->size;
 }
 
+/**
+ * Overwrite rollback point to written size (inline)
+ * @param pkt a packet
+ */
 static inline
 void packet_commit(packet_t *pkt) {
     pkt->rollback_point = pkt->size;
 }
 
+/**
+ * Marks the rollback point (inline)
+ * @param pkt a packet
+ */
 static inline
 void packet_rollback(packet_t *pkt) {
     pkt->size = pkt->rollback_point;
     pkt->payload[pkt->size] = '\0';
 }
 
+/**
+ * Marks the rollback point (inline)
+ * @param pkt a packet
+ */
 static inline
 int packet_gather(packet_t *pkt, const char *tag, void *func, void *module) {
     int rollback_point = pkt->size;

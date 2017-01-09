@@ -62,7 +62,7 @@ packet_t *get_packet(enum packet_type type) {
                 pkt->reuse++;
                 return pkt;
             }
-            packet_chagne_state(pkt, EMPTY, DONE);
+            packet_change_state(pkt, EMPTY, DONE);
         }
     }
 
