@@ -1,3 +1,7 @@
+/**
+ * @file sender.h
+ * @author Snyo
+ */
 #include "sender.h"
 
 #include <curl/curl.h>

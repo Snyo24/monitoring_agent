@@ -11,6 +11,8 @@
 #include "packet.h"
 #include "util.h"
 
+enum plugin_gather_error {ENONE, ENODATA, EPLUGUP, EPLUGDOWN};
+
 typedef struct plugin_t {
 
     union {

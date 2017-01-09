@@ -77,10 +77,98 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <div class="title">Agent for Maxgauge AIR Documentation</div>  </div>
 </div><!--header-->
 <div class="contents">
-</div><!-- contents -->
+<div class="textblock"><h2>A. Specification</h2>
+<h3>Supports</h3>
+<ul>
+<li>Ubuntu: 12.04 LTS, 14.04 LTS, 16.04 LTS</li>
+<li>Debian: 7, 8</li>
+<li>Redhat, CentOS: 6, 7</li>
+</ul>
+<h3>Requirments</h3>
+<ul>
+<li>Nothing</li>
+</ul>
+<h3>Library used</h3>
+<ul>
+<li>From apt/ yum repositories<ul>
+<li>json-c <code>sudo apt-get install libjson0-dev</code> <code>sudo yum install json-c-devel</code></li>
+<li>openssl <code>sudo apt-get install libssl-dev</code> <code>sudo yum install openssl-devel</code></li>
+<li>mysqlclient <code>sudo apt-get install libmysqlclient-dev</code> <code>sudo yum install mysql-dev</code></li>
+<li>curl <code>sudo apt-get install libcurl4-openssl-dev</code></li>
+</ul>
+</li>
+<li>Others<ul>
+<li><a href="https://github.com/HardySimpson/zlog/archive/latest-stable.tar.gz">zlog</a> (<a href="https://hardysimpson.github.io/zlog/UsersGuide-EN.html">Document</a>) (Do not have to install, included)</li>
+</ul>
+</li>
+</ul>
+<h2>B. Install</h2>
+<ol type="1">
+<li>Download tar file <pre class="fragment"> $ wget (Download link)
+</pre><ul>
+<li>Check download links here<ul>
+<li>[RHEL 6](gadsfadsf)</li>
+<li>[RHEL 7](gadsfadsf)</li>
+<li>[CentOS 6](gadsfadsf)</li>
+<li>[CentOS 7](gadsfadsf)</li>
+<li>[Debian 7](gadsfadsf)</li>
+<li><a href="https://s3.ap-northeast-2.amazonaws.com/maxgaugeoncloud/downloads/agent/debian_8.6/moc_agent_debian_8.6_v1.0.tar.gz">Debain 8</a></li>
+<li>[Ubuntu 12.04](gadsfadsf)</li>
+<li><a href="https://s3.ap-northeast-2.amazonaws.com/maxgaugeoncloud/downloads/agent/ubuntu_14.04/moc_agent_ubuntu_14.04_v1.0.tar.gz">Ubuntu 14.04</a></li>
+<li>[Ubuntu 16.04](gadsfadsf)</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol>
+<ol type="1">
+<li>Untar moc_agent.tar.gz <pre class="fragment"> $ tar -zxf moc_agent.tar.gz
+</pre></li>
+</ol>
+<ol type="1">
+<li>Write your license in <code>cfg/license</code></li>
+</ol>
+<ol type="1">
+<li>Modify your configuration file (See <a href="#c-configuration">C. Configuration</a>)</li>
+</ol>
+<ol type="1">
+<li><p class="startli">Lauch the agent background</p>
+<p class="startli">``` $ ./bin/agent &amp; [1] (agent pid) ```</p>
+</li>
+</ol>
+<h2>C. Configuration</h2>
+<ul>
+<li>Your configuration is in <code>cfg/plugins</code>. We support 3 plugins, os, jvm, and mysql. Add the configuration by following instructions.<ul>
+<li><p class="startli"><b>OS</b></p>
+<p class="startli">It is written in the conf file by default. You can delete the line to stop observe the OS metrics. OS plugin does not need any option.</p>
+<p class="startli">In <code>cfg/plugins</code>, add a line <code>os</code>. &gt; os</p>
+</li>
+<li><p class="startli"><b>JVM</b></p>
+<p class="startli">JVM plugin needs a port to communicate with java agent. We call it jspd. The jspd runs with tomcat to collect metrics from tomcat. So, we must set the java agent to run with tomcat at the same time.</p>
+<p class="startli">At the first line of <code>$(tomcat path)/bin/catalina.sh</code>,</p>
+<p class="startli">&gt; export JSPD_HOME=(your agent path)/jspd &gt; &gt; export JAVA_OPTS="-javaagent:$JSPD_HOME/lib/jspd.jar -noverify"</p>
+<p class="startli">In <code>cfg/plugins</code>, add a line <code>jvm</code>. &gt; jvm</p>
+</li>
+<li><p class="startli"><b>MySQL</b></p>
+<p class="startli">MySQL plugin needs a host address, the root account, and its password. Write the options after <code>mysql</code> with seperating commas. &gt; mysql,127.0.0.1,root,password</p>
+</li>
+</ul>
+</li>
+</ul>
+<h2>D. Termination</h2>
+<ul>
+<li>If you want to terminate, use this: <pre class="fragment">  $ kill (agent pid)
+</pre></li>
+<li>Check your agent is terminated <pre class="fragment">  $ ps aux | grep moc_agent
+  (print nothing)
+</pre></li>
+<li>If you forgot the agent pid, check <code>res/pid</code>. <pre class="fragment">  $ cat res/pid
+  (agent pid)</pre> </li>
+</ul>
+</div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Jan 9 2017 00:50:03 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Jan 9 2017 02:25:48 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>

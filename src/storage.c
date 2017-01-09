@@ -53,12 +53,16 @@ int storage_fini(routine_t *st) {
 packet_t *get_packet(enum packet_type type) {
     for(packet_t *pkt=packets; pkt; pkt=pkt->next) {
         if(packet_change_state(pkt, DONE, EMPTY) == 0) {
-            pkt->type = type;
-            pkt->response = 0;
-            pkt->size = 0;
-            pkt->attempt = 0;
-            pkt->spin = 0;
-            return pkt;
+            if(pkt->reuse == 0) {
+                pkt->type = type;
+                pkt->response = 0;
+                pkt->size = 0;
+                pkt->attempt = 0;
+                pkt->spin = 0;
+                pkt->reuse++;
+                return pkt;
+            }
+            packet_chagne_state(pkt, EMPTY, DONE);
         }
     }
 

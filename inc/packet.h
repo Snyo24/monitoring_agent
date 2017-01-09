@@ -17,52 +17,11 @@
 
 typedef struct packet_t packet_t;
 
-struct packet_t {
-    /* Metadata */
-    epoch_t started;
-
-    enum packet_type type;
-    enum packet_state state;
-    enum packet_response response;
-
-    int size;
-    int rollback_point;
-    int attempt;
-
-    /* Paylaod */
-    char payload[PKTSZ];
-
-    /* Control */
-    int spin;
-    packet_t *next;
-
-};
-
-enum packet_gather_error {
-    ENONE,
-    ENODATA,
-    EPLUGUP,
-    EPLUGDOWN
-};
-
-enum packet_type {
-    METRIC,
-    REGISTER,
-    ALERT
-};
-
-enum packet_state {
-    EMPTY,
-    BEGIN,
-    WROTE,
-    READY,
-    DONE,
-    FREE
-};
-
+enum packet_type  {METRIC, REGISTER, ALERT};
+enum packet_state {EMPTY, BEGIN, WROTE, READY, DONE, FREE};
 enum packet_response {
     EINVALLICENSE = 201,
-    ETARoETAUTHFAIL = 202,
+    ETARGETAUTHFAIL = 202,
     EAGENTAUTHFAIL = 203,
     ETARGETNOTFOUND = 301,
     ETARGETREG = 302,
@@ -72,6 +31,28 @@ enum packet_response {
     ENOTSUPPORT = 403,
     EAGENTREG = 404,
     EAGENTPCH = 405
+};
+
+struct packet_t {
+    /* Metadata */
+    epoch_t started;
+
+    packet_type type;
+    packet_state state;
+    packet_response response;
+
+    int size;
+    int rollback_point;
+    int reuse;
+    int attempt;
+
+    /* Paylaod */
+    char payload[PKTSZ];
+
+    /* Control */
+    int spin;
+    packet_t *next;
+
 };
 
 packet_t *packet_alloc(int type);
