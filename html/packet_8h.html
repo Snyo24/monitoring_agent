@@ -102,7 +102,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="nested-classes"></a>
 Classes</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">struct &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structpacket__t.html">packet_t</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Packet structure containing json  to 'to' if the state is 'from'.  <a href="structpacket__t.html#details">More...</a><br/></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="define-members"></a>
@@ -158,25 +157,45 @@ Enumerations</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:a1840e27ecd4f14994dc494fcf2c5d15f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1840e27ecd4f14994dc494fcf2c5d15f"></a>
-<a class="el" href="structpacket__t.html">packet_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>packet_alloc</b> (int type)</td></tr>
+<tr class="memitem:a1840e27ecd4f14994dc494fcf2c5d15f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structpacket__t.html">packet_t</a> *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#a1840e27ecd4f14994dc494fcf2c5d15f">packet_alloc</a> (int type)</td></tr>
 <tr class="separator:a1840e27ecd4f14994dc494fcf2c5d15f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abbc0c356a75f1427f993f653b1b53aec"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="abbc0c356a75f1427f993f653b1b53aec"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>packet_free</b> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
+<tr class="memitem:abbc0c356a75f1427f993f653b1b53aec"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#abbc0c356a75f1427f993f653b1b53aec">packet_free</a> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
 <tr class="separator:abbc0c356a75f1427f993f653b1b53aec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1913c1e12a61e79c1580589f31627d91"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a1913c1e12a61e79c1580589f31627d91"></a>
-char *&#160;</td><td class="memItemRight" valign="bottom"><b>packet_fetch</b> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
+<tr class="memitem:a1913c1e12a61e79c1580589f31627d91"><td class="memItemLeft" align="right" valign="top">char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#a1913c1e12a61e79c1580589f31627d91">packet_fetch</a> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
 <tr class="separator:a1913c1e12a61e79c1580589f31627d91"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet_change_state</a> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt, enum packet_state from, enum packet_state to)</td></tr>
-<tr class="memdesc:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Atomic change operation of a packet state  to 'to' if the state is 'from'.  <a href="#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">More...</a><br/></td></tr>
 <tr class="separator:ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7b6a66c0723bc62a065385ea829cb211"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="packet_8h.html#a7b6a66c0723bc62a065385ea829cb211">packet_expired</a> (<a class="el" href="structpacket__t.html">packet_t</a> *pkt)</td></tr>
-<tr class="memdesc:a7b6a66c0723bc62a065385ea829cb211"><td class="mdescLeft">&#160;</td><td class="mdescRight">Check if a minute elapsed after the first record.  <a href="#a7b6a66c0723bc62a065385ea829cb211">More...</a><br/></td></tr>
 <tr class="separator:a7b6a66c0723bc62a065385ea829cb211"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><dl class="section author"><dt>Author</dt><dd>Snyo </dd></dl>
+<div class="textblock"><p>Defining packet behaviors</p>
+<dl class="section author"><dt>Author</dt><dd>Snyo </dd></dl>
 </div><h2 class="groupheader">Function Documentation</h2>
+<a class="anchor" id="a1840e27ecd4f14994dc494fcf2c5d15f"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="structpacket__t.html">packet_t</a>* packet_alloc </td>
+          <td>(</td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>type</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Allocate a packet </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pkt</td><td>a packet </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If success returns a packet structure, else returns NULL </dd></dl>
+
+</div>
+</div>
 <a class="anchor" id="ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2"></a>
 <div class="memitem">
 <div class="memproto">
@@ -206,8 +225,7 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><b>packet_fetch</b> (<
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Atomic change operation of a packet state  to 'to' if the state is 'from'. </p>
+<p>Atomic change operation of a packet state to 'to' if the state is 'from' </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">pkt</td><td>a packet </td></tr>
@@ -233,8 +251,7 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><b>packet_fetch</b> (<
         </tr>
       </table>
 </div><div class="memdoc">
-
-<p>Check if a minute elapsed after the first record. </p>
+<p>Check if a minute elapsed after the first record </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">pkt</td><td>a packet </td></tr>
@@ -245,10 +262,57 @@ char *&#160;</td><td class="memItemRight" valign="bottom"><b>packet_fetch</b> (<
 
 </div>
 </div>
+<a class="anchor" id="a1913c1e12a61e79c1580589f31627d91"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">char* packet_fetch </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structpacket__t.html">packet_t</a> *&#160;</td>
+          <td class="paramname"><em>pkt</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Fetch the content(json string) of a packet </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pkt</td><td>a packet </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>If success returns a json string, else returns NULL </dd></dl>
+
+</div>
+</div>
+<a class="anchor" id="abbc0c356a75f1427f993f653b1b53aec"></a>
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">void packet_free </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structpacket__t.html">packet_t</a> *&#160;</td>
+          <td class="paramname"><em>pkt</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free a packet </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pkt</td><td>a packet </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Jan 9 2017 03:56:59 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Jan 9 2017 05:03:23 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>

@@ -87,9 +87,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div><!--header-->
 <div class="contents">
 
-<p>Packet structure containing json  to 'to' if the state is 'from'.  
- <a href="structpacket__t.html#details">More...</a></p>
-
 <p><code>#include &lt;<a class="el" href="packet_8h_source.html">packet.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a name="pub-attribs"></a>
@@ -97,15 +94,15 @@ Public Attributes</h2></td></tr>
 <tr class="memitem:afd96eb1dbab117713bab51c847d6e0c6"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="afd96eb1dbab117713bab51c847d6e0c6"></a>
 epoch_t&#160;</td><td class="memItemRight" valign="bottom"><b>started</b></td></tr>
 <tr class="separator:afd96eb1dbab117713bab51c847d6e0c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8700ca7608253aea2f9968b8901421a9"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a8700ca7608253aea2f9968b8901421a9"></a>
-packet_type&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
-<tr class="separator:a8700ca7608253aea2f9968b8901421a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4a5d76569f35a726b05e9f60ec9a8a13"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a4a5d76569f35a726b05e9f60ec9a8a13"></a>
-packet_state&#160;</td><td class="memItemRight" valign="bottom"><b>state</b></td></tr>
-<tr class="separator:a4a5d76569f35a726b05e9f60ec9a8a13"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a00a4ad0757216048948c153ece0245b8"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a00a4ad0757216048948c153ece0245b8"></a>
-packet_response&#160;</td><td class="memItemRight" valign="bottom"><b>response</b></td></tr>
-<tr class="separator:a00a4ad0757216048948c153ece0245b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a46405905de7c8c06c83bf8d993cda41d"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a46405905de7c8c06c83bf8d993cda41d"></a>
+enum packet_type&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<tr class="separator:a46405905de7c8c06c83bf8d993cda41d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a99d131f8eb00bd1ddf731daaabc3b38f"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a99d131f8eb00bd1ddf731daaabc3b38f"></a>
+enum packet_state&#160;</td><td class="memItemRight" valign="bottom"><b>state</b></td></tr>
+<tr class="separator:a99d131f8eb00bd1ddf731daaabc3b38f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7e03e426fac9b20cb07f443ccf9bca4c"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a7e03e426fac9b20cb07f443ccf9bca4c"></a>
+enum packet_response&#160;</td><td class="memItemRight" valign="bottom"><b>response</b></td></tr>
+<tr class="separator:a7e03e426fac9b20cb07f443ccf9bca4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a868611d72c225661bc223e21a9306735"><td class="memItemLeft" align="right" valign="top"><a class="anchor" id="a868611d72c225661bc223e21a9306735"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>size</b></td></tr>
 <tr class="separator:a868611d72c225661bc223e21a9306735"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -129,23 +126,14 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>spin</b></td></tr>
 <tr class="separator:a7d76f728249d664b96658a9af8ddd5aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><p>Packet structure containing json  to 'to' if the state is 'from'. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">pkt</td><td>a packet </td></tr>
-    <tr><td class="paramname">from</td><td>the packet state must be </td></tr>
-    <tr><td class="paramname">to</td><td>the packet state will be </td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>If success returns 0, else returns 1 </dd></dl>
+<div class="textblock"><p>Packet structure containing json </p>
 </div><hr/>The documentation for this struct was generated from the following file:<ul>
 <li>inc/<a class="el" href="packet_8h_source.html">packet.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Jan 9 2017 03:56:59 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Jan 9 2017 05:03:23 for Agent for Maxgauge AIR by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>
