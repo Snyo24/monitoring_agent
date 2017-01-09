@@ -37,7 +37,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
   <div id="navrow1" class="tabs">
     <ul class="tablist">
       <li><a href="index.html"><span>Main&#160;Page</span></a></li>
-      <li><a href="modules.html"><span>Modules</span></a></li>
       <li><a href="annotated.html"><span>Classes</span></a></li>
       <li class="current"><a href="files.html"><span>Files</span></a></li>
       <li>
@@ -68,16 +67,6 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
     <ul class="tablist">
       <li class="current"><a href="globals.html"><span>All</span></a></li>
       <li><a href="globals_func.html"><span>Functions</span></a></li>
-      <li><a href="globals_type.html"><span>Typedefs</span></a></li>
-      <li><a href="globals_defs.html"><span>Macros</span></a></li>
-    </ul>
-  </div>
-  <div id="navrow4" class="tabs3">
-    <ul class="tablist">
-      <li><a href="#index_c"><span>c</span></a></li>
-      <li><a href="#index_e"><span>e</span></a></li>
-      <li><a href="#index_m"><span>m</span></a></li>
-      <li class="current"><a href="#index_t"><span>t</span></a></li>
     </ul>
   </div>
 </div><!-- top -->
@@ -86,7 +75,7 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
      onmouseover="return searchBox.OnSearchSelectShow()"
      onmouseout="return searchBox.OnSearchSelectHide()"
      onkeydown="return searchBox.OnSearchSelectKey(event)">
-<a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(0)"><span class="SelectionMark">&#160;</span>All</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(1)"><span class="SelectionMark">&#160;</span>Classes</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(2)"><span class="SelectionMark">&#160;</span>Files</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(3)"><span class="SelectionMark">&#160;</span>Functions</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(4)"><span class="SelectionMark">&#160;</span>Variables</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(5)"><span class="SelectionMark">&#160;</span>Typedefs</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(6)"><span class="SelectionMark">&#160;</span>Macros</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(7)"><span class="SelectionMark">&#160;</span>Groups</a></div>
+<a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(0)"><span class="SelectionMark">&#160;</span>All</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(1)"><span class="SelectionMark">&#160;</span>Classes</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(2)"><span class="SelectionMark">&#160;</span>Files</a><a class="SelectItem" href="javascript:void(0)" onclick="searchBox.OnSelectItem(3)"><span class="SelectionMark">&#160;</span>Functions</a></div>
 
 <!-- iframe showing the search results (closed by default) -->
 <div id="MSearchResultsWindow">
@@ -96,279 +85,19 @@ var searchBox = new SearchBox("searchBox", "search",false,'Search');
 </div>
 
 <div class="contents">
-<div class="textblock">Here is a list of all documented file members with links to the documentation:</div>
-
-<h3><a class="anchor" id="index_c"></a>- c -</h3><ul>
-<li>CR_ERROR
-: <a class="el" href="plugin__auth__common_8h.html#a44f1794e5697229fad0750b028ddbd4d">plugin_auth_common.h</a>
-</li>
-<li>CR_OK
-: <a class="el" href="plugin__auth__common_8h.html#ae5ecbb4568bb8771e7cb0d2b9d192e62">plugin_auth_common.h</a>
-</li>
-<li>CR_OK_HANDSHAKE_COMPLETE
-: <a class="el" href="plugin__auth__common_8h.html#a64bf95e422b0259c0705ea8585f6e8d6">plugin_auth_common.h</a>
-</li>
-</ul>
-
-
-<h3><a class="anchor" id="index_e"></a>- e -</h3><ul>
+<div class="textblock">Here is a list of all documented file members with links to the documentation:</div><ul>
 <li>epoch_time()
-: <a class="el" href="util_8h.html#a48ddf747b3b46994eb2caa129e6a70bb">util.h</a>
-, <a class="el" href="util_8c.html#a48ddf747b3b46994eb2caa129e6a70bb">util.c</a>
-</li>
-</ul>
-
-
-<h3><a class="anchor" id="index_m"></a>- m -</h3><ul>
-<li>mysql_client_find_plugin()
-: <a class="el" href="client__plugin_8h.html#ac331fa93e8cf7e34bf6c4077d7783da0">client_plugin.h</a>
-</li>
-<li>mysql_client_register_plugin()
-: <a class="el" href="client__plugin_8h.html#a6c81fabd148a6bf562e6cda0b77a83d4">client_plugin.h</a>
-</li>
-<li>mysql_cond_broadcast
-: <a class="el" href="group__Thread__instrumentation.html#gacb6fb6fb435a2b0093763bd45366a561">mysql_thread.h</a>
-</li>
-<li>mysql_cond_destroy
-: <a class="el" href="group__Thread__instrumentation.html#ga6246b32eceeb71a62e7e0c98fdff79ec">mysql_thread.h</a>
-</li>
-<li>mysql_cond_init
-: <a class="el" href="group__Thread__instrumentation.html#gafbb7ba5ebdc0a66f60ebf20737a4c3f7">mysql_thread.h</a>
-</li>
-<li>mysql_cond_signal
-: <a class="el" href="group__Thread__instrumentation.html#gae34d5c956bc219ef45fbece509d3cf40">mysql_thread.h</a>
-</li>
-<li>mysql_cond_t
-: <a class="el" href="group__Thread__instrumentation.html#ga23d9658a805c313a31a6ac170441690c">mysql_thread.h</a>
-</li>
-<li>mysql_cond_timedwait
-: <a class="el" href="group__Thread__instrumentation.html#ga835e97f258f7c4c78e24ffff723f0bea">mysql_thread.h</a>
-</li>
-<li>mysql_cond_wait
-: <a class="el" href="group__Thread__instrumentation.html#ga0094737fa36967b77033c500fd25d0ff">mysql_thread.h</a>
-</li>
-<li>MYSQL_FILE
-: <a class="el" href="group__File__instrumentation.html#ga5c8a860321c042d4ee56840f7fe13d28">mysql_file.h</a>
-</li>
-<li>mysql_file_chsize
-: <a class="el" href="group__File__instrumentation.html#ga2eca9b643c5a563f34710b69bf271a56">mysql_file.h</a>
-</li>
-<li>mysql_file_close
-: <a class="el" href="group__File__instrumentation.html#gac3e5a7264fe209b4f80e331eb9b289aa">mysql_file.h</a>
-</li>
-<li>mysql_file_create
-: <a class="el" href="group__File__instrumentation.html#gabe8f1e94702494578dbafabc0c9a8e1c">mysql_file.h</a>
-</li>
-<li>mysql_file_create_temp
-: <a class="el" href="group__File__instrumentation.html#gac417c82486e66fa1eb634133e0b9b4a4">mysql_file.h</a>
-</li>
-<li>mysql_file_create_with_symlink
-: <a class="el" href="group__File__instrumentation.html#ga12f7d6da2b7b0d31ca6fd309eb565d3f">mysql_file.h</a>
-</li>
-<li>mysql_file_delete
-: <a class="el" href="group__File__instrumentation.html#ga7de236e28d52a083a5329cd42d4df526">mysql_file.h</a>
-</li>
-<li>mysql_file_delete_with_symlink
-: <a class="el" href="group__File__instrumentation.html#gab8473e457c7621ad4b3f3f3e7fd6567e">mysql_file.h</a>
-</li>
-<li>mysql_file_fclose
-: <a class="el" href="group__File__instrumentation.html#ga76cb28bad6bf49cd4eb74e29b6b1f351">mysql_file.h</a>
-</li>
-<li>mysql_file_feof
-: <a class="el" href="group__File__instrumentation.html#gafb70ab14870dd85565ce53aa34d45d69">mysql_file.h</a>
-</li>
-<li>mysql_file_fflush
-: <a class="el" href="group__File__instrumentation.html#ga9a933c527007ec265721d6ce7754dff9">mysql_file.h</a>
-</li>
-<li>mysql_file_fgetc
-: <a class="el" href="group__File__instrumentation.html#ga37aac363e9552e496c7d7265c79b02e5">mysql_file.h</a>
-</li>
-<li>mysql_file_fgets
-: <a class="el" href="group__File__instrumentation.html#ga000a3c9ec8a5af042bbecbff848817bc">mysql_file.h</a>
-</li>
-<li>mysql_file_fopen
-: <a class="el" href="group__File__instrumentation.html#ga69e9fafc700b6f755d3fa8b7e81ca960">mysql_file.h</a>
-</li>
-<li>mysql_file_fprintf
-: <a class="el" href="group__File__instrumentation.html#gaa73083b75360942286eb68d317a4475e">mysql_file.h</a>
-</li>
-<li>mysql_file_fputc
-: <a class="el" href="group__File__instrumentation.html#gaa28a0e6d9fe96bf0fb615a1ec76a3c50">mysql_file.h</a>
-</li>
-<li>mysql_file_fputs
-: <a class="el" href="group__File__instrumentation.html#gac12aaf935dabc76299e85beedc9976c1">mysql_file.h</a>
-</li>
-<li>mysql_file_fread
-: <a class="el" href="group__File__instrumentation.html#gaff15996e451f54b19d304a18ba2ba868">mysql_file.h</a>
-</li>
-<li>mysql_file_fseek
-: <a class="el" href="group__File__instrumentation.html#ga639ad8c829d538e27d169dcc0d41aead">mysql_file.h</a>
-</li>
-<li>mysql_file_fstat
-: <a class="el" href="group__File__instrumentation.html#ga2933e5950a4c5a771485201744aba2fb">mysql_file.h</a>
-</li>
-<li>mysql_file_ftell
-: <a class="el" href="group__File__instrumentation.html#ga9b2587de69f486f8691f76f9525f5774">mysql_file.h</a>
-</li>
-<li>mysql_file_fwrite
-: <a class="el" href="group__File__instrumentation.html#ga3f98ef759072e716cfada5ab27bd581b">mysql_file.h</a>
-</li>
-<li>mysql_file_open
-: <a class="el" href="group__File__instrumentation.html#gad1bfb411c69d8cc906a4ec3a0b38bbdd">mysql_file.h</a>
-</li>
-<li>mysql_file_pread
-: <a class="el" href="group__File__instrumentation.html#ga9a1511dab4d1d95c34246eda06154a56">mysql_file.h</a>
-</li>
-<li>mysql_file_pwrite
-: <a class="el" href="group__File__instrumentation.html#ga1677074309e8eb198f7c7042ab831037">mysql_file.h</a>
-</li>
-<li>mysql_file_read
-: <a class="el" href="group__File__instrumentation.html#gadedb7fc2684f4387fcda98aeafce5010">mysql_file.h</a>
-</li>
-<li>mysql_file_rename
-: <a class="el" href="group__File__instrumentation.html#gab5fc52554b6b03f86232a1017cc047e0">mysql_file.h</a>
-</li>
-<li>mysql_file_rename_with_symlink
-: <a class="el" href="group__File__instrumentation.html#gabefa7c13146ea025a884332dfdeb58ac">mysql_file.h</a>
-</li>
-<li>mysql_file_seek
-: <a class="el" href="group__File__instrumentation.html#gac41bcbeb11c120dffc56c2c0cf97b1ac">mysql_file.h</a>
-</li>
-<li>mysql_file_stat
-: <a class="el" href="group__File__instrumentation.html#ga670a5fedb5cc20f70f05e1e6c46af479">mysql_file.h</a>
-</li>
-<li>mysql_file_sync
-: <a class="el" href="group__File__instrumentation.html#ga8eeb6e355ec3d7b86fad077206dc389d">mysql_file.h</a>
-</li>
-<li>mysql_file_tell
-: <a class="el" href="group__File__instrumentation.html#ga986e05972a959429dbeceee4dc9c3f67">mysql_file.h</a>
-</li>
-<li>mysql_file_vfprintf
-: <a class="el" href="group__File__instrumentation.html#ga91d1dbacebeac3507a3822455c7de05d">mysql_file.h</a>
-</li>
-<li>mysql_file_write
-: <a class="el" href="group__File__instrumentation.html#gaa1379645ea56a3455fe4a998dad29e27">mysql_file.h</a>
-</li>
-<li>mysql_load_plugin()
-: <a class="el" href="client__plugin_8h.html#a3667292c8b1c4c373bd07284986cf0e2">client_plugin.h</a>
-</li>
-<li>mysql_load_plugin_v()
-: <a class="el" href="client__plugin_8h.html#acab13bc271529ce7ebc88a82baf458a7">client_plugin.h</a>
-</li>
-<li>mysql_mutex_assert_not_owner
-: <a class="el" href="group__Thread__instrumentation.html#ga5d4432144c24f6cf89f761417dd1c1c6">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_assert_owner
-: <a class="el" href="group__Thread__instrumentation.html#gaccf61aa4a9e6108ac938a184d7b8efd7">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_destroy
-: <a class="el" href="group__Thread__instrumentation.html#ga37298c942ab1882a74ed52b787605132">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_init
-: <a class="el" href="group__Thread__instrumentation.html#gaf4fc58e68eb34057e9954944a34824c1">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_lock
-: <a class="el" href="group__Thread__instrumentation.html#ga340bf8f49d0cbaa994eaf5fb1fc7a22f">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_t
-: <a class="el" href="group__Thread__instrumentation.html#ga5303924710bf8356ede41ee68bca276f">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_trylock
-: <a class="el" href="group__Thread__instrumentation.html#gade9e152045c2d2883e41f9a4870ec73b">mysql_thread.h</a>
-</li>
-<li>mysql_mutex_unlock
-: <a class="el" href="group__Thread__instrumentation.html#ga5c748d3c7862702885acb90576754a2c">mysql_thread.h</a>
-</li>
-<li>mysql_plugin_options()
-: <a class="el" href="client__plugin_8h.html#aad3027412aa8767f4238e5f09f363ab9">client_plugin.h</a>
-</li>
-<li>MYSQL_PLUGIN_VIO
-: <a class="el" href="plugin__auth__common_8h.html#afbff0ad44b3dd5cf763b405275fb2780">plugin_auth_common.h</a>
-</li>
-<li>mysql_prlock_assert_write_owner
-: <a class="el" href="group__Thread__instrumentation.html#ga61626cc44fdb26eee5862fab1d5c5f64">mysql_thread.h</a>
-</li>
-<li>mysql_prlock_destroy
-: <a class="el" href="group__Thread__instrumentation.html#gac46c2c37e2e6a1b1307ca5d99e55c9e7">mysql_thread.h</a>
-</li>
-<li>mysql_prlock_init
-: <a class="el" href="group__Thread__instrumentation.html#gaeb8f605199892c6535a5f26e2a0f235a">mysql_thread.h</a>
-</li>
-<li>mysql_prlock_rdlock
-: <a class="el" href="group__Thread__instrumentation.html#ga8e3840715fa8eb68c09184cb0d6cf6ac">mysql_thread.h</a>
-</li>
-<li>mysql_prlock_t
-: <a class="el" href="group__Thread__instrumentation.html#ga91f9e9de0d35a9c7ebfdaaeaf6934f52">mysql_thread.h</a>
-</li>
-<li>mysql_prlock_unlock
-: <a class="el" href="group__Thread__instrumentation.html#ga7209b9ddb7d8eba27e54f70b5e475755">mysql_thread.h</a>
-</li>
-<li>mysql_prlock_wrlock
-: <a class="el" href="group__Thread__instrumentation.html#ga2707dabe15286a5d22420583655ee072">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_destroy
-: <a class="el" href="group__Thread__instrumentation.html#ga91073c12aa3e1b1744fe8fdab66f5343">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_init
-: <a class="el" href="group__Thread__instrumentation.html#ga8ad41adf7d4f3abd1de761cb667c73d8">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_rdlock
-: <a class="el" href="group__Thread__instrumentation.html#gace201fa4a780b6412d6ed07255d15394">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_t
-: <a class="el" href="group__Thread__instrumentation.html#ga6737023008cfcd6ae0794f54ae06bd32">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_tryrdlock
-: <a class="el" href="group__Thread__instrumentation.html#ga51150e592420e7b63ed31d423e056ba0">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_trywrlock
-: <a class="el" href="group__Thread__instrumentation.html#gab51957ac2bf7ae8b7c3d60e634ebbf41">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_unlock
-: <a class="el" href="group__Thread__instrumentation.html#ga31cafdef914a7846dac2059ba41df306">mysql_thread.h</a>
-</li>
-<li>mysql_rwlock_wrlock
-: <a class="el" href="group__Thread__instrumentation.html#ga930f3e6d955a0d311e6b11e3d7327b55">mysql_thread.h</a>
-</li>
-<li>MYSQL_SERVER_AUTH_INFO
-: <a class="el" href="plugin__auth_8h.html#a3c3a86d91461eec65cc86a55fe0f21bc">plugin_auth.h</a>
-</li>
-<li>mysql_thread_create
-: <a class="el" href="group__Thread__instrumentation.html#gaf217225b22711f9809270c84cfcb08ba">mysql_thread.h</a>
-</li>
-<li>mysql_thread_set_psi_id
-: <a class="el" href="group__Thread__instrumentation.html#ga5a91c11fcd6990e72e8ab44b6b042fe5">mysql_thread.h</a>
-</li>
-<li>MYSQL_USERNAME_LENGTH
-: <a class="el" href="plugin__auth__common_8h.html#aa9261e7b650434a33f94d75a65fa9b57">plugin_auth_common.h</a>
-</li>
-</ul>
-
-
-<h3><a class="anchor" id="index_t"></a>- t -</h3><ul>
-<li>thd_alloc()
-: <a class="el" href="service__thd__alloc_8h.html#a140f3e02e78079be041b7a64cc50f664">service_thd_alloc.h</a>
-</li>
-<li>thd_calloc()
-: <a class="el" href="service__thd__alloc_8h.html#a998a56d623acf47edb567e20fd464898">service_thd_alloc.h</a>
-</li>
-<li>thd_make_lex_string()
-: <a class="el" href="service__thd__alloc_8h.html#aa5b9f255f1e7b115ac0948cc9474f72f">service_thd_alloc.h</a>
-</li>
-<li>thd_memdup()
-: <a class="el" href="service__thd__alloc_8h.html#a2078e8cefc978ad2d47965972f973150">service_thd_alloc.h</a>
-</li>
-<li>thd_strdup()
-: <a class="el" href="service__thd__alloc_8h.html#abb817a5fcdd537bc5997e18839956da3">service_thd_alloc.h</a>
-</li>
-<li>thd_strmake()
-: <a class="el" href="service__thd__alloc_8h.html#a1baec8bb5b5ef8948e36b21696143e41">service_thd_alloc.h</a>
+: <a class="el" href="util_8c.html#a48ddf747b3b46994eb2caa129e6a70bb">util.c</a>
+, <a class="el" href="util_8h.html#a48ddf747b3b46994eb2caa129e6a70bb">util.h</a>
+</li>
+<li>packet_change_state()
+: <a class="el" href="packet_8h.html#ae2d6ce7f51e7ccec36bfd0bf6fcf7ca2">packet.h</a>
 </li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Jan 9 2017 00:42:13 for My Project by &#160;<a href="http://www.doxygen.org/index.html">
+Generated on Mon Jan 9 2017 00:45:56 for My Project by &#160;<a href="http://www.doxygen.org/index.html">
 <img class="footer" src="doxygen.png" alt="doxygen"/>
 </a> 1.8.6
 </small></address>

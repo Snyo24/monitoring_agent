@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['mysql_2ec',['mysql.c',['../mysql_8c.html',1,'']]],
-  ['mysql_5ffile_2eh',['mysql_file.h',['../mysql__file_8h.html',1,'']]],
-  ['mysql_5fthread_2eh',['mysql_thread.h',['../mysql__thread_8h.html',1,'']]]
+  ['packet_2eh',['packet.h',['../packet_8h.html',1,'']]],
+  ['plugin_2ec',['plugin.c',['../plugin_8c.html',1,'']]],
+  ['plugin_2eh',['plugin.h',['../plugin_8h.html',1,'']]]
 ];

@@ -2,7 +2,6 @@
  * @file storage.c
  * @author Snyo
  */
-
 #include "storage.h"
 
 #include <stdio.h>

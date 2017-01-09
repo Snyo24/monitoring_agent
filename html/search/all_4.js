@@ -1,4 +1,6 @@
 var searchData=
 [
-  ['def_5fvalue',['def_value',['../structmy__option.html#a57c38e17b78669fa512e5136a1b8ee28',1,'my_option']]]
+  ['routine_2ec',['routine.c',['../routine_8c.html',1,'']]],
+  ['routine_2eh',['routine.h',['../routine_8h.html',1,'']]],
+  ['routine_5ft',['routine_t',['../structroutine__t.html',1,'']]]
 ];
