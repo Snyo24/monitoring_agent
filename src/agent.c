@@ -11,6 +11,7 @@
 #include "storage.h"
 #include "plugin.h"
 #include "util.h"
+#include "daemon.h"
 
 #define MAX_PLUGINS 5
 
@@ -18,7 +19,12 @@ int      pluginc;
 plugin_t *plugins[MAX_PLUGINS] = {0};
 
 int main(int argc, char **argv) {
-    if(zlog_init(".zlog.conf")) {
+    if(daemonize() < 0){
+        printf("Fail to make daemon process");
+        exit(1);
+    }
+
+    if(zlog_init("/etc/moc/.zlog.conf")) {
         printf("zlog initiation failed\n");
         exit(1);
     }
@@ -32,7 +38,7 @@ int main(int argc, char **argv) {
     }
 
     /* Plugins */
-    if(!(pluginc = sparse("plugin.conf", plugins))) {
+    if(!(pluginc = sparse("/etc/moc/plugin.conf", plugins))) {
         DEBUG(zlog_error(tag, "No plugin found"));
         exit(1);
     }
@@ -66,6 +72,6 @@ int main(int argc, char **argv) {
     storage_fini(&st);
 
     zlog_fini();
-    
+
     return 0;
 }

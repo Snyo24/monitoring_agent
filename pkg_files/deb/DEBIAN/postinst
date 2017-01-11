@@ -1,0 +1,6 @@
+ldconfig /usr/lib
+echo ""
+echo "Agent for MaxGuage Air installed"
+echo "Now, register agent as a daemon..."
+update-rc.d maxguageair defaults
+echo "Success. Please reboot the system"

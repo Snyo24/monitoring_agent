@@ -1,0 +1,3 @@
+update-rc.d maxguageair remove
+echo ""
+echo "Agent for MaxGuage Air uninstalled"

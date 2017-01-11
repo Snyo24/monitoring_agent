@@ -17,9 +17,9 @@
 
 typedef struct packet_t packet_t;
 
-enum packet_type  {METRIC, REGISTER, ALERT};
-enum packet_state {EMPTY, BEGIN, WROTE, READY, DONE, FREE};
-enum packet_response {
+typedef enum packet_type  {METRIC, REGISTER, ALERT} packet_type;
+typedef enum packet_state {EMPTY, BEGIN, WROTE, READY, DONE, FREE} packet_state;
+typedef enum packet_response {
     EINVALLICENSE = 201,
     ETARGETAUTHFAIL = 202,
     EAGENTAUTHFAIL = 203,
@@ -31,7 +31,7 @@ enum packet_response {
     ENOTSUPPORT = 403,
     EAGENTREG = 404,
     EAGENTPCH = 405
-};
+}packet_response;
 
 /**
  * @brief Packet structure containing json
