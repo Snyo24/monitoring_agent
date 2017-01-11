@@ -27,16 +27,14 @@ test -x $DAEMON || exit 0
 
 start () {
   log_daemon_msg "Starting $DESC" "$NAME"
-  start-stop-daemon --pidfile "$PIDFILE" --start --quiet --background --exec "$DAEMON" -- \
-    -pidfile "$PIDFILE" $XINETD_OPTS
+  start-stop-daemon --pidfile "$PIDFILE" --start --quiet --background --exec "$DAEMON" -- -pidfile "$PIDFILE"
   log_end_msg $?
   return
 }
 
 stop () {
   log_daemon_msg "Stopping $DESC" "$NAME"
-  start-stop-daemon --pidfile "$PIDFILE" --stop --signal 9 --quiet --oknodo --exec "$DAEMON" -- \
-    -pidfile "$PIDFILE" $XINETD_OPTS
+  start-stop-daemon --pidfile "$PIDFILE" --stop --signal 9 --quiet --oknodo --exec "$DAEMON"
   log_end_msg $?
   return
 }
