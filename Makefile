@@ -2,7 +2,7 @@
 CC          := gcc
 
 #The Target Binary Program
-TARGET      := agent
+TARGET      := air-agent
 
 #The Directories, Source, Includes, Objects, Binary and Resources
 BINDIR      := bin

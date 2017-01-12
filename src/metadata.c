@@ -86,7 +86,7 @@ int get_pid() {
 	return 0;
 }
 
-int metadata_init() {
+int meta_init() {
 	return -(get_os()      < 0
           || get_host()    < 0
 		  || get_ip()      < 0

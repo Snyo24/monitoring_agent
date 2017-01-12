@@ -8,6 +8,6 @@ extern char type[];
 extern unsigned long long aid;
 extern char license[];
 
-int metadata_init();
+int meta_init();
 
 #endif

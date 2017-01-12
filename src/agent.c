@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 #include <pthread.h>
+#include <sys/stat.h>
 
 #include <zlog.h>
 
@@ -20,7 +21,7 @@ int      pluginc;
 plugin_t *plugins[MAX_PLUGINS] = {0};
 
 int main(int argc, char **argv) {
-    if(zlog_init(".zlog.conf")) {
+    if(zlog_init("zlog.conf")) {
         printf("zlog initiation failed\n");
         exit(1);
     }
@@ -28,7 +29,7 @@ int main(int argc, char **argv) {
     zlog_category_t *tag = zlog_get_category("main");
 
     /* Metadata */
-    if(metadata_init() < 0) {
+    if(meta_init() < 0) {
         DEBUG(zlog_error(tag, "Fail to initialize metadata"));
         exit(1);
     }
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
         DEBUG(zlog_error(tag, "No plugin found"));
         exit(1);
     }
-
+    
     DIR *dirp = opendir("res");
     if(dirp) {
         struct dirent *ep;
@@ -79,14 +80,14 @@ int main(int argc, char **argv) {
                 for(int i=0; i<pluginc; i++) {
                     plugin_t *p = plugins[i];
                     if(!strcmp(p->type, type) && !p->cmp(module, (void *)p->module, size)) {
-                        unsigned long long x = 0;
+                        p->tid = 0;
                         for(int j=0; j<strlen(ep->d_name); j++)
-                            x = x * 10 + ep->d_name[j] - '0';
-                        p->tid = x;
+                            p->tid = p->tid * 10 + ep->d_name[j] - '0';
                         break;
                     }
                 }
                 free(module);
+                remove(plugin_id);
             }
         }
         closedir(dirp);

@@ -109,7 +109,7 @@ int plugin_regr(plugin_t *p) {
             break;
 
             default:
-            // Not expected response
+            // unexpected response
             break;
         }
         return -1;
