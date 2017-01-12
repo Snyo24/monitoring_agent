@@ -1,3 +1,8 @@
+/**
+ * @file    daemon.h
+ * @author  Gyeongwon Kim
+ */
+
 #ifndef _SERVER_H_
 #define _SERVER_H_
 

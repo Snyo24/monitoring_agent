@@ -1,3 +1,8 @@
-update-rc.d maxguageair remove
+update-rc.d maxgaugeair-agent remove
+rm -f /usr/bin/maxgaugeair-agent
+rm -rf /etc/maxgaugeair
+rm -f /etc/init/maxgaugeair-agent.conf
+rm -f /etc/init.d/maxgaugeair-agent
+
 echo ""
-echo "Agent for MaxGuage Air uninstalled"
+echo "Agent for maxgauge Air uninstalled"

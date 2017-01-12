@@ -52,7 +52,7 @@ int get_type() {
 }
 
 int get_aid() {
-    FILE *aid_fd = fopen("/etc/moc/etc/.aid", "r");
+    FILE *aid_fd = fopen("/etc/maxgaugeair/etc/.aid", "r");
     if(aid_fd) {
         int success = fscanf(aid_fd, "%llu", &aid) == 1;
         fclose(aid_fd);
@@ -60,7 +60,7 @@ int get_aid() {
     }
 
     aid = epoch_time()*epoch_time()*epoch_time();
-    aid_fd = fopen(".aid", "w+");
+    aid_fd = fopen("/etc/maxgaugeair/etc/.aid", "w+");
     if(!aid_fd) return -1;
     fprintf(aid_fd, "%llu\n", aid);
     fclose(aid_fd);
@@ -68,7 +68,7 @@ int get_aid() {
 }
 
 int get_license() {
-    FILE *license_fd = fopen("/etc/moc/config/license", "r");
+    FILE *license_fd = fopen("/etc/maxgaugeair/config/license", "r");
     if(!license_fd) return -1;
     char tmp[1000];
     int success = fscanf(license_fd, "%[^:]:%*[:^\t^ ]%s", tmp, license) == 2;
@@ -79,9 +79,9 @@ int get_license() {
 
 int get_pid() {
     FILE *pid_fd;
-    if(!(pid_fd = fopen("/etc/moc/etc/.pid", "w+")))
+    if(!(pid_fd = fopen("/etc/maxgaugeair/etc/.pid", "w+")))
         return -1;
-    fprintf(pid_fd, "%d\n", getpid());
+    fprintf(pid_fd, "%d", getpid());
     fclose(pid_fd);
     return 0;
 }

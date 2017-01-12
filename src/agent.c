@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h> // For strerror()
+#include <unistd.h> // For getpid()
+#include <sys/types.h>
 
 #include <zlog.h>
 
@@ -20,12 +23,12 @@ plugin_t *plugins[MAX_PLUGINS] = {0};
 
 int main(int argc, char **argv) {
     if(daemonize() < 0){
-        printf("Fail to make daemon process");
+        fprintf(stderr, "Fail to make daemon process");
         exit(1);
     }
 
-    if(zlog_init("/etc/moc/.zlog.conf")) {
-        printf("zlog initiation failed\n");
+    if(zlog_init("/etc/maxgaugeair/.zlog.conf")) {
+        fprintf(stderr, "zlog initiation failed\n");
         exit(1);
     }
 
@@ -38,7 +41,7 @@ int main(int argc, char **argv) {
     }
 
     /* Plugins */
-    if(!(pluginc = sparse("/etc/moc/plugin.conf", plugins))) {
+    if(!(pluginc = sparse("/etc/maxgaugeair/plugin.conf", plugins))) {
         DEBUG(zlog_error(tag, "No plugin found"));
         exit(1);
     }

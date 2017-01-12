@@ -1,11 +1,7 @@
 bin
 log
-
 obj
-lib/plugins
-
+lib/maxgauge_plugins
 .*.swp
-*.swo
-
-.uuid
-.pid
+.*.swo
+*.bak

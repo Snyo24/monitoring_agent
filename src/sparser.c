@@ -11,7 +11,7 @@
 #include "util.h"
 
 int skip_until(FILE *conf, const char c) {
-    void *err;
+    void *err = NULL;
     char line[BFSZ];
     while((err = fgets(line, BFSZ, conf)) && line[0] != c);
     if(feof(conf)) return 2;
@@ -28,9 +28,9 @@ int sparse(const char *filename, plugin_t **plugins) {
 
     FILE *conf = fopen(filename, "r");
     if(!conf) {
-		zlog_error(tag, "Fail to open conf");
-		return -1;
-	}
+        zlog_error(tag, "Fail to open conf");
+        return -1;
+    }
     enum {
         NONE,
         PLUG,
@@ -38,7 +38,7 @@ int sparse(const char *filename, plugin_t **plugins) {
         VAL
     } status = NONE;
 
-	char line[BFSZ];
+    char line[BFSZ];
 
     char type[BFSZ];
     char dlname[BFSZ], smname[BFSZ];
@@ -50,23 +50,29 @@ int sparse(const char *filename, plugin_t **plugins) {
     while(fgets(line, BFSZ, conf)) {
         char first, remain[BFSZ];
         sscanf(line, "%c%s", &first, remain);
-        if(first == '\n' || first == '#') {
-        } else if(first == '<') {
+
+        switch(first) {
+        case '\n':
+        case '#':
+            break;
+        case '<':
             if(status != NONE) {
                 zlog_error(tag, "Unexpected character '<'");
+                fclose(conf);
                 return -1;
             }
             argc = 0;
 
             status = PLUG;
             snprintf(type, BFSZ, "%s", remain);
-            snprintf(dlname, BFSZ, "lib%s.so", type);
+            snprintf(dlname, BFSZ, "/usr/lib/plugins/lib%s.so", type);
             snprintf(smname, BFSZ, "load_%s_module", type);
             if(0x00 || !(dl = dlopen(dlname, RTLD_LAZY | RTLD_NODELETE))
                     || !(load_module = dlsym(dl, smname))) {
                 zlog_error(tag, "Cannot %s (from %s)", smname, dlname);
                 switch(skip_until(conf, '>')) {
                 case 1:
+                    fclose(conf);
                     return -1;
                 case 2:
                     zlog_error(tag, "Missing '>'");
@@ -75,11 +81,13 @@ int sparse(const char *filename, plugin_t **plugins) {
             } else {
                 dlclose(dl);
             }
-        } else if(first == '-') {
+            break;
+        case '-':
             if(status == PLUG) {
                 if(strncmp(remain, "OFF", 3) == 0) {
                     switch(skip_until(conf, '>')) {
                     case 1:
+                        fclose(conf);
                         return -1;
                     case 2:
                         zlog_error(tag, "Missing '>'");
@@ -87,6 +95,7 @@ int sparse(const char *filename, plugin_t **plugins) {
                     status = NONE;
                 } else if(strncmp(remain, "ON", 2) != 0) {
                     zlog_error(tag, "Status for %s is unknown: %s", type, remain);
+                    fclose(conf);
                     return -1;
                 }
             } else if(status == NAME) {
@@ -96,17 +105,22 @@ int sparse(const char *filename, plugin_t **plugins) {
                 snprintf(argv[argc++], BFSZ, "%s", remain);
             } else {
                 zlog_error(tag, "Unexpected character '-'");
+                fclose(conf);
                 return -1;
             }
-        } else if(first == '!') {
+            break;
+        case '!':
             if(status != PLUG) {
                 zlog_error(tag, "Unexpected character '!'");
+                fclose(conf);
                 return -1;
             }
             status = NAME;
-        } else if(first == '>') {
+            break;
+        case '>':
             if(status != VAL && status != PLUG) {
                 zlog_error(tag, "Unexpected character '>'");
+                fclose(conf);
                 return -1;
             }
             status = NONE;
@@ -121,8 +135,10 @@ int sparse(const char *filename, plugin_t **plugins) {
                 continue;
             }
             plugins[n++] = p;
-        } else {
+            break;
+        default:
             zlog_error(tag, "Unexpected character");
+            fclose(conf);
             return -1;
         }
     }

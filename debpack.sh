@@ -8,28 +8,30 @@ make clean
 make all
 
 # Make new file archive
-rm -rf moc_deb
-mkdir -p moc_deb/DEBIAN
-mkdir -p moc_deb/usr/bin
-mkdir -p moc_deb/usr/lib
-mkdir -p moc_deb/etc/moc/config
-mkdir -p moc_deb/etc/moc/etc
+rm -rf maxgaugeair_deb
+mkdir -p maxgaugeair_deb/DEBIAN
+mkdir -p maxgaugeair_deb/usr/bin
+mkdir -p maxgaugeair_deb/usr/lib
+mkdir -p maxgaugeair_deb/etc/maxgaugeair/config
+mkdir -p maxgaugeair_deb/etc/maxgaugeair/etc
+mkdir -p maxgaugeair_deb/etc/maxgaugeair/log
 
 # Copy agent binary, configuration files
-cp bin/agent moc_deb/usr/bin/moc-agent
-cp cfg/license moc_deb/etc/moc/config/license
-cp cfg/plugins moc_deb/etc/moc/config/plugins
-cp .aid moc_deb/etc/moc/etc/.aid
+cp bin/agent        maxgaugeair_deb/usr/bin/maxgaugeair-agent
+cp cfg/license      maxgaugeair_deb/etc/maxgaugeair/config/license
+cp cfg/plugins      maxgaugeair_deb/etc/maxgaugeair/config/plugins
+cp cfg/.zlog.conf   maxgaugeair_deb/etc/maxgaugeair/.zlog.conf
+cp cfg/plugin.conf  maxgaugeair_deb/etc/maxgaugeair/plugin.conf
 
 # Copy library files
-cp -r lib/* moc_deb/usr/lib/
+cp -r lib/* maxgaugeair_deb/usr/lib/
 
 # Copy spec file, scripts and daemon configurations
-cp -r pkg_files/deb/* moc_deb/
+cp -r pkg_files/deb/* maxgaugeair_deb/
 
 # Finally pack the file archive using dpkg
-dpkg -b moc_deb moc_agent.deb
+dpkg -b maxgaugeair_deb maxgaugeair_agent.deb
 
 # Remove file archive, builds
-rm -rf moc_deb
+rm -rf maxgaugeair_deb
 make clean

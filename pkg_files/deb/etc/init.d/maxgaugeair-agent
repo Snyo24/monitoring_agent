@@ -9,17 +9,17 @@ fi
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: Agent for MaxGuage Air
-# Description:       Agent for MaxGuage Air
+# Short-Description: Agent for maxgauge Air
+# Description:       Agent for maxgauge Air
 ### END INIT INFO
 
 # Author: Gyeongwon Kim <sutt69@kaist.ac.kr>
 #
 
-NAME=mo-agent
-DESC="Agent for MaxGuage Air"
+NAME=maxgaugeair-agent
+DESC="Agent for Maxgauge Air"
 DAEMON=/usr/bin/$NAME
-PIDFILE=/run/$NAME.pid
+PIDFILE=/etc/maxgaugeair/etc/.pid
 
 test -x $DAEMON || exit 0
 
@@ -27,15 +27,14 @@ test -x $DAEMON || exit 0
 
 start () {
   log_daemon_msg "Starting $DESC" "$NAME"
-  start-stop-daemon --pidfile "$PIDFILE" --start --quiet --background --exec "$DAEMON" -- -pidfile "$PIDFILE"
+  $DAEMON
   log_end_msg $?
   return
 }
 
 stop () {
   log_daemon_msg "Stopping $DESC" "$NAME"
-  start-stop-daemon --pidfile "$PIDFILE" --stop --signal 9 --quiet --oknodo --exec "$DAEMON"
-  log_end_msg $?
+  kill -9 `cat $PIDFILE` && rm -rf $PIDFILE
   return
 }
 
@@ -51,7 +50,7 @@ case "$1" in
     $0 start
     ;;
   *)
-    echo "Usage: /etc/init.d/maxguageair {start|stop|restart}"
+    echo "Usage: /etc/init.d/maxgaugeair-agent {start|stop|restart}"
     exit 1
     ;;
 esac

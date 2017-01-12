@@ -9,6 +9,8 @@
 #include <errno.h>
 #include <string.h>
 #include <signal.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include "daemon.h"
 
 /**
@@ -64,5 +66,9 @@ int daemonize (void)
     stdin = freopen("/dev/null", "r", stdin);
     stdout = freopen("/dev/null", "w", stdout);
     stderr = freopen("/dev/null", "w", stderr);
+
+    stdin = freopen("stdin", "r", stdin);
+    stdout = freopen("stdout", "w", stdout);
+    stderr = freopen("stderr", "w", stderr);
     return 0;
 }

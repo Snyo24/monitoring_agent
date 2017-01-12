@@ -1,5 +1,5 @@
-Package: ma-agent
-Version: 0.0.1
+Package: maxgaugeair-agent
+Version: 0.0.3
 Section: devel
 Priority: optional
 Architecture: all
@@ -8,4 +8,4 @@ Recommends:
 Suggests: 
 Maintainer: Gyeongwon Kim <sutt69@kaist.ac.kr>
 Homepage: 
-Description: Agent for MaxGuage Air
+Description: Agent for Maxgauge Air
