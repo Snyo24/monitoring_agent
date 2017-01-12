@@ -29,6 +29,8 @@ PLUGINS     := $(wildcard $(SRCDIR)/plugins/*.c)
 OBJECTS     := $(CORE:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 LDS         := $(PLUGINS:$(SRCDIR)/plugins/%.c=$(LIBDIR)/plugins/lib%.so)
 
+.PHONY: all clean
+
 #Rules
 all: dir $(LDS) $(BINDIR)/$(TARGET)
 
@@ -44,11 +46,13 @@ $(BINDIR)/$(TARGET): $(OBJECTS)
 	@echo
 	@echo "[ Target ]"
 	$(CC) -Wl,--export-dynamic -o $@ $(OBJECTS) $(INC) $(LDLIBS) $(LDFLAGS)
+	@echo "Target file is created"
 
 $(LIBDIR)/plugins/lib%.so: $(OBJDIR)/plugins/%.o
 	@echo
 	@echo "[ Plugin "$*" ]"
 	$(CC) -shared -o $@ $< $(LDLIBS) $(LDFLAGS)
+	@echo "Plugin object files are created"
 
 $(OBJDIR)/plugins/%.o: $(SRCDIR)/plugins/%.c $(INCDIR)/plugins/%.h
 	$(CC) $(CFLAGS) $(INC) -fPIC -c $< -o $@
@@ -58,5 +62,3 @@ $(OBJDIR)/%.o: $(SRCDIR)/%.c $(INCDIR)/%.h
 
 clean:
 	rm -rf $(BINDIR) $(OBJDIR) $(LOGDIR)/* $(LDS)
-
-.PHONY: all clean

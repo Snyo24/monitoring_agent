@@ -1,4 +1,4 @@
-# Maxguage on Cloud Agent
+# Maxgauge on Cloud Agent
  
 ## A. Specification
 

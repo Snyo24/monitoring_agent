@@ -1,0 +1,11 @@
+Package: maxgaugeair-agent
+Version: 0.0.3
+Section: devel
+Priority: optional
+Architecture: all
+Depends: libjson0-dev, libssl-dev, libmysqlclient-dev, libcurl4-openssl-dev
+Recommends: 
+Suggests: 
+Maintainer: Gyeongwon Kim <sutt69@kaist.ac.kr>
+Homepage: 
+Description: Agent for Maxgauge Air

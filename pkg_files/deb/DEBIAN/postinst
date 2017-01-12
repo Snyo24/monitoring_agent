@@ -1,0 +1,7 @@
+chmod 0755 /etc/init.d/maxgaugeair-agent
+chmod 0644 /etc/init/maxgaugeair-agent.conf
+ldconfig /usr/lib
+update-rc.d maxgaugeair-agent defaults
+
+echo ""
+echo "Agent for Maxgauge Air installed. Please reboot the system"
