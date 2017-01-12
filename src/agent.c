@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <pthread.h>
 
 #include <zlog.h>
@@ -35,6 +37,59 @@ int main(int argc, char **argv) {
     if(!(pluginc = sparse("plugin.conf", plugins))) {
         DEBUG(zlog_error(tag, "No plugin found"));
         exit(1);
+    }
+
+    DIR *dirp = opendir("res");
+    if(dirp) {
+        struct dirent *ep;
+        while((ep = readdir(dirp)) != NULL) {
+            if(ep->d_ino != 0 && strcmp(ep->d_name, ".") && strcmp(ep->d_name, "..")) {
+                char plugin_id[BFSZ];
+                snprintf(plugin_id, BFSZ, "res/%s", ep->d_name);
+                FILE *fp = fopen(plugin_id, "rb");
+                if(!fp) continue;
+
+                int size;
+                char type[BFSZ];
+                void *module;
+                if(fread(&size, 1, sizeof(size), fp) != sizeof(size)) {
+                    fclose(fp);
+                    continue;
+                }
+
+                if(fread(type, 1, size, fp) != size) {
+                    fclose(fp);
+                    continue;
+                }
+                type[size] = '\0';
+
+                if(fread(&size, 1, sizeof(size), fp) != sizeof(size)) {
+                    fclose(fp);
+                    continue;
+                }
+
+                module = malloc(size);
+                if(fread(module, 1, size, fp) != size) {
+                    fclose(fp);
+                    free(module);
+                    continue;
+                }
+                fclose(fp);
+
+                for(int i=0; i<pluginc; i++) {
+                    plugin_t *p = plugins[i];
+                    if(!strcmp(p->type, type) && !p->cmp(module, (void *)p->module, size)) {
+                        unsigned long long x = 0;
+                        for(int j=0; j<strlen(ep->d_name); j++)
+                            x = x * 10 + ep->d_name[j] - '0';
+                        p->tid = x;
+                        break;
+                    }
+                }
+                free(module);
+            }
+        }
+        closedir(dirp);
     }
 
     /* Scheduler & Sender */

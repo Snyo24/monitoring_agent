@@ -3,6 +3,7 @@ log
 
 obj
 lib/plugins
+res/
 
 *.swp
 *.swo

@@ -1,5 +1,5 @@
 /**
- * Defining packet behaviors
+ * @brief Define packet behaviors
  * @file packet.h
  * @author Snyo
  */
@@ -47,7 +47,6 @@ struct packet_t {
 
     int size;
     int rollback_point;
-    int reuse;
     int attempt;
 
     /* Paylaod */
@@ -60,8 +59,8 @@ struct packet_t {
 };
 
 /**
- * Allocate a packet
- * @param pkt a packet
+ * Allocate a packet of type 'type'
+ * @param type
  * @return If success returns a packet structure, else returns NULL
  */
 packet_t *packet_alloc(int type);
@@ -73,7 +72,7 @@ packet_t *packet_alloc(int type);
 void packet_free(packet_t *pkt);
 
 /**
- * Fetch the content(json string) of a packet
+ * Atomic fetch the content(json string) of a packet
  * @param pkt a packet
  * @return If success returns a json string, else returns NULL
  */
@@ -129,6 +128,7 @@ void packet_rollback(packet_t *pkt) {
  * @param tag json field name
  * @param func gathering process
  * @param module userdata of the func
+ * @returns 0 for success, an error code for corresponding error
  */
 static inline
 int packet_gather(packet_t *pkt, const char *tag, void *func, void *module) {

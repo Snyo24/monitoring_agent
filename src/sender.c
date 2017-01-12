@@ -59,7 +59,7 @@ int post(packet_t *pkt) {
     pkt->attempt++;
     char *payload = packet_fetch(pkt);
     if(!payload) return -1;
-    //printf("%s\n", payload);
+    printf("%s\n", payload);
 
     while(!__sync_bool_compare_and_swap(&sender[pkt->type].spin, 0, 1));
 	curl_easy_setopt(sender[pkt->type].curl, CURLOPT_POSTFIELDS, payload);
@@ -68,7 +68,6 @@ int post(packet_t *pkt) {
     long status_code;
 	curl_easy_getinfo(sender[pkt->type].curl, CURLINFO_RESPONSE_CODE, &status_code);
     sender[pkt->type].spin = 0;
-    printf("%d %ld\n", pkt->response, status_code);
 
 	return (curl_code==CURLE_OK && (status_code==202 || status_code==200)) - 1;
 }

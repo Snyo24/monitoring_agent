@@ -41,11 +41,12 @@ int sparse(const char *filename, plugin_t **plugins) {
 	char line[BFSZ];
 
     char type[BFSZ];
-    char dlname[BFSZ], smname[BFSZ];
+    char dlname[BFSZ], smname[BFSZ], cmpname[BFSZ];
     int argc = 0;
     char argv[10][BFSZ];
     void *dl;
-    int (*load_module)(plugin_t *, int, char**) = 0;
+    int (*load)(plugin_t *, int, char**) = 0;
+    int (*cmp)(void *, void *) = 0;
 
     while(fgets(line, BFSZ, conf)) {
         char first, remain[BFSZ];
@@ -62,8 +63,10 @@ int sparse(const char *filename, plugin_t **plugins) {
             snprintf(type, BFSZ, "%s", remain);
             snprintf(dlname, BFSZ, "lib%s.so", type);
             snprintf(smname, BFSZ, "load_%s_module", type);
+            snprintf(cmpname, BFSZ, "%s_module_cmp", type);
             if(0x00 || !(dl = dlopen(dlname, RTLD_LAZY | RTLD_NODELETE))
-                    || !(load_module = dlsym(dl, smname))) {
+                    || !(load = dlsym(dl, smname))
+                    || !(cmp  = dlsym(dl, cmpname))) {
                 zlog_error(tag, "Cannot %s (from %s)", smname, dlname);
                 switch(skip_until(conf, '>')) {
                 case 1:
@@ -116,7 +119,7 @@ int sparse(const char *filename, plugin_t **plugins) {
                 free(p);
                 continue;
             }
-            if(load_module(p, argc, (char **)argv) < 0) {
+            if(load(p, argc, (char **)argv) < 0) {
                 free(p);
                 continue;
             }

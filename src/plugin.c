@@ -28,6 +28,7 @@ int plugin_init(plugin_t *p) {
 	if(routine_init(&p->r) < 0)
 		return -1;
 
+    p->tid = 0;
     p->working = 0;
     p->oob = 0;
 
@@ -69,8 +70,10 @@ int plugin_regr(plugin_t *p) {
 
     DEBUG(zlog_debug(p->tag, ".. Register"));
 
-    p->tid = epoch_time()*epoch_time()*epoch_time();
     if(!p->oob) {
+        if(!p->tid)
+            p->tid = epoch_time()*epoch_time()*epoch_time();
+
         p->oob = packet_alloc(REGISTER);
         p->oob->state = READY;
         packet_append(p->oob, "{\"license\":\"%s\",\"aid\":%llu,\"tid\":", license, aid);
@@ -93,6 +96,7 @@ int plugin_regr(plugin_t *p) {
             break;
 
             case ETARGETREG:
+            p->tid = epoch_time()*epoch_time()*epoch_time();
             break;
 
             case ETARGETPCH:
@@ -113,6 +117,17 @@ int plugin_regr(plugin_t *p) {
 
     packet_free(p->oob);
     p->oob = 0;
+
+    char m_name[BFSZ];
+    snprintf(m_name, BFSZ, "res/%llu", p->tid);
+
+    FILE *fp = fopen(m_name, "w+");
+    int type_size = strlen(p->type);
+    fwrite(&type_size, 1, sizeof(int), fp);
+    fwrite(p->type, 1, type_size, fp);
+    fwrite(&p->module_size, 1, sizeof(int), fp);
+    fwrite(p->module, 1, p->module_size, fp);
+    fclose(fp);
 
     routine_change_task(&p->r, plugin_gather);
 

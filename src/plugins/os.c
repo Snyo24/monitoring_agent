@@ -16,37 +16,43 @@
 
 #define OS_TICK 2.977F
 
+int os_module_cmp(void *_m1, void *_m2, int size);
 int os_gather(void *_p, packet_t *pkt);
 
-int _os_gather_cpu(void *m, packet_t *pkt);
-int _os_gather_disk(void *m, packet_t *pkt);
-int _os_gather_proc(void *m, packet_t *pkt);
-int _os_gather_memory(void *m, packet_t *pkt);
-int _os_gather_network(void *m, packet_t *pkt);
+int _os_gather_cpu(void *_m, packet_t *pkt);
+int _os_gather_disk(void *_m, packet_t *pkt);
+int _os_gather_proc(void *_m, packet_t *pkt);
+int _os_gather_memory(void *_m, packet_t *pkt);
+int _os_gather_network(void *_m, packet_t *pkt);
 
 int load_os_module(plugin_t *p, int argc, char **argv) {
     if(!p) return -1;
 
     p->tick = OS_TICK;
     p->tip  = NULL;
-    // TODO os version
     p->type = "linux_ubuntu_1.0";
 
     p->prep = NULL;
     p->fini = NULL;
     p->gather = os_gather;
+    p->cmp = os_module_cmp;
 
+    p->module_size = 0;
     p->module = 0;
 
 	return 0;
 }
 
-int os_gather(void *m, packet_t *pkt) {
-    return packet_gather(pkt, "cpu",  _os_gather_cpu, m)
-        & packet_gather(pkt, "disk", _os_gather_disk, m)
-        & packet_gather(pkt, "proc", _os_gather_proc, m)
-        & packet_gather(pkt, "mem",  _os_gather_memory, m)
-        & packet_gather(pkt, "net",  _os_gather_network, m);
+int os_module_cmp(void *_m1, void *_m2, int size) {
+    return 0;
+}
+
+int os_gather(void *_m, packet_t *pkt) {
+    return packet_gather(pkt, "cpu",  _os_gather_cpu, _m)
+        & packet_gather(pkt, "disk", _os_gather_disk, _m)
+        & packet_gather(pkt, "proc", _os_gather_proc, _m)
+        & packet_gather(pkt, "mem",  _os_gather_memory, _m)
+        & packet_gather(pkt, "net",  _os_gather_network, _m);
 }
 
 /*
@@ -59,7 +65,7 @@ int os_gather(void *m, packet_t *pkt) {
  *
  * (CPU usage of user, system, and idle)
  */
-int _os_gather_cpu(void *m, packet_t *pkt) {
+int _os_gather_cpu(void *_m, packet_t *pkt) {
 	FILE *pipe;
 	pipe = popen("awk '$1~/^cpu$/{tot=$2+$3+$4+$5;print$2/tot,$4/tot,$5/tot}' /proc/stat", "r");
 	if(!pipe) return ENODATA;
@@ -76,7 +82,7 @@ int _os_gather_cpu(void *m, packet_t *pkt) {
  * Disk metrics
  * This function extracts disk metrics.
  */
-int _os_gather_disk(void *m, packet_t *pkt) {
+int _os_gather_disk(void *_m, packet_t *pkt) {
     int error = ENODATA;
 	FILE *pipe;
 	pipe = popen("awk '$1~\"^/dev/\"{print$1,$2}' /proc/mounts", "r");
@@ -182,7 +188,7 @@ int _os_gather_disk(void *m, packet_t *pkt) {
  *
  * (a command to execute the process, cpu(or memory) percentage that the process is using)
  */
-int _os_gather_proc(void *m, packet_t *pkt) {
+int _os_gather_proc(void *_m, packet_t *pkt) {
     int error = ENODATA;
 
     struct {
@@ -280,7 +286,7 @@ int _os_gather_proc(void *m, packet_t *pkt) {
  *
  * (total, free, cached, active, inactive, total virtual, and using virtual memory)
  */
-int _os_gather_memory(void *m, packet_t *pkt) {
+int _os_gather_memory(void *_m, packet_t *pkt) {
     int error = ENODATA;
 	FILE *pipe = popen("awk '/^Mem[TF]|^Cached|Active:|Inactive:|Vmalloc[TU]/{print$2}' /proc/meminfo", "r");
 	if(!pipe) return error;
@@ -306,7 +312,7 @@ int _os_gather_memory(void *m, packet_t *pkt) {
  *
  * (network name, bytes, packets, errors received/transmitted)
  */
-int _os_gather_network(void *m, packet_t *pkt) {
+int _os_gather_network(void *_m, packet_t *pkt) {
     int error = ENODATA;
 
 	FILE *pipe = popen("awk '{print$1,$2,$3,$4,$10,$11,$12}' /proc/net/dev | tail -n +3", "r");

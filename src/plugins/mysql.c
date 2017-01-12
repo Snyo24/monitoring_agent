@@ -33,6 +33,7 @@ typedef struct mysql_module_t {
 
 int mysql_prep(void *_m);
 int mysql_fini(void *_m);
+int mysql_module_cmp(void *_m1, void *_m2, int size);
 int mysql_gather(void *_p, packet_t *pkt);
 
 int _mysql_gather_crud(mysql_module_t *m, packet_t *pkt);
@@ -63,10 +64,24 @@ int load_mysql_module(plugin_t *p, int argc, char *argv[]) {
     p->prep = mysql_prep;
 	p->fini = mysql_fini;
 	p->gather = mysql_gather;
+    p->cmp = mysql_module_cmp;
     
+    p->module_size = sizeof(mysql_module_t);
     p->module = m;
 
 	return 0;
+}
+
+int mysql_module_cmp(void *_m1, void *_m2, int size) {
+    mysql_module_t *m1 = _m1;
+    mysql_module_t *m2 = _m2;
+    if(0x01 && size == sizeof(mysql_module_t)
+            && !strcmp(m1->host, m2->host)
+            && !strcmp(m1->user, m2->user)
+            && !strcmp(m1->pass, m2->pass)
+            && m1->port == m2->port)
+        return 0;
+    return 1;
 }
 
 int mysql_prep(void *_m) {

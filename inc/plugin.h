@@ -31,6 +31,8 @@ typedef struct plugin_t {
 	int (*fini)(void *);
 
 	int (*gather)(void *, packet_t *);
+    int (*cmp)(void *, void *, int);
+    int module_size;
     void *module;
 
 } plugin_t;
